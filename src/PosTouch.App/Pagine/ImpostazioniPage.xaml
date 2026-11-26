@@ -142,6 +142,10 @@
                             <CheckBox x:Name="ChkAccorpaConto" Color="#4CAF50" />
                             <Label Text="🔗 Accorpa righe uguali sul conto" Style="{StaticResource Spunta}" />
                         </HorizontalStackLayout>
+                        <HorizontalStackLayout>
+                            <CheckBox x:Name="ChkNumeroConto" Color="#4CAF50" />
+                            <Label Text="🔢 Stampa il numero del conto" Style="{StaticResource Spunta}" />
+                        </HorizontalStackLayout>
                         <Button x:Name="BtnProvaTermica" Text="🖨️ STAMPA DI PROVA" BackgroundColor="#9C27B0" Style="{StaticResource TastoTouch}" Clicked="OnProvaTermica" />
                     </VerticalStackLayout>
                 </Border>

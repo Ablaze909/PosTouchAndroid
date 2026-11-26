@@ -75,6 +75,7 @@ namespace PosTouch.App.Pagine
             CampoIntest2.Text = i.IntestazioneConto2;
             CampoIntest3.Text = i.IntestazioneConto3;
             ChkAccorpaConto.IsChecked = i.AccorpaRigheConto;
+            ChkNumeroConto.IsChecked = i.StampaNumeroConto;
             ChkRigaPiuMeno.IsChecked = i.MostraRigaPiuMeno;
             ChkAccorpaVideo.IsChecked = i.AccorpaRigheVideo;
             ChkAccorpaScontrino.IsChecked = i.AccorpaRigheScontrino;
@@ -144,6 +145,7 @@ namespace PosTouch.App.Pagine
             n.IntestazioneConto2 = (CampoIntest2.Text ?? "").Trim();
             n.IntestazioneConto3 = (CampoIntest3.Text ?? "").Trim();
             n.AccorpaRigheConto = ChkAccorpaConto.IsChecked;
+            n.StampaNumeroConto = ChkNumeroConto.IsChecked;
             n.MostraRigaPiuMeno = ChkRigaPiuMeno.IsChecked;
             n.AccorpaRigheVideo = ChkAccorpaVideo.IsChecked;
             n.AccorpaRigheScontrino = ChkAccorpaScontrino.IsChecked;
@@ -160,7 +162,7 @@ namespace PosTouch.App.Pagine
         private string Firma() => string.Join("|", SceltaTipo.Indice, CampoIP.Text, CampoPorta.Text, CampoOperatore.Text, ChkCassetto.IsChecked,
             CampoNomePV.Text, CampoSottotitoloPV.Text, ChkSconti.IsChecked, ChkCambioPrezzo.IsChecked, ChkModificaVendita.IsChecked,
             ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkRigaSingola.IsChecked, ChkRigaPiuMeno.IsChecked, ChkTermica.IsChecked, CampoIPTermica.Text, CampoPortaTermica.Text,
-            CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkAccorpaVideo.IsChecked,
+            CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked);
 

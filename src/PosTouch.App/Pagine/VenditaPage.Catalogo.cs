@@ -182,7 +182,8 @@ namespace PosTouch.App.Pagine
         {
             // con un dialogo aperto, il popup CASSA o la stampa in corso il lettore non aggiunge articoli
             // (un articolo letto durante l'emissione verrebbe perso alla chiusura dello scontrino)
-            if (HaLivelli || Attesa.IsVisible || OverlayPagamento.IsVisible || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso) return;
+            if (HaLivelli || Attesa.IsVisible || OverlayPagamento.IsVisible || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso
+                || _modalitaModifica) return;
             var p = ContestoCassa.Catalogo.CercaBarcode(codice);
             if (p == null) _ = MessaggioBox.Avviso("ARTICOLO NON TROVATO", $"Nessun articolo con codice:\n{codice}");
             else _ = AggiungiProdottoAsync(p);

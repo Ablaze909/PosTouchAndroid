@@ -142,9 +142,28 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
                 return;
             }
-            _modalitaModifica = !_modalitaModifica;
-            BtnModifica.BackgroundColor = Ui.C(_modalitaModifica ? "#FF9800" : "#757575");
-            OverlayModifica.IsVisible = _modalitaModifica;
+            ImpostaModalitaModifica(!_modalitaModifica);
+        }
+
+        /// <summary>
+        /// Modalità modifica: si possono solo scegliere categorie e toccare articoli per modificarli.
+        /// Scontrino, tastiera, sconti, CASSA/CONTO/CASSETTO/BARCODE, lettore barcode, strumenti,
+        /// funzioni cassa e uscita restano bloccati finché non si preme di nuovo ✏️.
+        /// </summary>
+        private void ImpostaModalitaModifica(bool attiva)
+        {
+            _modalitaModifica = attiva;
+            BtnModifica.BackgroundColor = Ui.C(attiva ? "#FF9800" : "#757575");
+            OverlayModifica.IsVisible = attiva;
+            VeloScontrino.IsVisible = VeloBarra.IsVisible = attiva;
+            BtnEsci.IsEnabled = BtnStrumenti.IsEnabled = BtnFunzioniCassa.IsEnabled = !attiva;
+            BtnEsci.Opacity = BtnStrumenti.Opacity = BtnFunzioniCassa.Opacity = attiva ? 0.4 : 1;
+            if (attiva)
+            {
+                _tastierino.Azzera();
+                OverlayPagamento.IsVisible = false;
+                NascondiResto();
+            }
         }
 
         private async void OnFunzioniCassa(object sender, EventArgs e)
@@ -165,6 +184,7 @@ namespace PosTouch.App.Pagine
         protected override bool Indietro()
         {
             if (Attesa.IsVisible) return true;
+            if (_modalitaModifica) { ImpostaModalitaModifica(false); return true; } // indietro = esci dalla modifica
             if (OverlayPagamento.IsVisible) { OverlayPagamento.IsVisible = false; return true; }
             OnEsci(this, EventArgs.Empty);
             return true;

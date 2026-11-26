@@ -16,7 +16,8 @@ namespace PosTouch.Core.Stampa
         private static string E(decimal v) => v.ToString("F2", It);
 
         public static byte[] Crea(IList<RigaScontrino> righe, int numero, string intestazione1, string intestazione2,
-                                  string intestazione3, bool accorpa, DateTime quando, decimal versato = 0, decimal resto = 0)
+                                  string intestazione3, bool accorpa, DateTime quando, decimal versato = 0, decimal resto = 0,
+                                  bool stampaNumero = false)
         {
             const int L = EscPos.Colonne;
             var p = new EscPos();
@@ -65,6 +66,7 @@ namespace PosTouch.Core.Stampa
             }
 
             p.Vuota().Linea().Vuota();
+            if (stampaNumero) p.Centrato($"Conto N. {numero}", true, false);
             p.Centrato(quando.ToString("dd/MM/yyyy - HH:mm:ss", It), false, false);
             p.Vuota().Vuota().Vuota().Taglio();
             return p.Byte();

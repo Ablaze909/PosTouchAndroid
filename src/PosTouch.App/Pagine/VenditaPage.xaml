@@ -47,7 +47,7 @@
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie → ▲▼ → 🏠 ═════════ -->
         <Grid Grid.Row="0" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
-            <Button Grid.Row="0" Text="🚪" FontSize="22" BackgroundColor="#B71C1C" Style="{StaticResource TastoScuro}"
+            <Button x:Name="BtnEsci" Grid.Row="0" Text="🚪" FontSize="22" BackgroundColor="#B71C1C" Style="{StaticResource TastoScuro}"
                     Margin="0,0,0,2" Clicked="OnEsci" />
 
             <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Never">
@@ -70,7 +70,7 @@
                 <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
                     <Button x:Name="BtnStrumenti" Text="🔧" WidthRequest="46" BackgroundColor="#555555" Style="{StaticResource TastoToolbar}" Clicked="OnStrumenti" />
                     <Button x:Name="BtnModifica" Text="✏️" WidthRequest="46" BackgroundColor="#757575" Style="{StaticResource TastoToolbar}" Clicked="OnModifica" />
-                    <Button Text="💰 FUNZIONI CASSA" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
+                    <Button x:Name="BtnFunzioniCassa" Text="💰 FUNZIONI CASSA" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
                             Style="{StaticResource TastoToolbar}" Clicked="OnFunzioniCassa" />
                 </HorizontalStackLayout>
                 <BoxView HeightRequest="1" Color="#E5E5E5" VerticalOptions="End" />
@@ -214,6 +214,24 @@
             <Button x:Name="BtnConto" Grid.Column="2" Text="📄 CONTO" FontSize="18" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button Grid.Column="3" Text="📂 CASSETTO" FontSize="18" BackgroundColor="#FF9800" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassetto" />
             <Button Grid.Column="4" Text="🔍 BARCODE" FontSize="18" BackgroundColor="#795548" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnBarcode" />
+        </Grid>
+
+        <!-- ═════════ MODALITÀ MODIFICA: scontrino, tastiera e barra inferiore bloccati ═════════ -->
+        <Grid x:Name="VeloScontrino" Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" BackgroundColor="#B3263238" IsVisible="False">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer />
+            </Grid.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center" Spacing="10" Padding="20">
+                <Label Text="🔒" FontSize="48" HorizontalOptions="Center" />
+                <Label Text="VENDITA BLOCCATA" FontSize="22" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                <Label Text="Modalità modifica attiva:&#10;tocca un articolo per modificarlo.&#10;&#10;Premi ✏️ per tornare alla vendita."
+                       FontSize="16" TextColor="White" HorizontalTextAlignment="Center" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+        <Grid x:Name="VeloBarra" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="Transparent" IsVisible="False">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer />
+            </Grid.GestureRecognizers>
         </Grid>
 
         <!-- ═════════ OVERLAY MODALITÀ MODIFICA ═════════ -->
