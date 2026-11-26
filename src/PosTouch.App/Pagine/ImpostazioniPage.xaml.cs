@@ -91,6 +91,7 @@ namespace PosTouch.App.Pagine
             AggiornaFont();
 
             _password = i.PinImpostazioni ?? "";
+            AggiornaAssistenza();
             AggiornaPassword();
             CaricaOperatori();
             ChkFondoCassa.IsChecked = i.ChiediFondoCassa;

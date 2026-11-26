@@ -65,6 +65,13 @@ namespace PosTouch.App.Pagine
                 try { await Task.Run(() => archivio.Salva(admin, pin)); }
                 catch (ArgumentException ex) { await MessaggioBox.Avviso("AMMINISTRATORE", ex.Message); return false; }
             }
+            else
+            {
+                // amministratore già presente (accensione precedente): per riaccendere serve il suo PIN (o l'assistenza),
+                // così non si accende per sbaglio una gestione di cui nessuno ricorda il PIN
+                var chi = await Accesso.VerificaAmministratoreAsync("ACCENDI GESTIONE OPERATORI");
+                if (chi == null) return false;
+            }
             SalvaFlagOperatori(true);
             await MessaggioBox.Successo("OPERATORI", "Gestione operatori accesa.\n\nCrea gli altri operatori da 👥 GESTIONE OPERATORI. Da ora per vendere serve il PIN.");
             return true;

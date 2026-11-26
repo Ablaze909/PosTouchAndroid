@@ -37,11 +37,24 @@ namespace PosTouch.Core.Sale
         public void Unisci(IEnumerable<long> tavoliId)
         {
             SalvaBozza();
-            _archivio.UnisciTavoli(Tavolo.Id, tavoliId);
-            Carrello.Carica(_archivio.Righe(Tavolo.Id));
+            var ids = tavoliId.Where(id => id != Tavolo.Id).Distinct().ToList();
+            // righe di ogni tavolo con la SUA portata (calcolata sul tavolo da solo), prima di spostarle
+            var perTavolo = new List<IList<RigaScontrino>> { Carrello.Righe.ToList() };
+            foreach (long id in ids)
+            {
+                var r = _archivio.Righe(id);
+                Portate.Assegna(r, Carrello.SeparatoriPortate);
+                perTavolo.Add(r);
+            }
+            var aperti = _archivio.Aperti().Where(t => ids.Contains(t.Id)).ToList();
+            _archivio.UnisciTavoli(Tavolo.Id, ids);
+            // ogni articolo nella sua portata; le portate già avviate in uno dei tavoli non ripartono
+            Carrello.Carica(UnioneTavoli.Unisci(perTavolo, Carrello.SeparatoriPortate));
+            if (aperti.Count > 0) Tavolo.PortataCorrente = Math.Max(Tavolo.PortataCorrente, aperti.Max(t => t.PortataCorrente));
             // anche gli storni in sospeso dei tavoli uniti (altrimenti il prossimo salvataggio li cancellerebbe)
             _storniPendenti.Clear();
             _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));
+            SalvaBozza();   // ordine per portata e portata corrente salvati subito
             LogManager.Info($"UNISCI in {Titolo}: {Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto)} articoli");
         }
 

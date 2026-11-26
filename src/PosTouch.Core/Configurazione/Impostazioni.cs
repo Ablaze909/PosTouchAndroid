@@ -96,6 +96,9 @@ namespace PosTouch.Core.Configurazione
         // ── 🔒 SICUREZZA ──
         /// <summary>Password amministratore (solo cifre): richiesta per Strumenti, Back office e Impostazioni. Vuota = nessuna.</summary>
         public string PinImpostazioni { get; set; } = "";
+        /// <summary>Password assistenza tecnica (hash PBKDF2 + sale, mai in chiaro): apre tutto. Vuota = non impostata.</summary>
+        public string PasswordAssistenzaHash { get; set; } = "";
+        public string PasswordAssistenzaSale { get; set; } = "";
         /// <summary>Gestione operatori e turni (PIN all'apertura del turno, permessi). Spenta = come prima, password amministratore.</summary>
         public bool AbilitaGestioneOperatori { get; set; }
         /// <summary>Conto e preconto: "Coperti N  Totale/Persona" sotto il totale, se ci sono coperti (StampaMediaPerCoperto del PC).</summary>

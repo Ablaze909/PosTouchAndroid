@@ -234,6 +234,18 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- assistenza tecnica: si salva subito, per cambiarla serve quella attuale -->
+                <Border Style="{StaticResource Card}" VerticalOptions="Start" MaximumWidthRequest="700" HorizontalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="🔧 PASSWORD ASSISTENZA" Style="{StaticResource TitoloCard}" TextColor="#37474F" />
+                        <Border BackgroundColor="#F5F5F5" Stroke="#E0E0E0" StrokeThickness="2" HeightRequest="55" Padding="15,0" Margin="0,8,0,8">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnPasswordAssistenza" /></Border.GestureRecognizers>
+                            <Label x:Name="TestoAssistenza" Text="Non configurata (clicca per impostare)" FontSize="16" VerticalOptions="Center" />
+                        </Border>
+                        <Label Text="Per il tecnico: vale al posto di qualsiasi password o PIN (impostazioni, operatori, permessi, chiusura turni). Si salva subito; per cambiarla o toglierla serve quella attuale. Ogni uso resta nel log." FontSize="13" TextColor="#607D8B" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- operatori: la scelta si salva subito (serve un amministratore per accenderla e per spegnerla) -->
                 <Border Style="{StaticResource Card}" VerticalOptions="Start" MaximumWidthRequest="700" HorizontalOptions="Start">
                     <VerticalStackLayout Spacing="8">

@@ -1,4 +1,5 @@
 using PosTouch.App.Dialoghi;
+using PosTouch.Core.Configurazione;
 using PosTouch.Core.Diagnostica;
 using PosTouch.Core.Modelli;
 
@@ -13,6 +14,17 @@ namespace PosTouch.App.Servizi
     public static class Accesso
     {
         private static bool OperatoriAccesi => ContestoCassa.Operatori?.Abilitata == true;
+
+        /// <summary>Operatore "di comodo" con cui l'assistenza tecnica fa le operazioni da amministratore.</summary>
+        public static Operatore Assistenza => new Operatore { Id = 0, Nome = "ASSISTENZA", Amministratore = true };
+
+        /// <summary>true = il codice inserito è la password assistenza (apre tutto; lasciata traccia nel log).</summary>
+        internal static bool EAssistenza(string codice, string titolo)
+        {
+            if (!PasswordAssistenza.Verifica(ContestoCassa.Impostazioni, codice)) return false;
+            LogManager.Warning($"🔧 ACCESSO ASSISTENZA: {titolo?.Replace('\n', ' ')}");
+            return true;
+        }
 
         /// <summary>
         /// Gestione accesa ma nessun amministratore attivo (operatori.db perso o rovinato): si ripiega sulla password
@@ -38,6 +50,7 @@ namespace PosTouch.App.Servizi
             if (SenzaAmministratore) return await PasswordAmministratoreAsync(titolo);
             string pin = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPIN di un operatore autorizzato", nascondi: true);
             if (pin == null) return false;
+            if (await Task.Run(() => EAssistenza(pin, titolo))) return true;
             var chi = await Task.Run(() => ContestoCassa.Operatori.Archivio.TrovaPerPin(pin));   // hash del PIN fuori dal thread grafico
             if (chi?.Puo(permesso) == true)
             {
@@ -60,6 +73,7 @@ namespace PosTouch.App.Servizi
             }
             string pin = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPIN amministratore", nascondi: true);
             if (pin == null) return null;
+            if (await Task.Run(() => EAssistenza(pin, titolo))) return Assistenza;
             var op = await Task.Run(() => ContestoCassa.Operatori.Archivio.TrovaPerPin(pin));
             if (op?.Amministratore == true) return op;
             await MessaggioBox.Errore("NON AUTORIZZATO", "PIN errato o operatore non amministratore.");
@@ -74,6 +88,7 @@ namespace PosTouch.App.Servizi
             string inserito = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPassword amministratore", nascondi: true);
             if (inserito == null) return false;
             if (inserito == pin) return true;
+            if (await Task.Run(() => EAssistenza(inserito, titolo))) return true;
             await MessaggioBox.Errore("PASSWORD ERRATA", "La password inserita non è corretta.");
             return false;
         }

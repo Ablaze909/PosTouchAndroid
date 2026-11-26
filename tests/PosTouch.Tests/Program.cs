@@ -8,6 +8,7 @@ Verifica.Esegui("Tastierino", TestTastierino.Esegui);
 Verifica.Esegui("Varianti", TestVarianti.Esegui);
 Verifica.Esegui("Barcode bilancia", TestBilancia.Esegui);
 Verifica.Esegui("Opzioni di stampa", TestStampe.Esegui);
+Verifica.Esegui("Unisci tavoli e password assistenza", TestUnione.Esegui);
 if (Environment.GetEnvironmentVariable("POSTOUCH_TEST_DB") != "0")
 {
     Verifica.Esegui("Archivio tavoli (SQLite)", TestArchivio.Esegui);

@@ -136,12 +136,27 @@ namespace PosTouch.App.Pagine
             return g;
         }
 
+        private async Task RiaccendiPerSalaAsync()
+        {
+            try
+            {
+                bool ricopia = await MessaggioBox.Domanda("IMPOSTAZIONI PER SALA",
+                    "Ci sono impostazioni per sala salvate in precedenza.\n\nSÌ = ricopio in ogni sala le impostazioni attuali (stampanti e IP di adesso)\nNO = ogni sala riprende le sue impostazioni vecchie");
+                if (ricopia) _c.PerSala.Clear();
+                foreach (var (id, _) in SaleDisponibili()) _c.PaginaDi(id);   // le sale che mancano partono da quella attuale
+            }
+            catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Error($"Impostazioni per sala: {ex.Message}"); }
+            Disegna();
+        }
+
         private void DisegnaDestra()
         {
             _destra.Children.Clear();
             _destra.Add(Interruttore("Impostazioni per sala", _c.ImpostazioniPerSala, v =>
             {
                 _c.ImpostazioniPerSala = v;
+                // riaccese con pagine vecchie salvate: si chiede (altrimenti tornerebbero IP e stampanti di allora)
+                if (v && _c.PerSala.Count > 0) { _ = RiaccendiPerSalaAsync(); return; }
                 if (v) foreach (var (id, _) in SaleDisponibili()) _c.PaginaDi(id);   // ogni sala parte dalla configurazione attuale
                 Disegna();
             }));

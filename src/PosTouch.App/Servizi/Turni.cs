@@ -110,6 +110,7 @@ namespace PosTouch.App.Servizi
         {
             string pin = await TastierinoPrezzo.ChiediCodice($"🔒 CHIUSURA TURNO DI {t.OperatoreNome}\nPIN di {t.OperatoreNome} o di un amministratore", nascondi: true);
             if (pin == null) return null;
+            if (await Task.Run(() => Accesso.EAssistenza(pin, $"chiusura turno di {t.OperatoreNome}"))) return Accesso.Assistenza;
             var chi = await Task.Run(() => Op.Archivio.TrovaPerPin(pin));
             if (chi != null && (chi.Id == t.OperatoreId || chi.Amministratore)) return chi;
             await MessaggioBox.Errore("NON AUTORIZZATO", $"Il turno di {t.OperatoreNome} lo può chiudere solo lui o un amministratore.");

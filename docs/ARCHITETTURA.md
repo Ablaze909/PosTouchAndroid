@@ -80,3 +80,9 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
 ## Varianti a peso e combinazioni a mano
 - Variante con prezzo su un articolo a peso: importo fisso in `RigaScontrino.SovrapprezzoCent` (non moltiplicato per i Kg). Sull'RT esce come riga "VARIANTI" (o sconto sulla riga se negativo). Salvato in RigheTavolo, RigheVendita, ContiRighe.
 - Combinazione già chiusa: varianti aggiunte/tolte cambiano il prezzo solo della differenza (`Combinazioni.Aggiorna`), così un prezzo cambiato a mano resta.
+
+## Password assistenza e UNISCI per portata
+- Password assistenza (`PasswordAssistenza`, hash PBKDF2 in Impostazioni): vale al posto di password amministratore e PIN autorizzati (permessi, gestione operatori, chiusura turni altrui). Si salva subito; per cambiarla/toglierla serve quella attuale. Ogni uso finisce nel log. Non apre turni di vendita.
+- UNISCI (`UnioneTavoli.Unisci`): ogni articolo resta nella sua portata, un solo separatore per numero, PortataCorrente = massima dei tavoli uniti.
+- Gestione operatori già con un amministratore: per riaccenderla serve il PIN amministratore (o l'assistenza).
+- Impostazioni per sala riaccese con pagine vecchie: si chiede se ricopiare quelle attuali.
