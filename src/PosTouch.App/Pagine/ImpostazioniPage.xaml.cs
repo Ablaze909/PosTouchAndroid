@@ -27,6 +27,7 @@ namespace PosTouch.App.Pagine
             SwAccorpa.IsToggled = i.AccorpaRigheScontrino;
             SwCassetto.IsToggled = i.ApriCassetto;
             CampoPin.Text = i.PinImpostazioni;
+            CampoTastiReparto.Text = i.TastiReparto;
         }
 
         private void AggiornaInfo()
@@ -55,6 +56,7 @@ namespace PosTouch.App.Pagine
             string errore = null;
             string ip = (CampoIP.Text ?? "").Trim();
             if (!IPAddress.TryParse(ip, out _)) errore = "Indirizzo IP non valido.";
+            else if (!TastiRepartoValidi(CampoTastiReparto.Text)) errore = "Tasti reparto: formato non valido (esempio 1=BAR;2=PASTICCERIA).";
             else if (!int.TryParse(CampoPorta.Text, out int porta) || porta < 1 || porta > 65535) errore = "Porta non valida.";
             else if (!int.TryParse(CampoOperatore.Text, out int op) || op < 1 || op > 99) errore = "Operatore RT non valido (1-99).";
             else if (!int.TryParse(CampoTimeoutConn.Text, out int tc) || tc < 1000) errore = "Timeout connessione: minimo 1000 ms.";
@@ -70,11 +72,20 @@ namespace PosTouch.App.Pagine
                     TimeoutRispostaRT_ms = tr,
                     AccorpaRigheScontrino = SwAccorpa.IsToggled,
                     ApriCassetto = SwCassetto.IsToggled,
-                    PinImpostazioni = (CampoPin.Text ?? "").Trim()
+                    PinImpostazioni = (CampoPin.Text ?? "").Trim(),
+                    TastiReparto = (CampoTastiReparto.Text ?? "").Trim().ToUpperInvariant()
                 };
 
             await DisplayAlert("Impostazioni", errore, "OK");
             return null;
+        }
+
+        private static bool TastiRepartoValidi(string testo)
+        {
+            if (string.IsNullOrWhiteSpace(testo)) return true;
+            var prova = new Impostazioni { TastiReparto = testo };
+            int parti = testo.Split(';', StringSplitOptions.RemoveEmptyEntries).Length;
+            return prova.ElencoTastiReparto().Count == parti;
         }
 
         private async void OnSalva(object sender, EventArgs e)

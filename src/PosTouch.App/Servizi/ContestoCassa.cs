@@ -17,6 +17,7 @@ namespace PosTouch.App.Servizi
         public static Impostazioni Impostazioni { get; private set; }
         public static ArchivioImpostazioni ArchivioImpostazioni { get; private set; }
         public static Catalogo Catalogo { get; private set; }
+        public static GestioneCatalogo GestioneCatalogo { get; private set; }
         public static ArchivioVendite Vendite { get; private set; }
         public static ServizioVendita ServizioVendita { get; private set; }
         public static FunzioniCassa FunzioniCassa { get; private set; }
@@ -36,6 +37,8 @@ namespace PosTouch.App.Servizi
             Catalogo = new Catalogo(cartellaDati);
             try { Catalogo.Carica(); }
             catch (Exception ex) { LogManager.Error($"Catalogo non caricato: {ex.Message}"); }
+
+            GestioneCatalogo = new GestioneCatalogo(Catalogo);
 
             Vendite = new ArchivioVendite(cartellaDati);
             ServizioVendita = new ServizioVendita(() => Impostazioni, Vendite);

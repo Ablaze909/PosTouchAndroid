@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using PosTouch.Core.Diagnostica;
@@ -24,6 +25,25 @@ namespace PosTouch.Core.Configurazione
         /// <summary>Numero operatore selezionato sull'RT a inizio scontrino.</summary>
         public int OperatoreRT { get; set; } = 1;
 
+        /// <summary>
+        /// Tasti reparto nella barra sotto, formato "numero=nome" separati da ";".
+        /// Esempio: "1=BAR;2=PASTICCERIA;3=VARIE".
+        /// </summary>
+        public string TastiReparto { get; set; } = "1=REP 1;2=REP 2;3=REP 3;4=REP 4";
+
+        public List<TastoReparto> ElencoTastiReparto()
+        {
+            var lista = new List<TastoReparto>();
+            foreach (var parte in (TastiReparto ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = parte.Split('=', 2);
+                if (!int.TryParse(kv[0].Trim(), out int n) || n < 1 || n > 99) continue;
+                string nome = kv.Length > 1 && !string.IsNullOrWhiteSpace(kv[1]) ? kv[1].Trim() : $"REP {n}";
+                lista.Add(new TastoReparto { Numero = n, Nome = nome });
+            }
+            return lista;
+        }
+
         // ── Sicurezza ──
         /// <summary>PIN per entrare nelle impostazioni (vuoto = nessun PIN).</summary>
         public string PinImpostazioni { get; set; } = "";
@@ -33,6 +53,12 @@ namespace PosTouch.Core.Configurazione
             TimeoutConnessioneRT_ms = TimeoutConnessioneRT_ms,
             TimeoutRispostaRT_ms = TimeoutRispostaRT_ms
         };
+    }
+
+    public class TastoReparto
+    {
+        public int Numero { get; set; }
+        public string Nome { get; set; } = "";
     }
 
     /// <summary>Lettura/scrittura di impostazioni.json.</summary>

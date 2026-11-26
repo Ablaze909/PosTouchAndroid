@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
+             x:Class="PosTouch.App.Pagine.ProdottoPage"
+             Title="Articolo">
+    <ScrollView>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="24" Padding="20">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Descrizione (stampata sullo scontrino)" />
+                <Entry x:Name="CampoDescrizione" MaxLength="38" TextTransform="Uppercase" TextChanged="OnAnteprima" />
+                <Label Text="Prezzo €" />
+                <Entry x:Name="CampoPrezzo" Keyboard="Numeric" TextChanged="OnAnteprima" />
+                <Label Text="Categoria" />
+                <Picker x:Name="SceltaCategoria" ItemDisplayBinding="{Binding Nome}" />
+                <Label Text="Barcode (facoltativo: si può leggere con lo scanner)" />
+                <Entry x:Name="CampoBarcode" Keyboard="Numeric" />
+                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                    <Label Text="Mostra nei PREFERITI" VerticalOptions="Center" />
+                    <Switch x:Name="SwPreferito" Grid.Column="1" />
+                </Grid>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                <Label Text="Colore del tasto" />
+                <ctl:SceltaColore x:Name="Colore" />
+                <Label Text="Testo" />
+                <Picker x:Name="SceltaTesto" SelectedIndexChanged="OnAnteprima">
+                    <Picker.Items>
+                        <x:String>Bianco</x:String>
+                        <x:String>Nero</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Label Text="Anteprima" Margin="0,10,0,0" />
+                <Border x:Name="Anteprima" StrokeThickness="0" HeightRequest="92" WidthRequest="140" HorizontalOptions="Start" Padding="6">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                    <Grid RowDefinitions="*,Auto">
+                        <Label x:Name="AnteprimaTesto" FontAttributes="Bold" FontSize="14" MaxLines="3" LineBreakMode="WordWrap"
+                               HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                        <Label x:Name="AnteprimaPrezzo" Grid.Row="1" FontSize="13" HorizontalTextAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,24,0,0">
+                    <Button x:Name="BtnElimina" Text="ELIMINA" Clicked="OnElimina" BackgroundColor="{StaticResource Pericolo}" HeightRequest="60" />
+                    <Button Grid.Column="1" Text="SALVA" Clicked="OnSalva" BackgroundColor="{StaticResource Contanti}" HeightRequest="60" FontSize="18" />
+                </Grid>
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</ContentPage>

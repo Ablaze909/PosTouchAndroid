@@ -46,7 +46,10 @@
                     <Label Text="Apri cassetto dopo lo scontrino" VerticalOptions="Center" />
                     <Switch x:Name="SwCassetto" Grid.Column="1" />
                 </Grid>
-                <Label Text="PIN impostazioni (vuoto = nessuno)" />
+                <Label Text="Tasti reparto nella barra sotto" />
+                <Entry x:Name="CampoTastiReparto" Placeholder="1=BAR;2=PASTICCERIA;3=VARIE" />
+                <Label Text="Formato numero=nome, separati da punto e virgola." FontSize="12" TextColor="{StaticResource TestoTenue}" />
+                <Label Text="PIN impostazioni e articoli (vuoto = nessuno)" />
                 <Entry x:Name="CampoPin" Keyboard="Numeric" IsPassword="True" MaxLength="8" />
 
                 <Label Text="CATALOGO PRODOTTI" Style="{StaticResource Sezione}" />

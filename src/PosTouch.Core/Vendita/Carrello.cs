@@ -25,14 +25,17 @@ namespace PosTouch.Core.Vendita
 
         public RigaScontrino Sconto => Righe.FirstOrDefault(r => r.Tipo == TipoRiga.Sconto);
 
-        public void Aggiungi(Prodotto p, decimal quantita = 1)
+        /// <param name="prezzoCent">prezzo battuto al momento (null = prezzo di listino)</param>
+        public void Aggiungi(Prodotto p, decimal quantita = 1, int? prezzoCent = null)
         {
             if (p == null || quantita <= 0) return;
+            int prezzo = prezzoCent ?? p.PrezzoCentesimi;
+            if (prezzo <= 0) return;
 
             // Se il prodotto è già presente allo stesso prezzo, aumenta la quantità
             var esistente = Righe.FirstOrDefault(r => r.Tipo == TipoRiga.Prodotto
                                                    && r.ProdottoId == p.Id
-                                                   && r.PrezzoCentesimi == p.PrezzoCentesimi);
+                                                   && r.PrezzoCentesimi == prezzo);
             if (esistente != null)
                 esistente.Quantita += quantita;
             else
@@ -44,7 +47,7 @@ namespace PosTouch.Core.Vendita
                     Barcode = string.IsNullOrEmpty(p.Barcode) ? p.Codice : p.Barcode,
                     RepartoFiscale = p.RepartoFiscale,
                     CategoriaId = p.CategoriaId,
-                    PrezzoCentesimi = p.PrezzoCentesimi,
+                    PrezzoCentesimi = prezzo,
                     PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
                     Quantita = quantita
                 });
@@ -73,6 +76,16 @@ namespace PosTouch.Core.Vendita
             decimal nuova = riga.Quantita + delta;
             if (nuova <= 0) Righe.Remove(riga);
             else riga.Quantita = nuova;
+            Aggiornato();
+        }
+
+        /// <summary>Ultima riga articolo inserita (per il tasto € = cambia prezzo).</summary>
+        public RigaScontrino UltimaRigaProdotto => Righe.LastOrDefault(r => r.Tipo == TipoRiga.Prodotto);
+
+        public void CambiaPrezzo(RigaScontrino riga, int prezzoCent)
+        {
+            if (riga == null || riga.Tipo != TipoRiga.Prodotto || prezzoCent <= 0) return;
+            riga.PrezzoCentesimi = prezzoCent;
             Aggiornato();
         }
 

@@ -28,6 +28,7 @@ namespace PosTouch.Core.Dati
         }
 
         public bool Presente => File.Exists(_percorso);
+        internal string Percorso => _percorso;
         public IReadOnlyList<Categoria> Categorie => _categorie;
 
         public IEnumerable<Prodotto> ProdottiDi(int categoriaId) => _prodotti.Where(p => p.CategoriaId == categoriaId);
@@ -140,14 +141,14 @@ namespace PosTouch.Core.Dati
             return Carica();
         }
 
-        private static SqliteConnection Apri(string percorso)
+        internal static SqliteConnection Apri(string percorso)
         {
             // Lettura e scrittura (non sola lettura): un DB in WAL aperto in sola lettura
             // fallisce se mancano i file -wal/-shm. Il catalogo comunque non viene modificato.
             var cs = new SqliteConnectionStringBuilder
             {
                 DataSource = percorso,
-                Mode = SqliteOpenMode.ReadWrite,
+                Mode = SqliteOpenMode.ReadWriteCreate,
                 Pooling = false
             }.ToString();
             var conn = new SqliteConnection(cs);

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
+             x:Class="PosTouch.App.Pagine.CategoriaPage"
+             Title="Categoria">
+    <ScrollView>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="24" Padding="20">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Nome" />
+                <Entry x:Name="CampoNome" MaxLength="30" TextTransform="Uppercase" TextChanged="OnAnteprima" />
+                <Label Text="Reparto del registratore (RT)" />
+                <Entry x:Name="CampoReparto" Keyboard="Numeric" MaxLength="2" />
+                <Label Text="IVA" />
+                <Picker x:Name="SceltaIva">
+                    <Picker.Items>
+                        <x:String>22%</x:String>
+                        <x:String>10%</x:String>
+                        <x:String>5%</x:String>
+                        <x:String>4%</x:String>
+                        <x:String>0% (esente/non imponibile)</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Label Text="L'aliquota vera la decide il reparto programmato sull'RT: qui serve per riferimento e statistiche."
+                       FontSize="12" TextColor="{StaticResource TestoTenue}" />
+                <Label Text="Posizione (ordine)" />
+                <Entry x:Name="CampoOrdine" Keyboard="Numeric" MaxLength="3" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                <Label Text="Colore del tasto" />
+                <ctl:SceltaColore x:Name="Colore" />
+                <Label Text="Testo" />
+                <Picker x:Name="SceltaTesto" SelectedIndexChanged="OnAnteprima">
+                    <Picker.Items>
+                        <x:String>Bianco</x:String>
+                        <x:String>Nero</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Label Text="Anteprima" Margin="0,10,0,0" />
+                <Border x:Name="Anteprima" StrokeThickness="0" HeightRequest="58" WidthRequest="160" HorizontalOptions="Start">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                    <Label x:Name="AnteprimaTesto" FontAttributes="Bold" FontSize="15" HorizontalOptions="Center" VerticalOptions="Center" />
+                </Border>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,24,0,0">
+                    <Button x:Name="BtnElimina" Text="ELIMINA" Clicked="OnElimina" BackgroundColor="{StaticResource Pericolo}" HeightRequest="60" />
+                    <Button Grid.Column="1" Text="SALVA" Clicked="OnSalva" BackgroundColor="{StaticResource Contanti}" HeightRequest="60" FontSize="18" />
+                </Grid>
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</ContentPage>
