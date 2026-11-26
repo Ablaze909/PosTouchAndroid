@@ -32,7 +32,7 @@ namespace PosTouch.Core.Dati
             .Where(v => v.Attiva && v.Categorie.Contains(categoriaId))
             .OrderBy(v => v.Gruppo).ThenBy(v => v.Ordine).ThenBy(v => v.Nome).ToList();
 
-        public Prodotto ProdottoDa(int id) => _prodotti.FirstOrDefault(p => p.Id == id);
+        public Prodotto ProdottoDa(int id) => _indice.PerId.TryGetValue(id, out var p) ? p : null;
 
         public Catalogo(string cartellaDati)
         {
@@ -44,16 +44,47 @@ namespace PosTouch.Core.Dati
         public int Versione { get; private set; }
         internal string Percorso => _percorso;
         /// <summary>Categorie visibili nel POS (attive), in ordine.</summary>
-        public IReadOnlyList<Categoria> Categorie => _categorie.Where(c => c.Attiva).ToList();
+        public IReadOnlyList<Categoria> Categorie => _indice.CategorieAttive;
         /// <summary>Tutte le categorie, anche nascoste (Back office).</summary>
         public IReadOnlyList<Categoria> TutteCategorie => _categorie;
         /// <summary>Tutti gli articoli, anche nascosti (Back office).</summary>
         public IReadOnlyList<Prodotto> TuttiProdotti => _prodotti;
 
-        private bool Vendibile(Prodotto p) => p.Attivo && _categorie.Any(c => c.Id == p.CategoriaId && c.Attiva);
+        private bool Vendibile(Prodotto p) => p.Attivo && _indice.IdCategorieAttive.Contains(p.CategoriaId);
 
-        public IEnumerable<Prodotto> ProdottiDi(int categoriaId) => _prodotti.Where(p => p.CategoriaId == categoriaId && Vendibile(p));
-        public IEnumerable<Prodotto> Preferiti() => _prodotti.Where(p => p.IsPreferito && Vendibile(p));
+        /// <summary>
+        /// Indici calcolati una volta a ogni caricamento (prestazioni): prima ogni cambio categoria, ogni barcode
+        /// e ogni ricalcolo combinazione scorrevano tutto il catalogo, e per ogni articolo tutte le categorie.
+        /// </summary>
+        private sealed class Indice
+        {
+            public HashSet<int> IdCategorieAttive = new();
+            public List<Categoria> CategorieAttive = new();
+            public Dictionary<int, Prodotto> PerId = new();
+            public Dictionary<int, List<Prodotto>> PerCategoria = new();
+            public List<Prodotto> Preferiti = new();
+        }
+        private Indice _indice = new Indice();
+
+        private static Indice CreaIndice(List<Categoria> categorie, List<Prodotto> prodotti)
+        {
+            var i = new Indice();
+            i.CategorieAttive = categorie.Where(c => c.Attiva).ToList();
+            i.IdCategorieAttive = i.CategorieAttive.Select(c => c.Id).ToHashSet();
+            foreach (var p in prodotti)
+            {
+                i.PerId.TryAdd(p.Id, p);
+                if (!p.Attivo || !i.IdCategorieAttive.Contains(p.CategoriaId)) continue;
+                if (!i.PerCategoria.TryGetValue(p.CategoriaId, out var l)) i.PerCategoria[p.CategoriaId] = l = new List<Prodotto>();
+                l.Add(p);
+                if (p.IsPreferito) i.Preferiti.Add(p);
+            }
+            return i;
+        }
+
+        public IEnumerable<Prodotto> ProdottiDi(int categoriaId) =>
+            _indice.PerCategoria.TryGetValue(categoriaId, out var l) ? l : (IEnumerable<Prodotto>)Array.Empty<Prodotto>();
+        public IEnumerable<Prodotto> Preferiti() => _indice.Preferiti;
 
         /// <summary>Articolo "codice bilancia" con questo codice (le 5 cifre dell'etichetta), anche se non è marcato come tale.</summary>
         public Prodotto CercaCodiceBilancia(string codice5)
@@ -108,7 +139,7 @@ namespace PosTouch.Core.Dati
         {
             var categorie = new List<Categoria>();
             var prodotti = new List<Prodotto>();
-            if (!Presente) { _categorie = categorie; _prodotti = prodotti; Versione++; return 0; }
+            if (!Presente) { _categorie = categorie; _prodotti = prodotti; _indice = CreaIndice(categorie, prodotti); Versione++; return 0; }
 
             using var conn = Apri(_percorso);
 
@@ -187,6 +218,7 @@ namespace PosTouch.Core.Dati
             foreach (var c in categorie)
                 c.NumeroProdotti = prodotti.Count(p => p.CategoriaId == c.Id && p.Attivo);
 
+            _indice = CreaIndice(categorie, prodotti);   // prima dei riferimenti: chi legge vede sempre dati coerenti
             _categorie = categorie;
             _prodotti = prodotti;
             _varianti = varianti;

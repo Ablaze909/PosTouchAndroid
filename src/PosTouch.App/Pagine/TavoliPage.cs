@@ -165,13 +165,24 @@ namespace PosTouch.App.Pagine
 
         // ══════════════ griglia tavoli (CaricaGrigliaSlot del PC) ══════════════
 
+        private string _firmaTavoli;
+
         private void CostruisciTavoli()
         {
-            _griglia.Children.Clear();
             var sala = Sale().FirstOrDefault(x => x.Id == _salaCorrente);
-            if (sala == null) { _info.Text = "Nessuna sala configurata: IMPOSTAZIONI → SALE E COMANDE"; return; }
+            if (sala == null) { _griglia.Children.Clear(); _firmaTavoli = null; _info.Text = "Nessuna sala configurata: IMPOSTAZIONI → SALE E COMANDE"; return; }
             var aperti = ContestoCassa.Tavoli.Aperti().Where(t => t.SalaId == sala.Id && t.Articoli > 0).ToDictionary(t => t.Numero);
             var errori = ContestoCassa.Tavoli.TavoliConErroreStampa();
+
+            // aggiornamento ogni 10 s: si ridisegna solo se qualcosa è cambiato davvero (prestazioni)
+            string firma = $"{sala.Id}|{sala.NumeroIniziale}|{sala.NumeroTavoli}|{string.Join(",", errori)}|" +
+                           string.Join(";", aperti.Values.OrderBy(t => t.Numero).Select(t =>
+                               $"{t.Numero}:{t.TotaleCent}:{t.Preconto}:{t.PortataCorrente}:{t.PortataMassima}:{t.DaComandare}:{t.NomeCliente}"));
+            if (firma == _firmaTavoli && _griglia.Children.Count > 0) return;
+            _firmaTavoli = firma;
+
+            _griglia.BatchBegin();
+            _griglia.Children.Clear();
             for (int k = 0; k < Math.Max(1, sala.NumeroTavoli); k++)
             {
                 int numero = sala.NumeroIniziale + k;
@@ -179,6 +190,7 @@ namespace PosTouch.App.Pagine
                 bool errore = t != null && errori.Contains($"{sala.Id}:{numero}");
                 _griglia.Add(sala.Id == ConfigSale.SalaConti ? SlotConto(sala, numero, t) : SlotTavolo(sala, numero, t, errore));
             }
+            _griglia.BatchCommit();
             _info.Text = sala.Id == ConfigSale.SalaConti
                 ? $"Conti sospesi — {aperti.Count} / {sala.NumeroTavoli} occupati"
                 : $"{sala.Nome} — {aperti.Count} / {sala.NumeroTavoli} tavoli occupati";

@@ -12,7 +12,7 @@
     <!-- Identità app -->
     <ApplicationTitle>POS Touch</ApplicationTitle>
     <ApplicationId>it.alfacash.postouch</ApplicationId>
-    <ApplicationDisplayVersion>0.9.7</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>0.9.8</ApplicationDisplayVersion>
     <!-- La build su GitHub lo sostituisce col numero di build, così ogni APK si installa sopra il precedente -->
     <ApplicationVersion>1</ApplicationVersion>
 

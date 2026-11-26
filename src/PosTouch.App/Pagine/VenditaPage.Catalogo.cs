@@ -20,9 +20,14 @@ namespace PosTouch.App.Pagine
             if (_categoriaCorrente == IdPreferiti && !ContestoCassa.Catalogo.Preferiti().Any() && categorie.Count > 0)
                 _categoriaCorrente = categorie[0].Id;
 
-            ListaCategorie.Children.Clear();
-            foreach (var c in categorie)
-                ListaCategorie.Children.Add(CreaTastoCategoria(c));
+            ListaCategorie.BatchBegin();
+            try
+            {
+                ListaCategorie.Children.Clear();
+                foreach (var c in categorie)
+                    ListaCategorie.Children.Add(CreaTastoCategoria(c));
+            }
+            finally { ListaCategorie.BatchCommit(); }
             MostraArticoli();
         }
 
@@ -78,9 +83,22 @@ namespace PosTouch.App.Pagine
                 ? catalogo.Preferiti().ToList()
                 : catalogo.ProdottiDi(_categoriaCorrente).ToList();
 
-            GrigliaArticoli.Children.Clear();
-            foreach (var p in articoli)
-                GrigliaArticoli.Children.Add(CreaTastoArticolo(p));
+            // tasti già pronti per questa categoria (prestazioni): si ricreano solo se cambiano catalogo,
+            // impostazioni o misura dei tasti; durante la combinazione i gusti si creano al momento
+            List<View> tasti;
+            var chiave = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni, _latoTasto);
+            if (chiave != _chiaveCacheTasti) { _cacheTasti.Clear(); _chiaveCacheTasti = chiave; }
+            if (_combinazione != null) tasti = articoli.Select(CreaTastoArticolo).ToList();
+            else if (!_cacheTasti.TryGetValue(_categoriaCorrente, out tasti))
+                _cacheTasti[_categoriaCorrente] = tasti = articoli.Select(CreaTastoArticolo).ToList();
+
+            GrigliaArticoli.BatchBegin();   // un solo ricalcolo della griglia invece di uno per tasto
+            try
+            {
+                GrigliaArticoli.Children.Clear();
+                foreach (var t in tasti) GrigliaArticoli.Children.Add(t);
+            }
+            finally { GrigliaArticoli.BatchCommit(); }
 
             MessaggioVuoto.IsVisible = articoli.Count == 0;
             MessaggioVuoto.Text = catalogo.Categorie.Count == 0
@@ -88,6 +106,9 @@ namespace PosTouch.App.Pagine
                 : _categoriaCorrente == IdPreferiti ? "Nessun preferito.\nScegli una categoria a sinistra."
                 : "Nessun articolo in questa categoria.";
         }
+
+        private readonly Dictionary<int, List<View>> _cacheTasti = new();
+        private (int, int, double) _chiaveCacheTasti = (-1, -1, -1);
 
         private View CreaTastoArticolo(Prodotto p)
         {
@@ -104,15 +125,10 @@ namespace PosTouch.App.Pagine
                 LineBreakMode = LineBreakMode.WordWrap,
                 Margin = new Thickness(4)
             }, 0, 0);
-            griglia.Add(new Grid
+            griglia.Add(new Label   // prezzo su fascia scura: una sola scritta invece di griglia + scritta
             {
-                BackgroundColor = Ui.C("#40000000"),
-                Padding = new Thickness(4, 2),
-                Children =
-                {
-                    new Label { Text = p.PrezzoDisplay, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = testo,
-                                HorizontalTextAlignment = TextAlignment.Center }
-                }
+                Text = p.PrezzoDisplay, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = testo,
+                HorizontalTextAlignment = TextAlignment.Center, BackgroundColor = Ui.C("#40000000"), Padding = new Thickness(4, 2)
             }, 0, 1);
 
             var tasto = new Border

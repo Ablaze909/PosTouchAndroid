@@ -39,9 +39,46 @@ namespace PosTouch.Core.Diagnostica
         public static void Warning(string msg) => Scrivi(2, "WARN ", msg);
         public static void Error(string msg) => Scrivi(3, "ERROR", msg);
 
+        // ── scrittura in background (prestazioni) ──
+        // Prima ogni riga apriva, scriveva e chiudeva il file sul thread che chiamava (spesso quello dello schermo).
+        // Ora le righe vanno in coda e un thread a parte le scrive a blocchi: la cassa non aspetta mai il disco.
+        private static readonly System.Collections.Concurrent.BlockingCollection<string> _coda =
+            new System.Collections.Concurrent.BlockingCollection<string>(new System.Collections.Concurrent.ConcurrentQueue<string>(), 10000);
+        private static System.Threading.Thread _scrittore;
+
         private static void Scrivi(int livelloNum, string livello, string msg)
         {
             if (_percorso == null || livelloNum < _livelloMinimo) return;
+            string riga = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{livello}] {msg}{Environment.NewLine}";
+            AvviaScrittore();
+            if (!_coda.TryAdd(riga)) ScriviSubito(riga);   // coda piena (caso estremo): scrive direttamente
+        }
+
+        private static void AvviaScrittore()
+        {
+            if (_scrittore != null) return;
+            lock (_lock)
+            {
+                if (_scrittore != null) return;
+                _scrittore = new System.Threading.Thread(CicloScrittura) { IsBackground = true, Name = "LogManager", Priority = System.Threading.ThreadPriority.BelowNormal };
+                _scrittore.Start();
+            }
+        }
+
+        private static void CicloScrittura()
+        {
+            var blocco = new System.Text.StringBuilder();
+            foreach (var riga in _coda.GetConsumingEnumerable())
+            {
+                blocco.Clear().Append(riga);
+                while (blocco.Length < 64 * 1024 && _coda.TryTake(out var altra)) blocco.Append(altra);   // tutto ciò che è in coda in una sola scrittura
+                ScriviSubito(blocco.ToString());
+            }
+        }
+
+        /// <summary>Scrive sul file (con la rotazione a 5 MB). Mai eccezioni: il log non deve bloccare la cassa.</summary>
+        private static void ScriviSubito(string testo)
+        {
             lock (_lock)
             {
                 try
@@ -55,13 +92,19 @@ namespace PosTouch.Core.Diagnostica
                             if (File.Exists($"{_percorso}.{k}")) File.Move($"{_percorso}.{k}", $"{_percorso}.{k + 1}");
                         File.Move(_percorso, _percorso + ".1");
                     }
-                    File.AppendAllText(_percorso, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{livello}] {msg}{Environment.NewLine}");
+                    File.AppendAllText(_percorso, testo);
                 }
                 catch
                 {
                     // Il log non deve mai bloccare la cassa
                 }
             }
+        }
+
+        /// <summary>Attende (max ~1 s) che le righe in coda siano scritte: da chiamare prima di condividere il log.</summary>
+        public static void Svuota()
+        {
+            for (int i = 0; i < 50 && _coda.Count > 0; i++) System.Threading.Thread.Sleep(20);
         }
     }
 }

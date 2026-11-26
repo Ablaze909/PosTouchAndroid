@@ -312,6 +312,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnCondividiLog(object sender, EventArgs e)
         {
+            LogManager.Svuota();   // le ultime righe in coda finiscono nel file prima di condividerlo
             string percorso = LogManager.Percorso;
             if (percorso == null || !File.Exists(percorso))
             {
