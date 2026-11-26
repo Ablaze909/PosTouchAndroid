@@ -15,6 +15,17 @@ namespace PosTouch.App.Pagine
     public class TavoliPage : PaginaPos
     {
         private static readonly string[] ColoriSale = { "#00897B", "#E07A5F", "#7CB342" };   // teal, corallo, lime (PC)
+        public const string ColoreBanco = "#37474F";
+        public const string ColoreConti = "#1E88E5";
+
+        /// <summary>Colore di una sala come la sua scheda (Banco antracite, conti azzurro): lo usa anche la vendita per dire "dove sei".</summary>
+        public static string ColoreDi(int salaId)
+        {
+            if (salaId == ConfigSale.SalaConti) return ColoreConti;
+            var sale = ContestoCassa.Impostazioni.Sale.Sale;
+            int i = sale.FindIndex(s => s.Id == salaId);
+            return i < 0 ? ColoreBanco : ColoriSale[i % ColoriSale.Length];
+        }
 
         private readonly Grid _schede = new Grid { ColumnSpacing = 0 };
         private readonly FlexLayout _griglia = new FlexLayout
@@ -112,8 +123,8 @@ namespace PosTouch.App.Pagine
             foreach (var sala in Sale())
             {
                 bool attiva = sala.Id == _salaCorrente;
-                string colore = sala.Id == ConfigSale.SalaConti ? "#90CAF9" : ColoriSale[i++ % ColoriSale.Length];
-                bool chiaro = attiva && sala.Id != ConfigSale.SalaConti;   // CONTI azzurro chiaro → testo scuro
+                string colore = sala.Id == ConfigSale.SalaConti ? ColoreConti : ColoriSale[i++ % ColoriSale.Length];
+                bool chiaro = attiva;   // stessi colori della banda "dove sono" in vendita
                 int id = sala.Id;
                 schede.Add(Scheda(sala.Id == ConfigSale.SalaConti ? "CONTI" : sala.Nome, attiva ? colore : "#E0E0E0", chiaro,
                                   () => { _salaCorrente = _ultimaSala = id; Aggiorna(); }));

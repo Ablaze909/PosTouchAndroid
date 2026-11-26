@@ -412,6 +412,9 @@ namespace PosTouch.Core.Sale
 
         // ══════════════ interni ══════════════
 
+        /// <summary>Coperti del tavolo (per la banda "dove sono" della vendita).</summary>
+        public int NumeroCoperti => Coperti();
+
         /// <summary>Coperti = quantità della riga "coperto" della sala.</summary>
         private int Coperti()
         {

@@ -123,6 +123,7 @@ namespace PosTouch.App.Pagine
             if (_combinazione != null && !_combinazione.Presente) EsciDaCombinazione();   // tolta con elimina righe
             EtichettaTotale.Text = $"€ {Carrello.TotaleEuro:F2}".Replace('.', ',');
             EtichettaPezzi.Text = $"{Carrello.Pezzi} pz";
+            if (_sessione != null) AggiornaPosto();   // coperti, preconto e portata possono cambiare
             if (Carrello.Righe.Count == 0) { _primaVisibile = 0; _ultimaVisibile = 0; }
             AggiornaFrecce();
         }

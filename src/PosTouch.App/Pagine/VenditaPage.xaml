@@ -43,10 +43,18 @@
         </Style>
     </ctl:PaginaPos.Resources>
 
-    <Grid x:Name="Radice" RowDefinitions="*,58" ColumnDefinitions="120,*,320">
+    <Grid x:Name="Radice" RowDefinitions="Auto,*,58" ColumnDefinitions="120,*,320">
+
+        <!-- ═════════ BANDA "DOVE SONO": BANCO / TAVOLO / CONTO, colore della sala ═════════ -->
+        <Grid x:Name="BandaPosto" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HeightRequest="40" Padding="14,0"
+              BackgroundColor="#37474F" ColumnDefinitions="*,Auto">
+            <Label x:Name="BandaTitolo" Text="🧾 BANCO" FontSize="18" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"
+                   LineBreakMode="TailTruncation" />
+            <Label x:Name="BandaDettaglio" Grid.Column="1" Text="Vendita diretta" FontSize="14" TextColor="White" VerticalOptions="Center" />
+        </Grid>
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie → ▲▼ → 🏠 ═════════ -->
-        <Grid Grid.Row="0" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
+        <Grid Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
             <Button x:Name="BtnEsci" Grid.Row="0" Text="🚪" FontSize="22" BackgroundColor="#B71C1C" Style="{StaticResource TastoScuro}"
                     Margin="0,0,0,2" Clicked="OnEsci" />
 
@@ -62,10 +70,10 @@
             <Button Grid.Row="3" Text="🏠" FontSize="20" BackgroundColor="#F5F5F5" TextColor="#111111"
                     BorderColor="#DDDDDD" BorderWidth="1" CornerRadius="0" Clicked="OnPreferiti" />
         </Grid>
-        <BoxView Grid.Row="0" Grid.Column="0" WidthRequest="1" Color="#E5E5E5" HorizontalOptions="End" />
+        <BoxView Grid.Row="1" Grid.Column="0" WidthRequest="1" Color="#E5E5E5" HorizontalOptions="End" />
 
         <!-- ═════════ COLONNA CENTRO: toolbar + articoli ═════════ -->
-        <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="40,*">
+        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="40,*">
             <Grid BackgroundColor="#FAFAFA">
                 <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
                     <Button x:Name="BtnSale" Text="🍽️ SALE" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#00897B"
@@ -94,7 +102,7 @@
         </Grid>
 
         <!-- ═════════ COLONNA DESTRA: scontrino + tastiera (righe 0 e 1) ═════════ -->
-        <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" BackgroundColor="White" RowDefinitions="Auto,*,Auto,Auto,Auto">
+        <Grid Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" BackgroundColor="White" RowDefinitions="Auto,*,Auto,Auto,Auto">
 
             <!-- Intestazione nera: tocco = espandi/chiudi lista (come sul PC) -->
             <Grid Grid.Row="0" BackgroundColor="#111111" Padding="10,8" ColumnDefinitions="*,Auto">
@@ -170,16 +178,18 @@
             </Grid>
 
             <!-- Display + pezzi + totale: tocco = calcolo resto -->
-            <Grid Grid.Row="2" BackgroundColor="#F5F5F5" Padding="10,10" Margin="0,4,0,0" ColumnDefinitions="Auto,*,Auto">
+            <Grid x:Name="RiquadroTotale" Grid.Row="2" BackgroundColor="#F5F5F5" Padding="10,6,10,10" Margin="4,4,4,0" ColumnDefinitions="Auto,*,Auto"
+                  RowDefinitions="Auto,Auto">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnTotaleToccato" />
                 </Grid.GestureRecognizers>
-                <Label x:Name="DisplayTastierino" FontSize="16" FontAttributes="Bold" TextColor="#666666"
+                <Label x:Name="TotalePosto" Grid.ColumnSpan="3" FontSize="12" FontAttributes="Bold" TextColor="White" LineBreakMode="TailTruncation" />
+                <Label x:Name="DisplayTastierino" Grid.Row="1" BackgroundColor="White" Padding="6,2" IsVisible="False" FontSize="16" FontAttributes="Bold" TextColor="#666666"
                        VerticalOptions="Center" MaximumWidthRequest="170" LineBreakMode="TailTruncation" />
-                <Label x:Name="EtichettaPezzi" Grid.Column="1" Text="0 pz" FontSize="13" FontAttributes="Bold" TextColor="#999999"
+                <Label x:Name="EtichettaPezzi" Grid.Row="1" Grid.Column="1" Text="0 pz" FontSize="13" FontAttributes="Bold" TextColor="#999999"
                        HorizontalOptions="Center" VerticalOptions="Center" />
-                <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center">
-                    <Label Text="TOTALE:" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" Margin="0,0,6,0" />
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="2" VerticalOptions="Center">
+                    <Label x:Name="EtichettaTotaleScritta" Text="TOTALE:" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" Margin="0,0,6,0" />
                     <Label x:Name="EtichettaTotale" Text="€ 0,00" FontSize="24" FontAttributes="Bold" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </Grid>
@@ -239,7 +249,7 @@
         </Grid>
 
         <!-- ═════════ BARRA INFERIORE: CASSA, CASSETTO, BARCODE, reparti ═════════ -->
-        <Grid x:Name="BarraInferiore" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" ColumnDefinitions="*,*,*,*,*">
+        <Grid x:Name="BarraInferiore" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" ColumnDefinitions="*,*,*,*,*">
             <Button Grid.ColumnSpan="2" Text="💰 CASSA" FontSize="18" BackgroundColor="#388E3C" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassa" />
             <Button x:Name="BtnConto" Grid.Column="2" Text="📄 CONTO" FontSize="18" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button Grid.Column="3" Text="📂 CASSETTO" FontSize="18" BackgroundColor="#FF9800" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassetto" />
@@ -247,7 +257,7 @@
         </Grid>
 
         <!-- ═════════ BARRA TAVOLO (come VenditaContoClienteDialog del PC) ═════════ -->
-        <Grid x:Name="BarraTavolo" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" IsVisible="False"
+        <Grid x:Name="BarraTavolo" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" IsVisible="False"
               ColumnDefinitions="*,*,*,*,*,*,*,*">
             <Button Grid.ColumnSpan="2" Text="💰 CASSA" FontSize="16" BackgroundColor="#388E3C" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassa" />
             <Button x:Name="BtnContoTavolo" Grid.Column="2" Text="📄 CONTO" FontSize="14" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
@@ -259,7 +269,7 @@
         </Grid>
 
         <!-- ═════════ MODALITÀ MODIFICA: scontrino, tastiera e barra inferiore bloccati ═════════ -->
-        <Grid x:Name="VeloScontrino" Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" BackgroundColor="#B3263238" IsVisible="False">
+        <Grid x:Name="VeloScontrino" Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" BackgroundColor="#B3263238" IsVisible="False">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer />
             </Grid.GestureRecognizers>
@@ -270,14 +280,14 @@
                        FontSize="16" TextColor="White" HorizontalTextAlignment="Center" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>
-        <Grid x:Name="VeloBarra" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="Transparent" IsVisible="False">
+        <Grid x:Name="VeloBarra" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="Transparent" IsVisible="False">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer />
             </Grid.GestureRecognizers>
         </Grid>
 
         <!-- ═════════ OVERLAY MODALITÀ MODIFICA ═════════ -->
-        <Grid x:Name="OverlayModifica" Grid.RowSpan="2" Grid.ColumnSpan="3" BackgroundColor="#1AFF9800"
+        <Grid x:Name="OverlayModifica" Grid.RowSpan="3" Grid.ColumnSpan="3" BackgroundColor="#1AFF9800"
               InputTransparent="True" CascadeInputTransparent="True" IsVisible="False">
             <Grid BackgroundColor="#FF9800" HeightRequest="60" VerticalOptions="End" Margin="10,0,10,10" Padding="20,0">
                 <Label Text="✏️ MODALITÀ MODIFICA ATTIVA" FontSize="22" FontAttributes="Bold"
@@ -286,7 +296,7 @@
         </Grid>
 
         <!-- ═════════ POPUP CASSA ═════════ -->
-        <Grid x:Name="OverlayPagamento" Grid.RowSpan="2" Grid.ColumnSpan="3" IsVisible="False">
+        <Grid x:Name="OverlayPagamento" Grid.RowSpan="3" Grid.ColumnSpan="3" IsVisible="False">
             <BoxView Color="#99000000">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnChiudiPagamento" />
@@ -311,7 +321,7 @@
         </Grid>
 
         <!-- ═════════ ATTESA durante la stampa ═════════ -->
-        <Grid x:Name="Attesa" Grid.RowSpan="2" Grid.ColumnSpan="3" IsVisible="False" BackgroundColor="#99000000">
+        <Grid x:Name="Attesa" Grid.RowSpan="3" Grid.ColumnSpan="3" IsVisible="False" BackgroundColor="#99000000">
             <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="12">
                 <ActivityIndicator IsRunning="True" Color="White" WidthRequest="60" HeightRequest="60" />
                 <Label x:Name="TestoAttesa" Text="Stampa in corso..." TextColor="White" FontSize="20" />

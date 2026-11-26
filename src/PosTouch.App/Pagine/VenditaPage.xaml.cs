@@ -40,6 +40,7 @@ namespace PosTouch.App.Pagine
             {
                 DisplayTastierino.Text = _tastierino.Display;
                 DisplayTastierino.TextColor = Ui.C(_tastierino.ColoreDisplay);
+                DisplayTastierino.IsVisible = !string.IsNullOrEmpty(_tastierino.Display);   // riquadro bianco leggibile sul totale colorato
             };
 
             _orologio = Dispatcher.CreateTimer();
@@ -103,7 +104,7 @@ namespace PosTouch.App.Pagine
             Radice.ColumnDefinitions[2].Width = new GridLength(destra);
 
             double barra = Math.Clamp(height * 0.075, 50, 72);
-            Radice.RowDefinitions[1].Height = new GridLength(barra);
+            Radice.RowDefinitions[2].Height = new GridLength(barra);
 
             // tastiera: righe alte quanto lo permette lo schermo, lasciando spazio alla lista
             double riga = Math.Clamp((height - 380) / 4, 44, 72);

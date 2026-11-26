@@ -45,13 +45,58 @@ namespace PosTouch.App.Pagine
             BarraTavolo.IsVisible = tavolo;
             BtnSale.IsVisible = false;   // come il PC: alle sale si va con 🚪 (il tasto resta solo per compatibilità)
             BtnSale.Text = sale.AbilitaSale ? "🍽️ SALE" : "👤 CONTI";
-            BtnEsci.Text = tavolo ? "⬅" : "🚪";
+            AggiornaPosto();
             TitoloScontrino.Text = tavolo ? $"🍽️ {_sessione.Titolo.ToUpperInvariant()}" : "📋 SCONTRINO";
             BtnContoTavolo.IsVisible = BtnPreconto.IsVisible = Cfg.AbilitaStampanteTermica;
             BtnFunzioniPortate.IsVisible = BtnAvanza.IsVisible = tavolo && sale.AbilitaPortate && sale.AbilitaComande;
             bool inSala = tavolo && !_sessione.IsContoCliente;   // come il PC: sposta/unisci solo per i tavoli delle sale
             BtnSposta.IsVisible = inSala && sale.AbilitaSpostaTavolo;
             BtnUnisci.IsVisible = inSala && sale.AbilitaUnisciConti;
+        }
+
+        // ══════════════ DOVE SONO (banda in alto + totale colorato + tasto uscita) ══════════════
+
+        /// <summary>
+        /// Banco antracite, tavolo col colore della sua sala, conto cliente azzurro: banda in alto,
+        /// riquadro del totale e tasto di uscita ("⬅ SALA" / "⬅ CONTI") dicono sempre dove sei.
+        /// </summary>
+        private void AggiornaPosto()
+        {
+            string colore, titolo, dettaglio;
+            if (_sessione == null)
+            {
+                colore = TavoliPage.ColoreBanco; titolo = "🧾 BANCO"; dettaglio = "Vendita diretta";
+                BtnEsci.Text = "🚪"; BtnEsci.FontSize = 22; BtnEsci.BackgroundColor = Color.FromArgb("#B71C1C");
+            }
+            else
+            {
+                var t = _sessione.Tavolo;
+                colore = TavoliPage.ColoreDi(t.SalaId);
+                var parti = new List<string>();
+                if (_sessione.IsContoCliente) titolo = $"👤 {_sessione.NomeTavolo.ToUpperInvariant()}";
+                else
+                {
+                    titolo = $"🍽️ {_sessione.NomeTavolo} · {_sessione.NomeSala.ToUpperInvariant()}";
+                    int coperti = _sessione.NumeroCoperti;
+                    if (coperti > 0) parti.Add($"{coperti} coperti");
+                }
+                parti.Add($"dalle {t.Apertura:HH:mm}");
+                if (Cfg.Sale.AbilitaPortate && t.PortataCorrente > 0) parti.Add($"portata {t.PortataCorrente}");
+                if (t.Preconto) parti.Add("PRECONTO");
+                dettaglio = string.Join(" · ", parti);
+                BtnEsci.Text = _sessione.IsContoCliente ? "⬅ CONTI" : "⬅ SALA";
+                BtnEsci.FontSize = 15;
+                BtnEsci.BackgroundColor = Color.FromArgb(colore);
+            }
+            var c = Color.FromArgb(colore);
+            BandaPosto.BackgroundColor = c;
+            BandaTitolo.Text = titolo;
+            BandaDettaglio.Text = dettaglio;
+            RiquadroTotale.BackgroundColor = c;
+            TotalePosto.Text = titolo;
+            var chiaro = Color.FromArgb("#ECEFF1");
+            EtichettaTotale.TextColor = EtichettaTotaleScritta.TextColor = Colors.White;
+            EtichettaPezzi.TextColor = chiaro;
         }
 
         // ══════════════ APERTURA ══════════════
