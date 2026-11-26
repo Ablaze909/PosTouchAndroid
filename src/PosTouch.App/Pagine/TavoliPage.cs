@@ -135,7 +135,8 @@ namespace PosTouch.App.Pagine
             if (width <= 0) return;
             double area = width - 20;
             int perRiga = Math.Max(4, (int)(area / 142));
-            double lato = Math.Clamp(Math.Floor(area / perRiga) - 12, 120, 180);
+            // 8" e simili: 130 come il PC (più tavoli a video); solo sugli schermi larghi crescono
+            double lato = width < 1100 ? 130 : Math.Clamp(Math.Floor(area / perRiga) - 12, 130, 180);
             if (Math.Abs(lato - LatoSlot) > 2)
             {
                 LatoSlot = lato;

@@ -310,7 +310,7 @@
             <Button x:Name="BtnContoTavolo" Grid.Column="2" Text="📄 CONTO" FontSize="14" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button x:Name="BtnPreconto" Grid.Column="3" Text="📋 PRECONTO" FontSize="13" BackgroundColor="#FDD835" TextColor="#333333" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnPreconto" />
             <Button Grid.Column="4" Text="🚫 NO STAMPA" FontSize="13" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnNoStampa" />
-            <Button Grid.Column="5" Text="⬅ SENZA COMANDA" FontSize="13" BackgroundColor="#757575" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAnnullaTavolo" />
+            <Button Grid.Column="5" Text="💾 SALVA" FontSize="13" BackgroundColor="#757575" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAnnullaTavolo" />
             <Button x:Name="BtnFunzioniPortate" Grid.Column="6" Text="📑 FUNZIONI" FontSize="13" BackgroundColor="#546E7A" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnFunzioniPortate" />
             <Button x:Name="BtnAvanza" Grid.Column="7" Text="⏩ AVANZA" FontSize="13" BackgroundColor="#1565C0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAvanza" />
         </Grid>

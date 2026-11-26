@@ -60,6 +60,8 @@ namespace PosTouch.App.Controlli
             vista.GestureRecognizers.Add(tap);
         }
 
+        private static readonly HashSet<View> _inLampeggio = new HashSet<View>();
+
         /// <summary>Riscontro del tocco: la vista si scurisce un attimo (come i tasti), così si capisce che il tocco è arrivato.</summary>
         private static void Lampeggia(View vista)
         {
@@ -67,11 +69,13 @@ namespace PosTouch.App.Controlli
             {
                 var d = vista.Dispatcher;
                 if (d == null) return;   // senza dispatcher non si potrebbe rimettere com'era
+                if (!_inLampeggio.Add(vista)) return;   // secondo tocco rapido: non si scurisce di nuovo (resterebbe grigia)
                 double prima = vista.Opacity;
                 double scuro = prima * 0.6;
                 vista.Opacity = scuro;
                 d.DispatchDelayed(TimeSpan.FromMilliseconds(150), () =>
                 {
+                    _inLampeggio.Remove(vista);
                     if (Math.Abs(vista.Opacity - scuro) < 0.001) vista.Opacity = prima;   // se intanto qualcuno l'ha cambiata, non si tocca
                 });
             }
