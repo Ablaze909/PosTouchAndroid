@@ -49,11 +49,11 @@ namespace PosTouch.Core.Dati
                 using var cmd = conn.CreateCommand();
                 if (c.Id == 0)
                 {
-                    // Id esplicito sotto 9000: nel pos.db del PC le categorie tabacchi partono da 9000 e
-                    // l'autoincremento darebbe 9001, 9002... (categoria nuova invisibile nella vendita)
+                    // Id esplicito sotto 8000: nel pos.db del PC 8000-8999 sono Gratta e Vinci e 9000+ tabacchi;
+                    // l'autoincremento darebbe Id riservati (categoria nuova invisibile nella vendita)
                     cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva, CentroProduzioneId)
-                                        VALUES ((SELECT IFNULL(MAX(Id),0)+1 FROM Categorie WHERE Id < 9000), $n, $rep, $iva, $col, $colT, $ico,
-                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 9000), $att, $centro)";
+                                        VALUES ((SELECT IFNULL(MAX(Id),0)+1 FROM Categorie WHERE Id < 8000), $n, $rep, $iva, $col, $colT, $ico,
+                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 8000), $att, $centro)";
                 }
                 else
                 {
@@ -81,15 +81,24 @@ namespace PosTouch.Core.Dati
             {
                 using (var chk = conn.CreateCommand())
                 {
-                    chk.CommandText = "SELECT COUNT(*) FROM Prodotti WHERE CategoriaId=$id";
+                    chk.CommandText = "SELECT COUNT(*) FROM Prodotti WHERE CategoriaId=$id AND IFNULL(Attivo,1) >= 0";
                     chk.Parameters.AddWithValue("$id", id);
                     long n = (long)chk.ExecuteScalar();
                     if (n > 0) throw new InvalidOperationException($"La categoria contiene {n} articoli: eliminarli o spostarli prima.");
                 }
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "DELETE FROM Categorie WHERE Id=$id";
-                cmd.Parameters.AddWithValue("$id", id);
-                cmd.ExecuteNonQuery();
+                // articoli già eliminati sul PC (Attivo = -1) e varianti collegate: via insieme alla categoria
+                using var tx = conn.BeginTransaction();
+                foreach (var sql in new[] { "DELETE FROM Prodotti WHERE CategoriaId=$id AND IFNULL(Attivo,1) < 0",
+                                            "DELETE FROM CategorieVarianti WHERE CategoriaId=$id",
+                                            "DELETE FROM Categorie WHERE Id=$id" })
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
             });
         }
 
@@ -101,7 +110,7 @@ namespace PosTouch.Core.Dati
                 var ordine = new List<int>();
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT Id FROM Categorie WHERE Id < 9000 ORDER BY IFNULL(Ordine,0), Nome";
+                    cmd.CommandText = "SELECT Id FROM Categorie WHERE Id < 8000 ORDER BY IFNULL(Ordine,0), Nome";
                     using var r = cmd.ExecuteReader();
                     while (r.Read()) ordine.Add(r.GetInt32(0));
                 }
@@ -157,7 +166,7 @@ namespace PosTouch.Core.Dati
                                         VenditaAPeso=$peso, UnitaPeso=$unita, IsCodiceBilancia=$bil, IsCombinazione=$comb, NumeroGusti=$gusti, PoliticaPrezzo=$pol, VariantiProporzionali=$prop WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", p.Id);
                 }
-                cmd.Parameters.AddWithValue("$b", barcode);
+                cmd.Parameters.AddWithValue("$b", barcode.Length == 0 ? DBNull.Value : barcode);   // NULL come il PC
                 cmd.Parameters.AddWithValue("$d", p.Descrizione.Trim());
                 cmd.Parameters.AddWithValue("$pr", p.PrezzoCentesimi);
                 cmd.Parameters.AddWithValue("$cat", p.CategoriaId);
@@ -186,14 +195,17 @@ namespace PosTouch.Core.Dati
             var lista = new List<int>(ids);
             Esegui(conn =>
             {
+                using var tx = conn.BeginTransaction();   // tutto o niente, e un solo salvataggio su disco
                 foreach (int id in lista)
                 {
                     using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
                     cmd.CommandText = "UPDATE Prodotti SET Attivo=$a WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$a", attivo ? 1 : 0);
                     cmd.Parameters.AddWithValue("$id", id);
                     cmd.ExecuteNonQuery();
                 }
+                tx.Commit();
             });
         }
 
@@ -203,14 +215,17 @@ namespace PosTouch.Core.Dati
             var lista = new List<int>(ids);
             Esegui(conn =>
             {
+                using var tx = conn.BeginTransaction();   // tutto o niente, e un solo salvataggio su disco
                 foreach (int id in lista)
                 {
                     using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
                     cmd.CommandText = "UPDATE Prodotti SET CategoriaId=$c WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$c", categoriaId);
                     cmd.Parameters.AddWithValue("$id", id);
                     cmd.ExecuteNonQuery();
                 }
+                tx.Commit();
             });
         }
 
@@ -219,13 +234,16 @@ namespace PosTouch.Core.Dati
             var lista = new List<int>(ids);
             Esegui(conn =>
             {
+                using var tx = conn.BeginTransaction();   // tutto o niente, e un solo salvataggio su disco
                 foreach (int id in lista)
                 {
                     using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
                     cmd.CommandText = "DELETE FROM Prodotti WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", id);
                     cmd.ExecuteNonQuery();
                 }
+                tx.Commit();
             });
         }
 
@@ -312,7 +330,8 @@ namespace PosTouch.Core.Dati
         private static string ProssimoCodice(SqliteConnection conn)
         {
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT IFNULL(MAX(CAST(Codice AS INTEGER)),0) FROM Prodotti WHERE Codice GLOB '[0-9]*'";
+            // solo codici numerici "normali" (fino a 9 cifre): un codice lunghissimo non deve mandare in overflow
+            cmd.CommandText = "SELECT IFNULL(MAX(CAST(Codice AS INTEGER)),0) FROM Prodotti WHERE Codice GLOB '[0-9]*' AND Codice NOT GLOB '*[^0-9]*' AND LENGTH(Codice) <= 9";
             long max = Convert.ToInt64(cmd.ExecuteScalar());
             long n = max + 1;
             // Evita collisioni con codici non numerici o duplicati

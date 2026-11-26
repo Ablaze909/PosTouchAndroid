@@ -57,21 +57,38 @@ namespace PosTouch.Core.Vendita
 
             if (target.Tipo == TipoRiga.Prodotto)
             {
-                if (target.PrezzoCentesimi + conSegno <= 0)
-                    return "Con questa variante il prezzo dell'articolo scenderebbe a zero o meno.";
+                if (!c.RigaAmmessa(target.PrezzoCentesimi + conSegno, target.Quantita))
+                    return $"Con questa variante il prezzo dell'articolo non sarebbe valido.\n{c.UltimoErrore}";
                 target.PrezzoCentesimi += conSegno;
                 target.VariantiTesto = string.IsNullOrEmpty(target.VariantiTesto) ? testoComanda : target.VariantiTesto + "|" + testoComanda;
             }
-            c.InserisciVariante(target, new RigaScontrino
+            var riga = new RigaScontrino
             {
                 Tipo = TipoRiga.Variante, Descrizione = descrizione, Quantita = 0,
                 PrezzoCentesimi = conSegno, PrezzoOriginaleCentesimi = conSegno, CategoriaId = target.CategoriaId
-            });
+            };
             if (target.Tipo == TipoRiga.Gusto && !combinazioneAperta)
             {
+                // combinazione già chiusa: serve l'articolo base per ricalcolare, e il prezzo deve restare valido
                 var padre = c.PadreDi(target);
-                if (padre != null) Combinazioni.Ricalcola(c, padre);
+                if (padre == null || !padre.ProdottoId.HasValue || Carrello.RisolviProdotto?.Invoke(padre.ProdottoId.Value) == null)
+                    return "L'articolo combinazione non è più nel catalogo: la variante non si può ricalcolare.";
+                int prima = padre.PrezzoCentesimi;
+                string testoPrima = padre.VariantiTesto;
+                c.InserisciVariante(target, riga);
+                Combinazioni.Ricalcola(c, padre);
+                if (!c.RigaAmmessa(padre.PrezzoCentesimi, padre.Quantita))
+                {
+                    string motivo = c.UltimoErrore;
+                    c.Righe.Remove(riga);
+                    Combinazioni.Ricalcola(c, padre);
+                    if (padre.PrezzoCentesimi != prima) { padre.PrezzoCentesimi = prima; padre.VariantiTesto = testoPrima; }
+                    return $"Con questa variante il prezzo della combinazione non sarebbe valido.\n{motivo}";
+                }
+                c.Notifica();
+                return null;
             }
+            c.InserisciVariante(target, riga);
             c.Notifica();
             return null;
         }

@@ -100,7 +100,9 @@ namespace PosTouch.Core.Vendita
                 if (_fase >= 3)
                 {
                     // Scontrino già chiuso dall'RT: l'errore è avvenuto dopo (lettura numero, cassetto)
-                    return RegistraEsito(_ultimoDaRegistrare, null, StatoEsito.Riuscito);
+                    var e3 = RegistraEsito(_ultimoDaRegistrare, null, StatoEsito.Riuscito);
+                    e3.RestoCent = _ultimoResto;
+                    return e3;
                 }
                 if (_fase == 2)
                 {
@@ -125,12 +127,15 @@ namespace PosTouch.Core.Vendita
         }
 
         private VenditaRegistrata _ultimoDaRegistrare;
+        private int _ultimoResto;
 
         private async Task<EsitoVendita> EmettiInternoAsync(List<RigaScontrino> righe, Pagamento pag)
         {
             _fase = 0;
             _ultimoDaRegistrare = null;
             var cfg = _impostazioni();
+            // per lo storico anche i gusti delle combinazioni (prezzo 0), come il PC
+            var perArchivio = righe.Where(r => r.ContaNelTotale || r.Tipo == TipoRiga.Gusto).ToList();
             righe = righe.Where(r => r.ContaNelTotale).ToList(); // subtotale e separatori sono solo visivi
             var prodotti = righe.Where(r => r.Tipo == TipoRiga.Prodotto).ToList();
             int totaleCent = righe.Sum(r => r.ImportoCentesimi);
@@ -138,6 +143,11 @@ namespace PosTouch.Core.Vendita
             // ── VALIDAZIONE ──
             if (prodotti.Count == 0)
                 return EsitoVendita.Errore("ATTENZIONE", "Lo scontrino è vuoto.");
+            var rigaNonValida = prodotti.FirstOrDefault(r => r.PrezzoCentesimi <= 0 || r.ImportoCentesimi <= 0);
+            if (rigaNonValida != null)
+                return EsitoVendita.Errore("RIGA NON VALIDA",
+                    $"L'articolo \"{rigaNonValida.Descrizione.Trim()}\" ha prezzo € {rigaNonValida.PrezzoCentesimi / 100m:N2}.\n\n" +
+                    "Correggi il prezzo (o chiudi la combinazione) prima di emettere lo scontrino.");
             if (totaleCent <= 0)
                 return EsitoVendita.Errore("TOTALE NON VALIDO", $"Il totale è € {totaleCent / 100m:N2}.\nCorreggere gli sconti.");
 
@@ -172,9 +182,10 @@ namespace PosTouch.Core.Vendita
                 ContantiCent = contantiCent,
                 CartaCent = cartaCent,
                 StampatoSuRT = true,
-                Righe = righe
+                Righe = perArchivio
             };
             int restoFinale = restoCent;
+            _ultimoResto = restoCent;
 
             using var rt = FiscalConnectorFactory.Create(cfg.TipoCassa, cfg.IP_RT, cfg.Porta_RT);
 
@@ -276,9 +287,23 @@ namespace PosTouch.Core.Vendita
 
             if (!chiusuraOk)
             {
-                _fase = 1;
-                LogManager.Error("RT ha rifiutato la chiusura scontrino");
-                return await AnnullaEdEsci(rt, "ERRORE CHIUSURA", "Il registratore ha rifiutato la chiusura dello scontrino.");
+                // Chiusura inviata ma senza conferma (rifiuto o risposta persa): NON si annulla in automatico,
+                // altrimenti uno scontrino magari già stampato verrebbe rifatto (doppio scontrino).
+                // Decide l'operatore; se non è uscito, alla prossima vendita il controllo iniziale sblocca l'RT.
+                string err = rt.UltimoErrore;
+                LogManager.Error($"RT: chiusura senza conferma ({err})");
+                _ultimaVenditaFallita = true;
+                rt.Disconnect();
+                return new EsitoVendita
+                {
+                    Stato = StatoEsito.Incerto,
+                    Titolo = "VERIFICARE LO SCONTRINO",
+                    Messaggio = "Il registratore non ha confermato la chiusura dello scontrino." +
+                                (string.IsNullOrEmpty(err) ? "" : $"\n⚠️ {err}") +
+                                "\n\nControllare il registratore.",
+                    DaRegistrare = _ultimoDaRegistrare,
+                    RestoCent = restoFinale
+                };
             }
 
             _fase = 3;

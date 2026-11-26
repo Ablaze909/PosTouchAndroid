@@ -15,7 +15,8 @@ namespace PosTouch.Core.Vendita
             var risultato = new List<RigaScontrino>();
             foreach (var r in righe)
             {
-                var esistente = risultato.FirstOrDefault(x =>
+                // come il PC: righe a peso mai accorpate (i centesimi arrotondati per riga non tornerebbero)
+                var esistente = r.IsAPeso ? null : risultato.FirstOrDefault(x => !x.IsAPeso &&
                     x.RepartoFiscale == r.RepartoFiscale &&
                     x.Descrizione == r.Descrizione &&
                     x.PrezzoCentesimi == r.PrezzoCentesimi &&

@@ -79,8 +79,19 @@ namespace PosTouch.Core.Configurazione
         public StampanteRete StampanteDa(int id) => Stampanti.FirstOrDefault(s => s.Id == id);
 
         /// <summary>Copia profonda (le impostazioni vengono modificate su una copia e salvate solo con SALVA).</summary>
+        /// <summary>Liste mai null (JSON scritto a mano o di versioni vecchie).</summary>
+        public void Normalizza()
+        {
+            Sale ??= new List<Sala>();
+            Stampanti ??= new List<StampanteRete>();
+            Centri ??= new List<CentroProduzione>();
+            StampantiSala ??= new List<StampanteSala>();
+            SeparatoriPortate ??= new List<string>();
+        }
+
         public ConfigSale Copia()
         {
+            Normalizza();
             var c = (ConfigSale)MemberwiseClone();
             c.Sale = Sale.Select(s => new Sala { Id = s.Id, Nome = s.Nome, NumeroTavoli = s.NumeroTavoli, NumeroIniziale = s.NumeroIniziale, CopertoProdottoId = s.CopertoProdottoId }).ToList();
             c.Stampanti = Stampanti.Select(s => new StampanteRete { Id = s.Id, Nome = s.Nome, IP = s.IP, Porta = s.Porta }).ToList();

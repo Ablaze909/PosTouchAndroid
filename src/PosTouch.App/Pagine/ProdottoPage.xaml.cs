@@ -173,7 +173,18 @@ namespace PosTouch.App.Pagine
         private void OnFont14(object sender, EventArgs e) { _p.DimensioneFontTasto = 14; Aggiorna(); }
         private void OnFont16(object sender, EventArgs e) { _p.DimensioneFontTasto = 16; Aggiorna(); }
 
+        private bool _salvataggio;
+
+        /// <summary>SALVA protetto dal doppio tocco (un secondo INSERT creerebbe un duplicato).</summary>
         private async void OnSalva(object sender, EventArgs e)
+        {
+            if (_salvataggio) return;
+            _salvataggio = true;
+            try { await SalvaAsync(); }
+            finally { _salvataggio = false; }
+        }
+
+        private async Task SalvaAsync()
         {
             if (string.IsNullOrWhiteSpace(CampoDescrizione.Text))
             {

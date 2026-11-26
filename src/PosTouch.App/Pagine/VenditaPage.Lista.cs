@@ -81,6 +81,7 @@ namespace PosTouch.App.Pagine
                 return;
             }
             Carrello.Rimuovi(selezionate);
+            if (Carrello.UltimoErrore != null) _ = MessaggioBox.Avviso("ELIMINA", Carrello.UltimoErrore);
             if (Carrello.Vuoto) ApplicaModalitaEspansa(false);
         }
 

@@ -75,7 +75,7 @@ namespace PosTouch.Core.Sale
 
         private async Task GiroAsync(bool ancheInErrore)
         {
-            var coda = _archivio.CodaDaStampare(ancheInErrore);
+            var coda = _archivio.CodaDaStampare(true);   // sempre anche quelle in errore: servono a tenere l'ordine
             if (coda.Count == 0) return;
             var bloccate = new HashSet<string>();
             bool cambiato = false;
@@ -83,6 +83,11 @@ namespace PosTouch.Core.Sale
             {
                 string chiave = $"{job.IP}:{job.Porta}";
                 if (bloccate.Contains(chiave)) continue;   // stampante giù: le successive aspettano, in ordine
+                if (job.Stato == StatoJob.Errore && !ancheInErrore)
+                {
+                    bloccate.Add(chiave);                   // una stampa in errore più vecchia blocca le successive della stessa stampante
+                    continue;
+                }
 
                 string errore = await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15));
                 if (errore == null)

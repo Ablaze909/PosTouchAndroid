@@ -49,9 +49,11 @@ namespace PosTouch.Core.Diagnostica
                     var fi = new FileInfo(_percorso);
                     if (fi.Exists && fi.Length > MaxDimensione)
                     {
-                        string vecchio = _percorso + ".1";
-                        if (File.Exists(vecchio)) File.Delete(vecchio);
-                        File.Move(_percorso, vecchio);
+                        // rotazione su 4 file (log, .1, .2, .3): gli errori fiscali di qualche giorno fa restano
+                        if (File.Exists(_percorso + ".3")) File.Delete(_percorso + ".3");
+                        for (int k = 2; k >= 1; k--)
+                            if (File.Exists($"{_percorso}.{k}")) File.Move($"{_percorso}.{k}", $"{_percorso}.{k + 1}");
+                        File.Move(_percorso, _percorso + ".1");
                     }
                     File.AppendAllText(_percorso, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{livello}] {msg}{Environment.NewLine}");
                 }

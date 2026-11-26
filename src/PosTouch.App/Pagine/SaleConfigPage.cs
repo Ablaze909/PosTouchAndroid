@@ -331,6 +331,25 @@ namespace PosTouch.App.Pagine
 
         // ══════════════ SALVA ══════════════
 
+        /// <summary>Tavoli aperti (con articoli) che non rientrerebbero più in nessuna sala/slot della nuova configurazione.</summary>
+        private List<string> TavoliFuoriConfigurazione()
+        {
+            var r = new List<string>();
+            foreach (var t in ContestoCassa.Tavoli.Aperti().Where(t => t.Articoli > 0))
+            {
+                bool visibile;
+                if (t.SalaId == ConfigSale.SalaConti)
+                    visibile = _c.AbilitaContiClienti && t.Numero >= 1 && t.Numero <= _c.NumeroSlotContiClienti;
+                else
+                {
+                    var sala = _c.Sale.FirstOrDefault(s => s.Id == t.SalaId);
+                    visibile = _c.AbilitaSale && sala != null && t.Numero >= sala.NumeroIniziale && t.Numero < sala.NumeroIniziale + sala.NumeroTavoli;
+                }
+                if (!visibile) r.Add(t.SalaId == ConfigSale.SalaConti ? $"Conto cliente {t.Numero}" : $"Sala {t.SalaId} - tavolo {t.Numero}");
+            }
+            return r;
+        }
+
         private async Task SalvaAsync()
         {
             string errore = null;
@@ -346,6 +365,16 @@ namespace PosTouch.App.Pagine
             if (errore == null && _c.Centri.Any(c => string.IsNullOrWhiteSpace(c.Nome))) errore = "Ogni centro deve avere un nome.";
             if (errore == null && _c.AbilitaPortate && _c.SeparatoriPortate.Count == 0) errore = "Con le portate abilitate serve almeno un separatore.";
             if (errore != null) { await MessaggioBox.Avviso("VALORE NON VALIDO", errore); return; }
+
+            // un tavolo aperto non deve sparire dalla mappa con la nuova configurazione
+            var fuori = TavoliFuoriConfigurazione();
+            if (fuori.Count > 0)
+            {
+                await MessaggioBox.Avviso("TAVOLI APERTI", "Questi tavoli aperti non sarebbero più visibili con le nuove impostazioni:\n\n"
+                    + string.Join("\n", fuori.Take(10)) + (fuori.Count > 10 ? "\n…" : "")
+                    + "\n\nIncassali o spostali prima di salvare.");
+                return;
+            }
 
             var n = ContestoCassa.Impostazioni.Copia();
             n.Sale = _c.Copia();

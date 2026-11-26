@@ -51,7 +51,7 @@ namespace PosTouch.App.Pagine
                 }
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.Incerto)
                 {
-                    bool uscito = await MessaggioBox.Domanda(esito.Titolo, esito.Messaggio + "\n\nIl conto è stato STAMPATO?");
+                    bool uscito = await MessaggioBox.DomandaFiscale(esito.Titolo, esito.Messaggio + "\n\nIl conto è stato STAMPATO?");
                     if (!uscito)
                     {
                         await MessaggioBox.Avviso("CONTO NON SALVATO", "Il conto NON è stato salvato.\n\nLo scontrino è ancora visibile:\npuoi riprovare quando la stampante torna disponibile.");
@@ -85,6 +85,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnBarcode(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;   // avvisa subito, non dopo aver digitato il codice
             string codice = await TastierinoPrezzo.ChiediCodice("🔍 BARCODE");
             if (!string.IsNullOrWhiteSpace(codice)) AggiungiDaBarcode(codice.Trim());
         }
@@ -159,7 +160,7 @@ namespace PosTouch.App.Pagine
             if (esito.Stato == StatoEsito.Incerto)
             {
                 // Comunicazione interrotta durante la chiusura: decide l'operatore guardando l'RT (evita doppi scontrini)
-                bool uscito = await MessaggioBox.Domanda(esito.Titolo, esito.Messaggio + "\n\nLo scontrino è stato STAMPATO?");
+                bool uscito = await MessaggioBox.DomandaFiscale(esito.Titolo, esito.Messaggio + "\n\nLo scontrino è stato STAMPATO?");
                 if (!uscito)
                 {
                     await MessaggioBox.Avviso("SCONTRINO NON EMESSO",

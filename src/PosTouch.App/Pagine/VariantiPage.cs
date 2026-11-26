@@ -21,7 +21,7 @@ namespace PosTouch.App.Pagine
             BackgroundColor = Ui.C("#F5F5F5");
             var testa = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto) }, ColumnSpacing = 10, BackgroundColor = Ui.C("#E65100"), Padding = new Thickness(16, 8) };
             testa.Add(new Label { Text = "🧩 VARIANTI", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center }, 0, 0);
-            var nuova = Ui.Tasto("➕ NUOVA", "#43A047", fontSize: 15, altezza: 46, clic: (s, e) => { _lista.Insert(0, Riga(new Variante { Ordine = 0 })); });
+            var nuova = Ui.Tasto("➕ NUOVA", "#43A047", fontSize: 15, altezza: 46, clic: (s, e) => { if (_vuota != null) { _lista.Remove(_vuota); _vuota = null; } _lista.Insert(0, Riga(new Variante { Ordine = 0 })); });
             var chiudi = Ui.Tasto("CHIUDI", "#BF360C", fontSize: 15, altezza: 46, clic: async (s, e) => await Navigazione.Chiudi(this));
             nuova.WidthRequest = 130; chiudi.WidthRequest = 120;
             testa.Add(nuova, 1, 0); testa.Add(chiudi, 2, 0);
@@ -48,12 +48,15 @@ namespace PosTouch.App.Pagine
             for (int i = 0; i < 3; i++) g.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         }
 
+        private View _vuota;
+
         private void Carica()
         {
+            _vuota = null;
             _lista.Children.Clear();
             var tutte = ContestoCassa.Catalogo.TutteVarianti;
             if (tutte.Count == 0)
-                _lista.Add(Ui.Testo("Nessuna variante. Premi ➕ NUOVA per crearne una, poi scegli le categorie in cui compare.", 15, "#78909C"));
+                _lista.Add(_vuota = Ui.Testo("Nessuna variante. Premi ➕ NUOVA per crearne una, poi scegli le categorie in cui compare.", 15, "#78909C"));
             foreach (var v in tutte) _lista.Add(Riga(Copia(v)));
         }
 
@@ -114,15 +117,18 @@ namespace PosTouch.App.Pagine
             };
             var elimina = Ui.Tasto("🗑️", "#F44336", fontSize: 18, altezza: 44);
             elimina.WidthRequest = 52;
+            View riquadro = null;
             elimina.Clicked += async (s, e) =>
             {
                 if (v.Id > 0 && !await MessaggioBox.Conferma("ELIMINA VARIANTE", $"Eliminare la variante {v.Nome}?")) return;
-                try { if (v.Id > 0) ContestoCassa.GestioneCatalogo.EliminaVariante(v.Id); Carica(); }
+                // toglie solo questa riga: le altre ➕ NUOVE non ancora salvate restano
+                try { if (v.Id > 0) ContestoCassa.GestioneCatalogo.EliminaVariante(v.Id); (riquadro?.Parent as Layout)?.Remove(riquadro); }
                 catch (Exception ex) { await MessaggioBox.Errore("VARIANTE", ex.Message); }
             };
             View[] celle = { nome, gruppo, Ui.Riquadro(tipo, "#FAFAFA", 6, new Thickness(8, 6), "#E0E0E0", 1), piu, meno, categorie, attiva, salva, elimina };
             for (int i = 0; i < celle.Length; i++) g.Add(celle[i], i, 0);
-            return Ui.Riquadro(g, "#FFFFFF", 10, new Thickness(12, 6), "#E0E0E0", 1);
+            riquadro = Ui.Riquadro(g, "#FFFFFF", 10, new Thickness(12, 6), "#E0E0E0", 1);
+            return riquadro;
         }
     }
 }

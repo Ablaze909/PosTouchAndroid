@@ -37,7 +37,14 @@ namespace PosTouch.Core.Fiscale
                     case '¼': sb.Append("1/4"); break;
                     case '’': case '‘': sb.Append('\''); break;
                     case '“': case '”': sb.Append('\''); break;
-                    default: sb.Append(c); break;
+                    case '°': sb.Append('o'); break;
+                    case '•': sb.Append('-'); break;
+                    default:
+                        if (c < 0x80) { sb.Append(c); break; }
+                        // altre lettere accentate (Ü, Ö, â, ê...): lettera base senza accento
+                        foreach (char b in c.ToString().Normalize(NormalizationForm.FormD))
+                            if (b < 0x80) sb.Append(b);
+                        break;
                 }
             }
             return sb.ToString();

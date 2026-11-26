@@ -139,6 +139,11 @@ namespace PosTouch.App.Pagine
         private async void OnStrumenti(object sender, EventArgs e)
         {
             if (CombinazioneAperta()) return;
+            if (_sessione != null)
+            {
+                await MessaggioBox.Avviso("TAVOLO APERTO", "Esci dal tavolo prima di aprire gli strumenti.");
+                return;
+            }
             if (await Accesso.VerificaPinAsync("🔧 STRUMENTI"))
                 await Navigazione.Apri(this, () => new StrumentiPage());
         }
@@ -195,9 +200,9 @@ namespace PosTouch.App.Pagine
         protected override bool Indietro()
         {
             if (Attesa.IsVisible) return true;
-            if (_sessione != null && !_modalitaModifica) { OnTornaSala(); return true; }
+            if (OverlayPagamento.IsVisible) { OverlayPagamento.IsVisible = false; return true; }   // prima chiude il popup CASSA
             if (_modalitaModifica) { ImpostaModalitaModifica(false); return true; } // indietro = esci dalla modifica
-            if (OverlayPagamento.IsVisible) { OverlayPagamento.IsVisible = false; return true; }
+            if (_sessione != null) { OnTornaSala(); return true; }
             OnEsci(this, EventArgs.Empty);
             return true;
         }

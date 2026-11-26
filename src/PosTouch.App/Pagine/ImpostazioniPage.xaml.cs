@@ -279,23 +279,36 @@ namespace PosTouch.App.Pagine
             }
         }
 
+        /// <summary>Tasto indietro di Android = ✖ CHIUDI (chiede se salvare).</summary>
+        protected override bool Indietro() { OnChiudi(this, EventArgs.Empty); return true; }
+
+        private bool _chiusura;
+
         private async void OnChiudi(object sender, EventArgs e)
         {
-            if (Firma() != _statoIniziale &&
-                await MessaggioBox.Domanda("MODIFICHE NON SALVATE", "Salvare le impostazioni prima di chiudere?"))
+            if (_chiusura) return;
+            _chiusura = true;
+            try
             {
-                var nuove = await LeggiAsync();
-                if (nuove == null) return;
-                ContestoCassa.SalvaImpostazioni(nuove);
+                if (Firma() != _statoIniziale &&
+                    await MessaggioBox.Domanda("MODIFICHE NON SALVATE", "Salvare le impostazioni prima di chiudere?"))
+                {
+                    var nuove = await LeggiAsync();
+                    if (nuove == null) return;
+                    ContestoCassa.SalvaImpostazioni(nuove);
+                }
+                await Navigazione.Chiudi(this);
             }
-            await Navigazione.Chiudi(this);
+            catch (Exception ex) { await MessaggioBox.Errore("IMPOSTAZIONI", ex.Message); }
+            finally { _chiusura = false; }
         }
 
         private async void OnImportaCatalogo(object sender, EventArgs e)
         {
             if (ContestoCassa.Catalogo.TuttiProdotti.Count > 0 &&
                 !await MessaggioBox.Conferma("IMPORTA CATALOGO",
-                    "Il catalogo attuale del tablet (categorie e articoli) verrà SOSTITUITO da quello del file scelto.\n\nContinuare?"))
+                    "Il catalogo attuale del tablet (categorie e articoli) verrà SOSTITUITO da quello del file scelto.\n\n" +
+                    "Copia pos.db dal PC con POS Touch CHIUSO, altrimenti le ultime modifiche potrebbero mancare.\n\nContinuare?"))
                 return;
             try
             {
@@ -305,12 +318,27 @@ namespace PosTouch.App.Pagine
                 int n = await Task.Run(() => ContestoCassa.Catalogo.Importa(stream));
                 InfoCatalogo.Text = $"{ContestoCassa.Catalogo.TutteCategorie.Count} categorie, {n} prodotti";
                 await MessaggioBox.Successo("CATALOGO IMPORTATO", $"Importati {n} prodotti in {ContestoCassa.Catalogo.TutteCategorie.Count} categorie.");
+                await AvvisaCentriMancantiAsync();
             }
             catch (Exception ex)
             {
                 LogManager.Error($"Import catalogo: {ex}");
                 await MessaggioBox.Errore("IMPORT NON RIUSCITO", ex.Message);
             }
+        }
+
+        /// <summary>Dopo l'import: centri di produzione usati dal catalogo del PC ma non impostati qui (le comande non uscirebbero).</summary>
+        private async Task AvvisaCentriMancantiAsync()
+        {
+            var cfg = ContestoCassa.Impostazioni.Sale;
+            if (!cfg.AbilitaSale) return;
+            var noti = cfg.Centri.Select(c => c.Id).ToHashSet();
+            var usati = ContestoCassa.Catalogo.TutteCategorie.Select(c => c.CentroProduzioneId)
+                        .Concat(ContestoCassa.Catalogo.TuttiProdotti.Select(p => p.CentroProduzioneId))
+                        .Where(id => id > 0 && !noti.Contains(id)).Distinct().OrderBy(id => id).ToList();
+            if (usati.Count > 0)
+                await MessaggioBox.Avviso("CENTRI DI PRODUZIONE", $"Il catalogo usa centri non impostati sul tablet (n. {string.Join(", ", usati)}).\n\n" +
+                                          "Crea i centri in 🍽️ SALE E COMANDE, altrimenti quegli articoli non vanno in comanda.");
         }
 
         private async void OnCondividiLog(object sender, EventArgs e)

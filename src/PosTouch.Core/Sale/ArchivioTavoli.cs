@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using PosTouch.Core.Diagnostica;
 using PosTouch.Core.Modelli;
@@ -173,6 +174,7 @@ namespace PosTouch.Core.Sale
                 // colonne aggiunte nelle versioni successive (archivi già esistenti)
                 AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
+                AggiungiColonna(c, "RigheTavolo", "InStorno", "INTEGER NOT NULL DEFAULT 0");
                 Esegui(c, null, @"CREATE TABLE IF NOT EXISTS DeviazioniStampa (
                                     IPOrigine TEXT NOT NULL, PortaOrigine INTEGER NOT NULL, NomeOrigine TEXT NOT NULL,
                                     IPDestinazione TEXT NOT NULL, PortaDestinazione INTEGER NOT NULL, NomeDestinazione TEXT NOT NULL,
@@ -191,9 +193,9 @@ namespace PosTouch.Core.Sale
                 cmd.CommandText = @"
                     SELECT t.Id, t.SalaId, t.Numero, t.DataApertura, t.Preconto, t.PortataCorrente,
                            IFNULL((SELECT SUM(CAST(ROUND(r.Quantita * r.PrezzoCentesimi) AS INTEGER)) FROM RigheTavolo r
-                                   WHERE r.TavoloId = t.Id AND r.Tipo IN (0, 1)), 0),
-                           (SELECT COUNT(*) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0),
-                           EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.Comandata = 0 AND r.CentroProduzioneId > 0),
+                                   WHERE r.TavoloId = t.Id AND r.Tipo IN (0, 1) AND r.InStorno = 0), 0),
+                           (SELECT COUNT(*) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.InStorno = 0),
+                           EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.Comandata = 0 AND r.CentroProduzioneId > 0 AND r.InStorno = 0),
                            IFNULL((SELECT MAX(r.Portata) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 4), 0),
                            IFNULL(t.NomeCliente, '')
                     FROM TavoliAperti t";
@@ -245,7 +247,12 @@ namespace PosTouch.Core.Sale
             }
         }
 
-        public List<RigaScontrino> Righe(long tavoloId)
+        public List<RigaScontrino> Righe(long tavoloId) => LeggiRighe(tavoloId, inStorno: false);
+
+        /// <summary>Storni non ancora stampati di un tavolo (app chiusa prima di uscire dal tavolo).</summary>
+        public List<RigaScontrino> StorniPendenti(long tavoloId) => LeggiRighe(tavoloId, inStorno: true);
+
+        private List<RigaScontrino> LeggiRighe(long tavoloId, bool inStorno)
         {
             lock (_lock)
             {
@@ -254,8 +261,9 @@ namespace PosTouch.Core.Sale
                 cmd.CommandText = @"SELECT Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi, PrezzoOriginaleCentesimi,
                                            RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso, ScontoPercentualeCent,
                                            CentroProduzioneId, Portata, Comandata, VariantiTesto
-                                    FROM RigheTavolo WHERE TavoloId=$t ORDER BY Ordine";
+                                    FROM RigheTavolo WHERE TavoloId=$t AND InStorno=$s ORDER BY Ordine";
                 cmd.Parameters.AddWithValue("$t", tavoloId);
+                cmd.Parameters.AddWithValue("$s", inStorno ? 1 : 0);
                 var lista = new List<RigaScontrino>();
                 using var r = cmd.ExecuteReader();
                 while (r.Read())
@@ -287,7 +295,12 @@ namespace PosTouch.Core.Sale
         /// Salva lo stato del tavolo (memoria = fonte autorevole) insieme a stampe e storni, in un'unica transazione.
         /// Tavolo senza righe = tavolo liberato.
         /// </summary>
-        public void Salva(TavoloAperto t, IList<RigaScontrino> righe, IEnumerable<JobStampa> stampe = null, IEnumerable<StornoRegistrato> storni = null)
+        /// <param name="liberaSeVuoto">true solo uscendo dal tavolo o dopo il pagamento: un tavolo vuoto viene liberato.
+        /// Il salvataggio continuo (bozza) non libera mai il tavolo, anche se per un attimo è vuoto.</param>
+        /// <param name="storniPendenti">Righe comandate tolte ma non ancora stornate in stampa: salvate a parte (InStorno=1),
+        /// così uno storno non si perde se l'app viene chiusa prima di uscire dal tavolo.</param>
+        public void Salva(TavoloAperto t, IList<RigaScontrino> righe, IEnumerable<JobStampa> stampe = null, IEnumerable<StornoRegistrato> storni = null,
+                          bool liberaSeVuoto = false, IEnumerable<RigaScontrino> storniPendenti = null)
         {
             lock (_lock)
             {
@@ -296,23 +309,29 @@ namespace PosTouch.Core.Sale
                 try
                 {
                     Esegui(c, tx, "DELETE FROM RigheTavolo WHERE TavoloId=$t", ("$t", t.Id));
-                    if (righe == null || righe.Count == 0)
+                    bool vuoto = righe == null || righe.Count == 0;
+                    if (vuoto && liberaSeVuoto)
                     {
                         Esegui(c, tx, "DELETE FROM TavoliAperti WHERE Id=$t", ("$t", t.Id));
                     }
                     else
                     {
+                        // il tavolo esiste sempre finché è aperto (lo ricrea se qualcosa lo avesse tolto)
+                        Esegui(c, tx, "INSERT OR IGNORE INTO TavoliAperti (Id, SalaId, Numero, DataApertura, NomeCliente) VALUES ($t, $s, $n, $d, $nome)",
+                               ("$t", t.Id), ("$s", t.SalaId), ("$n", t.Numero), ("$d", t.Apertura.ToString("yyyy-MM-dd HH:mm:ss")), ("$nome", t.NomeCliente ?? ""));
                         Esegui(c, tx, "UPDATE TavoliAperti SET Preconto=$p, PortataCorrente=$pc WHERE Id=$t",
                                ("$p", t.Preconto ? 1 : 0), ("$pc", t.PortataCorrente), ("$t", t.Id));
                         int ordine = 0;
-                        foreach (var r in righe)
+                        var tutte = (righe ?? new List<RigaScontrino>()).Select(r => (r, false))
+                                    .Concat((storniPendenti ?? Enumerable.Empty<RigaScontrino>()).Select(r => (r, true)));
+                        foreach (var (r, inStorno) in tutte)
                         {
                             using var cmd = c.CreateCommand();
                             cmd.Transaction = tx;
                             cmd.CommandText = @"INSERT INTO RigheTavolo (TavoloId, Ordine, Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi,
                                                     PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso,
-                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto)
-                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var)";
+                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno)
+                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins)";
                             cmd.Parameters.AddWithValue("$t", t.Id);
                             cmd.Parameters.AddWithValue("$o", ordine++);
                             cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
@@ -332,6 +351,7 @@ namespace PosTouch.Core.Sale
                             cmd.Parameters.AddWithValue("$port", r.Portata);
                             cmd.Parameters.AddWithValue("$com", r.Comandata ? 1 : 0);
                             cmd.Parameters.AddWithValue("$var", (object)r.VariantiTesto ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("$ins", inStorno ? 1 : 0);
                             cmd.ExecuteNonQuery();
                         }
                     }

@@ -113,7 +113,18 @@ namespace PosTouch.App.Pagine
             AggiornaTutto();
         }
 
+        private bool _salvataggio;
+
+        /// <summary>SALVA protetto dal doppio tocco (un secondo INSERT creerebbe un duplicato).</summary>
         private async void OnSalva(object sender, EventArgs e)
+        {
+            if (_salvataggio) return;
+            _salvataggio = true;
+            try { await SalvaAsync(); }
+            finally { _salvataggio = false; }
+        }
+
+        private async Task SalvaAsync()
         {
             if (string.IsNullOrWhiteSpace(CampoNome.Text))
             {

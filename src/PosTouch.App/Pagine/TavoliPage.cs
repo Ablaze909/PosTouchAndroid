@@ -181,11 +181,12 @@ namespace PosTouch.App.Pagine
                     nome = await TestoBox.Chiedi("👤 NOME CLIENTE");
                     if (string.IsNullOrWhiteSpace(nome)) return;
                 }
+                // prima torna alla vendita: se la mappa non si chiude (navigazione in corso) il tavolo NON si apre
+                if (!await Navigazione.Chiudi(this)) return;
                 SessioneTavolo s;
                 try { s = ContestoCassa.ApriTavolo(sala.Id, numero, nome?.ToUpperInvariant()); }
                 catch (Exception ex) { await MessaggioBox.Errore("TAVOLO", $"Impossibile aprire il tavolo:\n{ex.Message}"); return; }
-                await Navigazione.Chiudi(this);                       // torna alla vendita…
-                await ContestoCassa.PaginaVendita.ApriTavoloAsync(s);  // …che mostra il tavolo
+                await ContestoCassa.PaginaVendita.ApriTavoloAsync(s);
             }
             finally { _apertura = false; }
         }

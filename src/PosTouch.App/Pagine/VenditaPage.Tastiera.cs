@@ -27,12 +27,15 @@ namespace PosTouch.App.Pagine
             if (selezionate.Count > 0)
             {
                 Carrello.Rimuovi(selezionate);
+                if (Carrello.UltimoErrore != null) _ = MessaggioBox.Avviso("ELIMINA", Carrello.UltimoErrore);
             }
             else
             {
                 if (_scontrinoEspanso) return; // lista espansa: C senza selezione non fa nulla
                 var ultima = Carrello.Righe.LastOrDefault();
-                if (ultima != null) Carrello.Rimuovi(new[] { ultima });
+                if (ultima == null) return;
+                Carrello.Rimuovi(new[] { ultima });
+                if (Carrello.UltimoErrore != null) _ = MessaggioBox.Avviso("ELIMINA", Carrello.UltimoErrore);
             }
         }
 
@@ -87,8 +90,9 @@ namespace PosTouch.App.Pagine
             }
             var valore = await ScontoBox.Chiedi(percentuale, subtotale);
             if (valore == null) return;
-            if (percentuale) Carrello.ScontoPercentuale(valore.Value);
-            else Carrello.ScontoValore((int)Math.Round(valore.Value * 100, MidpointRounding.AwayFromZero));
+            bool ok = percentuale ? Carrello.ScontoPercentuale(valore.Value)
+                                  : Carrello.ScontoValore((int)Math.Round(valore.Value * 100, MidpointRounding.AwayFromZero));
+            if (!ok) { await MessaggioBox.Avviso("SCONTO", Carrello.UltimoErrore ?? "Sconto non applicabile."); return; }
             ListaRighe.ScrollTo(Carrello.Righe.Count - 1, position: ScrollToPosition.End, animate: false);
         }
 

@@ -138,6 +138,12 @@ namespace PosTouch.Core.Dati
                 // Archivi creati dalle versioni precedenti: aggiunge le colonne nuove (i dati esistenti restano)
                 AggiungiColonna(c, "RigheVendita", "CategoriaNome", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "RigheVendita", "AliquotaIVA", "INTEGER DEFAULT 0");
+                AggiungiColonna(c, "RigheVendita", "Tipo", "INTEGER DEFAULT 0");
+                AggiungiColonna(c, "RigheVendita", "IsAPeso", "INTEGER DEFAULT 0");
+                AggiungiColonna(c, "RigheVendita", "UnitaPesoRiga", "TEXT");
+                AggiungiColonna(c, "ContiRighe", "Tipo", "INTEGER DEFAULT 0");
+                AggiungiColonna(c, "ContiRighe", "IsAPeso", "INTEGER DEFAULT 0");
+                AggiungiColonna(c, "ContiRighe", "UnitaPesoRiga", "TEXT");
             }
         }
 
@@ -191,8 +197,8 @@ namespace PosTouch.Core.Dati
                         cmd.CommandText = @"
                             INSERT INTO RigheVendita (VenditaId, ProdottoId, CodiceArticolo, Descrizione, Quantita,
                                                       PrezzoCentesimi, PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId,
-                                                      CategoriaNome, AliquotaIVA)
-                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva)";
+                                                      CategoriaNome, AliquotaIVA, Tipo, IsAPeso, UnitaPesoRiga)
+                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita)";
                         cmd.Parameters.AddWithValue("$v", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");
@@ -204,6 +210,9 @@ namespace PosTouch.Core.Dati
                         cmd.Parameters.AddWithValue("$cat", r.CategoriaId);
                         cmd.Parameters.AddWithValue("$catNome", r.CategoriaNome ?? "");
                         cmd.Parameters.AddWithValue("$iva", r.AliquotaIVA);
+                        cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
+                        cmd.Parameters.AddWithValue("$peso", r.IsAPeso ? 1 : 0);
+                        cmd.Parameters.AddWithValue("$unita", (object)r.UnitaPeso ?? DBNull.Value);
                         cmd.ExecuteNonQuery();
                     }
 
@@ -238,9 +247,9 @@ namespace PosTouch.Core.Dati
         public long SalvaConto(IList<RigaScontrino> righe, int numero, DateTime quando, bool stampato)
         {
             var valide = new List<RigaScontrino>();
-            foreach (var r in righe) if (r.ContaNelTotale) valide.Add(r);
+            foreach (var r in righe) if (r.ContaNelTotale || r.Tipo == TipoRiga.Gusto) valide.Add(r);
             int totale = 0;
-            foreach (var r in valide) totale += r.ImportoCentesimi;
+            foreach (var r in valide) if (r.ContaNelTotale) totale += r.ImportoCentesimi;
 
             lock (_lock)
             {
@@ -265,8 +274,9 @@ namespace PosTouch.Core.Dati
                         using var cmd = c.CreateCommand();
                         cmd.Transaction = tx;
                         cmd.CommandText = @"INSERT INTO ContiRighe (ContoId, ProdottoId, CodiceArticolo, Descrizione, Quantita, PrezzoCentesimi,
-                                                PrezzoOriginaleCentesimi, ImportoCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA)
-                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva)";
+                                                PrezzoOriginaleCentesimi, ImportoCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA,
+                                                Tipo, IsAPeso, UnitaPesoRiga)
+                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita)";
                         cmd.Parameters.AddWithValue("$c", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");
@@ -279,6 +289,9 @@ namespace PosTouch.Core.Dati
                         cmd.Parameters.AddWithValue("$cat", r.CategoriaId);
                         cmd.Parameters.AddWithValue("$catNome", r.CategoriaNome ?? "");
                         cmd.Parameters.AddWithValue("$iva", r.AliquotaIVA);
+                        cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
+                        cmd.Parameters.AddWithValue("$peso", r.IsAPeso ? 1 : 0);
+                        cmd.Parameters.AddWithValue("$unita", (object)r.UnitaPeso ?? DBNull.Value);
                         cmd.ExecuteNonQuery();
                     }
                     tx.Commit();

@@ -63,14 +63,40 @@ namespace PosTouch.Core.Sale
             Tavolo = _archivio.ApriTavolo(salaId, numero, nomeCliente);
             Carrello.SeparatoriPortate = Cfg.SeparatoriPortate;
             Carrello.Carica(_archivio.Righe(Tavolo.Id));
+            _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));   // storni rimasti da una sessione interrotta
             Carrello.ComandateRimosse += r => _storniPendenti.AddRange(r.Select(x => x.Copia()));
-            Carrello.Cambiato += () => { if (Tavolo.Preconto) Tavolo.Preconto = false; }; // ResetPrecontoSeAttivo
+            // ResetPrecontoSeAttivo: il giallo si toglie solo se il conto cambia davvero (non scegliendo una portata)
+            Carrello.Cambiato += () => { if (Tavolo.Preconto && FirmaConto() != _firmaPreconto) Tavolo.Preconto = false; };
+            _firmaPreconto = FirmaConto();
         }
 
         public bool Nuovo => !Carrello.HaArticoli;
 
-        /// <summary>Salvataggio intermedio (dopo ogni modifica): nessuna stampa.</summary>
-        public void SalvaBozza() => _archivio.Salva(Tavolo, Carrello.Righe.ToList());
+        private string _firmaPreconto;
+        private string FirmaConto() => $"{Carrello.TotaleCent}|{string.Join(",", Carrello.Righe.Where(r => r.Tipo == TipoRiga.Prodotto).Select(r => $"{r.ProdottoId}x{r.Quantita}"))}";
+
+        /// <summary>Salvataggio intermedio (dopo ogni modifica): nessuna stampa, il tavolo resta aperto anche se vuoto, storni pendenti al sicuro.</summary>
+        public void SalvaBozza()
+        {
+            if (_chiusa) return;
+            _archivio.Salva(Tavolo, Carrello.Righe.ToList(), storniPendenti: _storniPendenti);
+        }
+
+        private bool _chiusa;
+
+        /// <summary>Esegue un'uscita; se il salvataggio fallisce rimette i flag "comandata" e la portata com'erano (si può riprovare).</summary>
+        private EsitoTavolo ConRipristino(Func<EsitoTavolo> azione)
+        {
+            var comandate = Carrello.Righe.Where(r => r.Tipo == TipoRiga.Prodotto).ToDictionary(r => r, r => r.Comandata);
+            int portata = Tavolo.PortataCorrente;
+            try { return azione(); }
+            catch
+            {
+                foreach (var kv in comandate) kv.Key.Comandata = kv.Value;
+                Tavolo.PortataCorrente = portata;
+                throw;
+            }
+        }
 
         // ══════════════ USCITE DAL TAVOLO ══════════════
 
@@ -86,7 +112,8 @@ namespace PosTouch.Core.Sale
             var esito = new EsitoTavolo();
             var (stampe, storni) = PreparaStorni(stampaStorni: true, esito);
             Carrello.RiordinaPortate();
-            _archivio.Salva(Tavolo, Carrello.Righe.ToList(), stampe, storni);
+            _archivio.Salva(Tavolo, Carrello.Righe.ToList(), stampe, storni, liberaSeVuoto: true);
+            _chiusa = true;   // uscita salvata: nessun salvataggio successivo può riaprire il tavolo
             _storniPendenti.Clear();
             Sveglia(stampe);
             esito.StorniAccodati = stampe.Count;
@@ -98,15 +125,19 @@ namespace PosTouch.Core.Sale
         {
             var esito = new EsitoTavolo();
             var (stampe, storni) = PreparaStorni(stampaStorni: true, esito);
-            _archivio.Salva(Tavolo, new List<RigaScontrino>(), stampe, storni);
+            _archivio.Salva(Tavolo, new List<RigaScontrino>(), stampe, storni, liberaSeVuoto: true);
+            _chiusa = true;   // uscita salvata: nessun salvataggio successivo può riaprire il tavolo
             _storniPendenti.Clear();
             Sveglia(stampe);
             return esito;
         }
 
-        private EsitoTavolo Esci(bool stampaComande, bool stampaStorni)
+        private EsitoTavolo Esci(bool stampaComande, bool stampaStorni) => ConRipristino(() => EsciInterno(stampaComande, stampaStorni));
+
+        private EsitoTavolo EsciInterno(bool stampaComande, bool stampaStorni)
         {
             var esito = new EsitoTavolo();
+            Carrello.RiordinaPortate();   // prima della comanda: la cucina riceve le portate in ordine (SEGUE prima di SEGUE 2)
             var stampe = new List<JobStampa>();
             if (Cfg.AbilitaComande && Cfg.Centri.Count > 0)
                 stampe.AddRange(PreparaComande(stampaComande, esito));
@@ -115,8 +146,8 @@ namespace PosTouch.Core.Sale
 
             var (stampeStorno, storni) = PreparaStorni(stampaStorni, esito);
             stampe.AddRange(stampeStorno);
-            Carrello.RiordinaPortate();
-            _archivio.Salva(Tavolo, Carrello.Righe.ToList(), stampe, storni);   // tutto insieme: niente ristampe, niente perdite
+            _archivio.Salva(Tavolo, Carrello.Righe.ToList(), stampe, storni, liberaSeVuoto: true);
+            _chiusa = true;   // uscita salvata: nessun salvataggio successivo può riaprire il tavolo   // tutto insieme: niente ristampe, niente perdite
             _storniPendenti.Clear();
             Sveglia(stampe);
             esito.StorniAccodati = stampeStorno.Count;
@@ -140,12 +171,11 @@ namespace PosTouch.Core.Sale
                 return stampe;
             }
 
-            bool riordino = !primaComanda && nuove.Any(r => righe.Any(prev => prev != r && prev.Tipo == TipoRiga.Prodotto
-                                                                && prev.Comandata && prev.CentroProduzioneId > 0 && prev.Portata == r.Portata));
             int progressivo = _archivio.ProssimoProgressivoComanda();
             int coperti = Coperti();
             List<RigaScontrino> flusso = Cfg.AbilitaPortate ? FlussoPortate(righe) : null;
             var gruppi = nuove.GroupBy(r => r.CentroProduzioneId).ToList();
+            var nonInviate = new List<RigaScontrino>();
 
             foreach (var g in gruppi)
             {
@@ -154,10 +184,15 @@ namespace PosTouch.Core.Sale
                 string nomeCentro = centro?.Nome ?? $"Centro {g.Key}";
                 if (st == null)
                 {
-                    esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, comanda NON stampata ({g.Sum(r => r.Quantita):0.###} pz).");
+                    // righe lasciate "da comandare": partiranno quando la stampante sarà impostata
+                    esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, comanda NON stampata ({g.Sum(r => r.Quantita):0.###} pz).\nGli articoli restano da comandare.");
                     LogManager.Warning($"COMANDA {Titolo}: centro {nomeCentro} senza stampante");
+                    nonInviate.AddRange(g);
                     continue;
                 }
+                // RIORDINO per centro: solo se QUESTO centro ha già ricevuto articoli della stessa portata
+                bool riordino = !primaComanda && g.Any(r => righe.Any(prev => prev != r && prev.Tipo == TipoRiga.Prodotto && prev.Comandata
+                                                                       && prev.CentroProduzioneId == g.Key && prev.Portata == r.Portata));
                 Dictionary<string, List<RigaScontrino>> altri = null;
                 if (Cfg.StampaRiepilogoAltriCentri && !Cfg.AbilitaPortate)
                     altri = gruppi.Where(x => x.Key != g.Key)
@@ -178,9 +213,9 @@ namespace PosTouch.Core.Sale
                 });
             }
 
-            foreach (var r in nuove.Concat(senzaCentro)) r.Comandata = true;
+            foreach (var r in nuove.Concat(senzaCentro).Except(nonInviate)) r.Comandata = true;
             esito.ComandeAccodate = stampe.Count;
-            LogManager.Info($"COMANDA {Titolo}{(riordino ? " [RIORDINO]" : "")}: {nuove.Count} righe, {stampe.Count} stampe in coda (Com.{progressivo})");
+            LogManager.Info($"COMANDA {Titolo}: {nuove.Count - nonInviate.Count} righe, {stampe.Count} stampe in coda (Com.{progressivo})");
             return stampe;
         }
 
@@ -286,7 +321,9 @@ namespace PosTouch.Core.Sale
             };
         }
 
-        public EsitoTavolo EseguiAvanza(AnteprimaAvanza a)
+        public EsitoTavolo EseguiAvanza(AnteprimaAvanza a) => ConRipristino(() => EseguiAvanzaInterno(a));
+
+        private EsitoTavolo EseguiAvanzaInterno(AnteprimaAvanza a)
         {
             var esito = new EsitoTavolo();
             var righe = Carrello.Righe;
@@ -320,7 +357,7 @@ namespace PosTouch.Core.Sale
                 }
             }
             Tavolo.PortataCorrente = a.Portata;
-            _archivio.Salva(Tavolo, righe.ToList(), stampe);
+            _archivio.Salva(Tavolo, righe.ToList(), stampe, storniPendenti: _storniPendenti);
             Sveglia(stampe);
             esito.ComandeAccodate = stampe.Count;
             LogManager.Info($"VAI {a.NomeSeparatore} {Titolo}: {stampe.Count} stampe in coda");
@@ -335,6 +372,7 @@ namespace PosTouch.Core.Sale
         /// </summary>
         public string Sposta(int salaDest, int numeroDest, string nomeDestinazione)
         {
+            if (!Carrello.HaArticoli) throw new InvalidOperationException("Il tavolo è vuoto: non c'è niente da spostare.");
             string da = Titolo;
             EsciSenzaInvio();
             bool scambio = _archivio.SpostaTavolo(Tavolo.Id, salaDest, numeroDest);
@@ -364,6 +402,7 @@ namespace PosTouch.Core.Sale
             string errore = await AccessoStampanti.InviaAsync(imp.IP_Termica, imp.Porta_Termica, dati, TimeSpan.FromSeconds(10));
             if (errore != null) return $"Impossibile stampare su {imp.IP_Termica}:{imp.Porta_Termica}.\n{errore}\n\nPreconto NON stampato.";
             Tavolo.Preconto = true;
+            _firmaPreconto = FirmaConto();
             SalvaBozza();
             return null;
         }

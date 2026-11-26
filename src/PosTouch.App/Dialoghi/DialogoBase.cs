@@ -37,6 +37,12 @@ namespace PosTouch.App.Dialoghi
         /// <summary>Tasto indietro di Android = ANNULLA.</summary>
         public virtual void Indietro() => Chiudi(default);
 
+        /// <summary>
+        /// true (default): un secondo dialogo dello stesso tipo mentre questo è aperto viene ignorato (doppio tocco).
+        /// I messaggi (MessaggioBox) mettono false: non vanno MAI persi, si sovrappongono.
+        /// </summary>
+        public virtual bool UnicoPerTipo => true;
+
         private View _riquadro;
         private double _larghezza, _altezza;
 
@@ -86,17 +92,21 @@ namespace PosTouch.App.Dialoghi
         {
             var pagina = PaginaAttiva();
             var tipo = dialogo.GetType();
-            if (pagina == null || _aperti.Contains(tipo)) return default;
+            if (pagina == null) return default;
+            if (dialogo.UnicoPerTipo && _aperti.Contains(tipo)) return default;
 
             _aperti.Add(tipo);
             var indietroPrecedente = pagina.IndietroDialogo;
             dialogo.Pagina = pagina;
+            Func<bool> indietroQuesto = null;
+            indietroQuesto = () => { dialogo.Indietro(); return true; };
+            pagina.IndietroDialogo = indietroQuesto;
             dialogo.AllaChiusura = () =>
             {
                 pagina.RimuoviLivello(dialogo);
-                pagina.IndietroDialogo = indietroPrecedente;
+                // ripristina il tasto indietro solo se questo era il dialogo in cima
+                if (pagina.IndietroDialogo == indietroQuesto) pagina.IndietroDialogo = indietroPrecedente;
             };
-            pagina.IndietroDialogo = () => { dialogo.Indietro(); return true; };
             pagina.AggiungiLivello(dialogo);
             try
             {

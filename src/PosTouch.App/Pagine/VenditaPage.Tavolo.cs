@@ -21,6 +21,8 @@ namespace PosTouch.App.Pagine
         private void CollegaCarrello(SessioneTavolo sessione)
         {
             _combinazione = null;
+            OverlayPagamento.IsVisible = false;   // il popup CASSA non deve restare aperto sull'altro conto
+            NascondiResto();
             if (_carrelloCollegato != null) _carrelloCollegato.Cambiato -= AggiornaTotale;
             if (_carrelloCollegato != null) _carrelloCollegato.Cambiato -= ProgrammaBozza;
             _sessione = sessione;
@@ -141,7 +143,7 @@ namespace PosTouch.App.Pagine
             if (_sessione == null || Attesa.IsVisible || _venditaAvviata) return;
             MostraAttesa(true, "⏳ Stampa preconto...");
             string errore;
-            try { errore = await Task.Run(() => _sessione.PrecontoAsync()); }
+            try { errore = await _sessione.PrecontoAsync(); }   // sul thread principale: legge il conto e salva in sicurezza (la stampa è già asincrona)
             finally { MostraAttesa(false); }
             if (errore != null) await MessaggioBox.Errore("PRECONTO", errore);
         }
@@ -170,7 +172,17 @@ namespace PosTouch.App.Pagine
         }
 
         /// <summary>⏩ AVANZA: VAI con la prossima portata.</summary>
+        private bool _avanzaInCorso;
+
         private async void OnAvanza(object sender, EventArgs e)
+        {
+            if (_avanzaInCorso) return;   // doppio tocco: una portata sola
+            _avanzaInCorso = true;
+            try { await AvanzaAsync(); }
+            finally { _avanzaInCorso = false; }
+        }
+
+        private async Task AvanzaAsync()
         {
             if (CombinazioneAperta()) return;
             if (_sessione == null || Attesa.IsVisible) return;

@@ -16,7 +16,8 @@ namespace PosTouch.Core.Dati
     public class Catalogo
     {
         public const string NomeFile = "catalogo.db";
-        private const int PrimaCategoriaTabacchi = 9000;
+        /// <summary>Come il PC: 8000-8999 Gratta e Vinci, 9000-9999 tabacchi (gestiti a parte).</summary>
+        public const int PrimaCategoriaRiservata = 8000;
 
         private readonly string _percorso;
         private List<Categoria> _categorie = new List<Categoria>();
@@ -62,11 +63,44 @@ namespace PosTouch.Core.Dati
                 ?? _prodotti.FirstOrDefault(p => Vendibile(p) && (p.Barcode == codice5 || p.Codice == codice5));
         }
 
-        public Prodotto CercaBarcode(string codice)
+        public Prodotto CercaBarcode(string codice) => CercaBarcodeConQuantita(codice).prodotto;
+
+        /// <summary>
+        /// GetProdottoByBarcodeConQta del PC: tabella ProdottiBarcode (più barcode per articolo, con pezzi per confezione),
+        /// poi Prodotti.Barcode, poi il Codice interno solo per articoli senza barcode.
+        /// </summary>
+        public (Prodotto prodotto, int pezzi) CercaBarcodeConQuantita(string codice)
         {
-            if (string.IsNullOrWhiteSpace(codice)) return null;
+            if (string.IsNullOrWhiteSpace(codice)) return (null, 1);
             codice = codice.Trim();
-            return _prodotti.FirstOrDefault(p => Vendibile(p) && (p.Barcode == codice || p.Codice == codice));
+            if (_barcode.TryGetValue(codice, out var b))
+            {
+                var p = _prodotti.FirstOrDefault(x => x.Id == b.prodottoId && Vendibile(x));
+                if (p != null) return (p, Math.Max(1, b.pezzi));
+            }
+            var trovato = _prodotti.FirstOrDefault(p => Vendibile(p) && p.Barcode == codice)
+                       ?? _prodotti.FirstOrDefault(p => Vendibile(p) && string.IsNullOrEmpty(p.Barcode) && p.Codice == codice);
+            return (trovato, 1);
+        }
+
+        private Dictionary<string, (int prodottoId, int pezzi)> _barcode = new Dictionary<string, (int, int)>();
+
+        private static Dictionary<string, (int, int)> CaricaBarcodeMultipli(SqliteConnection conn)
+        {
+            var m = new Dictionary<string, (int, int)>();
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT ProdottoId, TRIM(Barcode), QuantitaConfezione FROM ProdottiBarcode";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    string bc = r.IsDBNull(1) ? "" : r.GetString(1);
+                    if (bc.Length > 0 && !m.ContainsKey(bc)) m[bc] = (r.GetInt32(0), r.IsDBNull(2) ? 1 : r.GetInt32(2));
+                }
+            }
+            catch (SqliteException) { /* pos.db senza la tabella (versioni vecchie): solo Prodotti.Barcode */ }
+            return m;
         }
 
         /// <summary>Carica in memoria categorie e prodotti (anche nascosti). Restituisce il numero di prodotti.</summary>
@@ -86,7 +120,7 @@ namespace PosTouch.Core.Dati
                 while (l.Prossima())
                 {
                     int id = l.Int("Id");
-                    if (id >= PrimaCategoriaTabacchi) continue;
+                    if (id >= PrimaCategoriaRiservata) continue;
                     categorie.Add(new Categoria
                     {
                         Id = id,
@@ -114,6 +148,7 @@ namespace PosTouch.Core.Dati
                 {
                     int cat = l.Int("CategoriaId");
                     if (!perId.TryGetValue(cat, out var c)) continue; // tabacchi o categoria inesistente
+                    if (l.Int("Attivo", 1) < 0) continue;              // eliminato sul PC (Attivo = -1)
                     prodotti.Add(new Prodotto
                     {
                         Id = l.Int("Id"),
@@ -139,18 +174,21 @@ namespace PosTouch.Core.Dati
                         IsCodiceBilancia = l.Bool("IsCodiceBilancia"),
                         VariantiProporzionali = l.Bool("VariantiProporzionali"),
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
-                        CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId)
+                        CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId),
+                        Ordine = l.Int("Ordine")
                     });
                 }
             }
-            prodotti = prodotti.OrderBy(p => p.Descrizione).ToList();
+            prodotti = prodotti.OrderBy(p => p.Ordine).ThenBy(p => p.Descrizione).ToList();   // come il PC
             var varianti = CaricaVarianti(conn);
+            var barcode = CaricaBarcodeMultipli(conn);
             foreach (var c in categorie)
                 c.NumeroProdotti = prodotti.Count(p => p.CategoriaId == c.Id && p.Attivo);
 
             _categorie = categorie;
             _prodotti = prodotti;
             _varianti = varianti;
+            _barcode = barcode;
             Versione++;
             LogManager.Info($"Catalogo caricato: {categorie.Count} categorie, {prodotti.Count} prodotti");
             return prodotti.Count;
@@ -222,6 +260,10 @@ namespace PosTouch.Core.Dati
                     cmd.ExecuteScalar();
                     cmd.CommandText = "SELECT COUNT(*) FROM Categorie";
                     cmd.ExecuteScalar();
+                    cmd.CommandText = "PRAGMA integrity_check";
+                    var integrita = cmd.ExecuteScalar() as string;
+                    if (!string.Equals(integrita, "ok", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException($"Database danneggiato ({integrita}).");
                 }
             }
             catch (Exception ex)
@@ -232,6 +274,7 @@ namespace PosTouch.Core.Dati
             }
 
             SqliteConnection.ClearAllPools();
+            if (File.Exists(_percorso)) File.Copy(_percorso, _percorso + ".bak", overwrite: true);   // catalogo precedente salvato
             File.Move(tmp, _percorso, overwrite: true);
             return Carica();
         }

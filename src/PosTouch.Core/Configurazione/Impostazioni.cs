@@ -74,7 +74,7 @@ namespace PosTouch.Core.Configurazione
         public int TimeoutConnessioneRT_ms { get; set; } = 5000;
         public int TimeoutRispostaRT_ms { get; set; } = 10000;
         /// <summary>DEBUG, INFO, WARN, ERROR.</summary>
-        public string LivelloLog { get; set; } = "DEBUG";
+        public string LivelloLog { get; set; } = "INFO";
 
         public int AltezzaCategoria => DimensioniTastiCategorie switch
         {
@@ -107,26 +107,51 @@ namespace PosTouch.Core.Configurazione
             _percorso = Path.Combine(cartellaDati, "impostazioni.json");
         }
 
+        private static readonly object _lockSalva = new object();
+
+        /// <summary>Legge le impostazioni; se il file è vuoto o rovinato usa la copia .bak (come il PC), mai i predefiniti in silenzio.</summary>
         public Impostazioni Carica()
         {
-            try
+            foreach (var file in new[] { _percorso, _percorso + ".bak" })
             {
-                if (File.Exists(_percorso))
-                    return JsonSerializer.Deserialize(File.ReadAllText(_percorso), JsonContesto.Default.Impostazioni) ?? new Impostazioni();
-            }
-            catch (Exception ex)
-            {
-                LogManager.Error($"Impostazioni non leggibili, uso i valori predefiniti: {ex.Message}");
+                try
+                {
+                    if (!File.Exists(file)) continue;
+                    var imp = JsonSerializer.Deserialize(File.ReadAllText(file), JsonContesto.Default.Impostazioni);
+                    if (imp == null) continue;
+                    imp.Sale ??= new ConfigSale();
+                    imp.Sale.Normalizza();
+                    if (file != _percorso) LogManager.Warning("Impostazioni ripristinate dalla copia di sicurezza (.bak)");
+                    return imp;
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Impostazioni non leggibili ({Path.GetFileName(file)}): {ex.Message}");
+                }
             }
             return new Impostazioni();
         }
 
+        /// <summary>Scrittura sicura: file temporaneo scritto su disco e riletto, copia .bak della versione precedente, poi sostituzione.</summary>
         public void Salva(Impostazioni imp)
         {
-            // Scrittura atomica: file temporaneo + sostituzione
-            string tmp = _percorso + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(imp, JsonContesto.Default.Impostazioni));
-            File.Move(tmp, _percorso, overwrite: true);
+            lock (_lockSalva)
+            {
+                string json = JsonSerializer.Serialize(imp, JsonContesto.Default.Impostazioni);
+                string tmp = _percorso + ".tmp";
+                using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (var w = new StreamWriter(fs))
+                {
+                    w.Write(json);
+                    w.Flush();
+                    fs.Flush(true);
+                }
+                // verifica: il file scritto deve rileggersi uguale
+                if (JsonSerializer.Deserialize(File.ReadAllText(tmp), JsonContesto.Default.Impostazioni) == null)
+                    throw new IOException("Salvataggio impostazioni non verificato.");
+                if (File.Exists(_percorso)) File.Copy(_percorso, _percorso + ".bak", overwrite: true);
+                File.Move(tmp, _percorso, overwrite: true);
+            }
             ImpostazioniFiscali.Correnti = imp.ComeImpostazioniFiscali();
             LogManager.SetLivelloMinimo(imp.LivelloLog);
         }

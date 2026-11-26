@@ -11,10 +11,11 @@ namespace PosTouch.Core.Sale
     {
         public static StampanteRete Risolvi(ConfigSale cfg, int salaId, int centroId)
         {
+            static bool Valida(StampanteRete s) => s != null && !string.IsNullOrWhiteSpace(s.IP);
             var eccezione = cfg.StampantiSala.FirstOrDefault(x => x.SalaId == salaId && x.CentroId == centroId && x.StampanteId > 0);
             var st = eccezione != null ? cfg.StampanteDa(eccezione.StampanteId) : null;
-            st ??= cfg.StampanteDa(cfg.CentroDa(centroId)?.StampanteId ?? 0);
-            return st == null || string.IsNullOrWhiteSpace(st.IP) ? null : st;
+            if (!Valida(st)) st = cfg.StampanteDa(cfg.CentroDa(centroId)?.StampanteId ?? 0);   // eccezione mancante o senza IP
+            return Valida(st) ? st : null;
         }
     }
 }

@@ -145,6 +145,7 @@ namespace PosTouch.Core.Vendita
         /// <summary>Elimina le righe indicate. Una riga del blocco sconto elimina tutto il blocco.</summary>
         public void Rimuovi(IEnumerable<RigaScontrino> righe)
         {
+            UltimoErrore = null;
             bool togliSconto = false;
             var stornate = new List<RigaScontrino>();
             // combinazioni: toccare un gusto o il padre toglie tutta la combinazione (padre + gusti), come il PC
@@ -177,9 +178,15 @@ namespace PosTouch.Core.Vendita
         }
 
         /// <summary>Sconto percentuale sul totale (come ScontoDialog percentuale del PC).</summary>
-        public void ScontoPercentuale(decimal percentuale)
+        public bool ScontoPercentuale(decimal percentuale)
         {
-            if (percentuale <= 0 || percentuale >= 100 || HaSconto || !HaArticoli) return;
+            UltimoErrore = null;
+            if (percentuale <= 0 || percentuale >= 100 || HaSconto || !HaArticoli) return false;
+            if (Math.Round(SubtotaleProdottiCent * Math.Round(percentuale * 100) / 10000m, MidpointRounding.AwayFromZero) < 1)
+            {
+                UltimoErrore = "Lo sconto vale meno di un centesimo.";
+                return false;
+            }
             AggiungiBloccoSconto(new RigaScontrino
             {
                 Tipo = TipoRiga.Sconto,
@@ -188,12 +195,14 @@ namespace PosTouch.Core.Vendita
                 Quantita = 1,
                 RepartoFiscale = 0
             });
+            return true;
         }
 
         /// <summary>Sconto a valore sul totale, in centesimi (come ScontoDialog a valore del PC).</summary>
-        public void ScontoValore(int importoCent)
+        public bool ScontoValore(int importoCent)
         {
-            if (importoCent <= 0 || importoCent >= SubtotaleProdottiCent || HaSconto) return;
+            UltimoErrore = null;
+            if (importoCent <= 0 || importoCent >= SubtotaleProdottiCent || HaSconto) return false;
             AggiungiBloccoSconto(new RigaScontrino
             {
                 Tipo = TipoRiga.Sconto,
@@ -202,6 +211,7 @@ namespace PosTouch.Core.Vendita
                 Quantita = 1,
                 RepartoFiscale = 0
             });
+            return true;
         }
 
         public void Svuota()
@@ -306,6 +316,11 @@ namespace PosTouch.Core.Vendita
             var proprietario = ProprietarioDi(v);
             var padre = PadreDi(v);
             if (padre?.Comandata == true) { UltimoErrore = "Articolo già inviato in comanda: le varianti non si possono togliere."; return; }
+            if (proprietario?.Tipo == TipoRiga.Prodotto && !RigaAmmessa(proprietario.PrezzoCentesimi - v.PrezzoOriginaleCentesimi, proprietario.Quantita))
+            {
+                UltimoErrore = $"Togliendo la variante il prezzo di {proprietario.Descrizione.Trim()} non sarebbe valido.\n{UltimoErrore}\n\nCorreggi prima il prezzo dell'articolo.";
+                return;
+            }
             Righe.Remove(v);
             if (proprietario?.Tipo == TipoRiga.Prodotto)
             {
@@ -357,7 +372,8 @@ namespace PosTouch.Core.Vendita
         public void RiordinaPortate()
         {
             var blocco = Righe.Where(r => r.Tipo is TipoRiga.Separatore or TipoRiga.Subtotale or TipoRiga.Sconto).ToList();
-            var area = Righe.Where(r => r.Tipo is TipoRiga.Prodotto or TipoRiga.Portata).ToList();
+            // gusti e varianti restano attaccati al loro articolo (fanno parte della stessa sezione)
+            var area = Righe.Where(r => r.Tipo is TipoRiga.Prodotto or TipoRiga.Portata or TipoRiga.Gusto or TipoRiga.Variante).ToList();
             var ordinate = Portate.Riordina(area, SeparatoriPortate);
             if (ordinate.SequenceEqual(area)) return;
             Righe.Clear();
