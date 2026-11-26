@@ -64,3 +64,10 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
     PRECONTI / RIEPILOGHI / uscite con i loro parametri; con "impostazioni per sala" ogni sala (Banco = -1) ha la sua pagina.
     I layout producono solo il contenuto: salto righe, cicalino, taglio e inversione li aggiunge `Finitura`.
 15. Comanda da banco (`ComandaBanco`): eliminacode preso PRIMA di emettere, comanda accodata solo a documento uscito.
+
+## Test automatici (`tests/PosTouch.Tests`, eseguiti in CI prima dell'APK)
+- Logica: carrello, tastierino, varianti, bilancia, opzioni di stampa, archivio tavoli, import catalogo.
+- **Registratori finti su TCP** (`Finto3i`, `FintoEpson`): i driver VERI parlano con un registratore simulato che sa
+  fare guasti — coperchio aperto, carta finita in chiusura, riga o pagamento rifiutati, footer perso, rete che cade,
+  RT senza TX_FOOTER. Regola verificata: **mai uno scontrino perso dato per emesso, mai un doppio scontrino**.
+  Per un bug nuovo sul registratore: aggiungere il guasto al finto e il caso al test, poi correggere.

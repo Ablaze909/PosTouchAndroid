@@ -13,6 +13,8 @@ if (Environment.GetEnvironmentVariable("POSTOUCH_TEST_DB") != "0")
     Verifica.Esegui("Archivio tavoli (SQLite)", TestArchivio.Esegui);
     Verifica.Esegui("Import catalogo (SQLite)", TestCatalogo.Esegui);
     Verifica.Esegui("Emissione scontrino (registratore finto)", TestVendita.Esegui);
+    Verifica.Esegui("Driver 3i contro registratore finto (guasti)", TestFinto3i.Esegui);
+    Verifica.Esegui("Driver Epson contro stampante finta (guasti)", TestFintoEpson.Esegui);
 }
 
 Console.WriteLine($"\n{Verifica.Totale - Verifica.Errori}/{Verifica.Totale} controlli superati, {Verifica.Errori} errori");
