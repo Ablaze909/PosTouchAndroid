@@ -11,60 +11,13 @@ using PosTouch.Core.Modelli;
 
 namespace PosTouch.Core.Vendita
 {
-    /// <summary>Come vuole pagare il cliente.</summary>
-    public class Pagamento
-    {
-        public string Metodo { get; set; } = MetodiPagamento.Contanti;
-        /// <summary>Contanti: importo consegnato dal cliente (0 = importo esatto).</summary>
-        public int VersatoCent { get; set; }
-        /// <summary>Misto: parte in contanti (il resto va su carta).</summary>
-        public int MistoContantiCent { get; set; }
-
-        public static Pagamento Contanti(int versatoCent = 0) => new Pagamento { Metodo = MetodiPagamento.Contanti, VersatoCent = versatoCent };
-        public static Pagamento Carta() => new Pagamento { Metodo = MetodiPagamento.Carta };
-        public static Pagamento Misto(int contantiCent) => new Pagamento { Metodo = MetodiPagamento.Misto, MistoContantiCent = contantiCent };
-    }
-
-    public enum StatoEsito
-    {
-        /// <summary>Scontrino emesso e vendita salvata.</summary>
-        Riuscito,
-        /// <summary>Scontrino emesso ma salvataggio locale fallito (l'incasso c'è, manca il dato).</summary>
-        RiuscitoSenzaArchivio,
-        /// <summary>Niente è stato emesso: il carrello va lasciato com'è.</summary>
-        Fallito,
-        /// <summary>
-        /// La comunicazione si è interrotta DOPO l'invio della chiusura: lo scontrino potrebbe
-        /// essere uscito. L'operatore deve controllare prima di riprovare (evita doppi scontrini).
-        /// </summary>
-        Incerto
-    }
-
-    public class EsitoVendita
-    {
-        public StatoEsito Stato { get; set; }
-        public string Titolo { get; set; } = "";
-        public string Messaggio { get; set; } = "";
-        public int RestoCent { get; set; }
-        public int NumeroDocumento { get; set; }
-        public int NumeroAzzeramento { get; set; }
-
-        public bool Emesso => Stato == StatoEsito.Riuscito || Stato == StatoEsito.RiuscitoSenzaArchivio;
-
-        /// <summary>Dati della vendita da registrare se l'operatore conferma che lo scontrino è uscito (stato Incerto).</summary>
-        public VenditaRegistrata DaRegistrare { get; set; }
-
-        public static EsitoVendita Errore(string titolo, string messaggio) =>
-            new EsitoVendita { Stato = StatoEsito.Fallito, Titolo = titolo, Messaggio = messaggio };
-    }
-
     /// <summary>
     /// Emissione dello scontrino fiscale dal banco.
     /// Stessa sequenza collaudata di MainWindow.EseguiVenditaAsync (POS Touch v17):
     /// health check → operatore → righe → sconti → chiusura → TX_FOOTER → cassetto → salvataggio.
     /// Non mostra nulla a video: restituisce un <see cref="EsitoVendita"/> che la UI visualizza.
     /// </summary>
-    public class ServizioVendita
+    public partial class ServizioVendita
     {
         private readonly Func<Impostazioni> _impostazioni;
         private readonly ArchivioVendite _archivio;
@@ -75,10 +28,14 @@ namespace PosTouch.Core.Vendita
         private string _txFooterConfiguratoPer;  // tipo|ip|porta del registratore già configurato
         private int _fase;                       // 0 = prima delle righe, 1 = righe inviate, 2 = chiusura inviata, 3 = chiuso
 
-        public ServizioVendita(Func<Impostazioni> impostazioni, ArchivioVendite archivio)
+        private readonly Func<Impostazioni, IFiscalConnector> _creaRT;
+
+        /// <param name="creaRT">Solo per i test: registratore finto. Predefinito: quello delle impostazioni (3i o Epson).</param>
+        public ServizioVendita(Func<Impostazioni> impostazioni, ArchivioVendite archivio, Func<Impostazioni, IFiscalConnector> creaRT = null)
         {
             _impostazioni = impostazioni;
             _archivio = archivio;
+            _creaRT = creaRT ?? (c => FiscalConnectorFactory.Create(c.TipoCassa, c.IP_RT, c.Porta_RT));
         }
 
         public bool InCorso => Volatile.Read(ref _inCorso) == 1;
@@ -131,250 +88,38 @@ namespace PosTouch.Core.Vendita
         private VenditaRegistrata _ultimoDaRegistrare;
         private int _ultimoResto;
 
+        /// <summary>
+        /// Emissione in fasi (file ServizioVendita.Emissione.cs): ogni fase restituisce null se si può proseguire,
+        /// altrimenti l'esito con cui fermarsi. L'ordine è quello del protocollo e non va cambiato.
+        /// </summary>
         private async Task<EsitoVendita> EmettiInternoAsync(List<RigaScontrino> righe, Pagamento pag, int eliminacode)
         {
             _fase = 0;
             _ultimoDaRegistrare = null;
-            var cfg = _impostazioni();
-            // per lo storico anche i gusti delle combinazioni (prezzo 0), come il PC
-            var perArchivio = righe.Where(r => r.ContaNelTotale || r.Tipo == TipoRiga.Gusto).ToList();
-            righe = righe.Where(r => r.ContaNelTotale).ToList(); // subtotale e separatori sono solo visivi
-            var prodotti = righe.Where(r => r.Tipo == TipoRiga.Prodotto).ToList();
-            int totaleCent = righe.Sum(r => r.ImportoCentesimi);
+            var e = new Emissione { Cfg = _impostazioni(), Pagamento = pag, Eliminacode = eliminacode };
 
-            // ── VALIDAZIONE ──
-            if (prodotti.Count == 0)
-                return EsitoVendita.Errore("ATTENZIONE", "Lo scontrino è vuoto.");
-            var rigaNonValida = prodotti.FirstOrDefault(r => r.PrezzoCentesimi <= 0 || r.ImportoCentesimi <= 0);
-            if (rigaNonValida != null)
-                return EsitoVendita.Errore("RIGA NON VALIDA",
-                    $"L'articolo \"{rigaNonValida.Descrizione.Trim()}\" ha prezzo € {rigaNonValida.PrezzoCentesimi / 100m:N2}.\n\n" +
-                    "Correggi il prezzo (o chiudi la combinazione) prima di emettere lo scontrino.");
-            if (totaleCent <= 0)
-                return EsitoVendita.Errore("TOTALE NON VALIDO", $"Il totale è € {totaleCent / 100m:N2}.\nCorreggere gli sconti.");
+            var stop = Valida(e, righe);
+            if (stop != null) return stop;
 
-            int restoCent = 0;
-            int contantiCent = 0, cartaCent = 0;
-            switch (pag.Metodo)
-            {
-                case MetodiPagamento.Contanti:
-                    if (pag.VersatoCent > 0 && pag.VersatoCent < totaleCent)
-                        return EsitoVendita.Errore("IMPORTO INSUFFICIENTE",
-                            $"Richiesto: € {totaleCent / 100m:N2}\nVersato: € {pag.VersatoCent / 100m:N2}");
-                    restoCent = pag.VersatoCent > 0 ? pag.VersatoCent - totaleCent : 0;
-                    contantiCent = totaleCent;
-                    break;
-                case MetodiPagamento.Misto:
-                    if (pag.MistoContantiCent <= 0 || pag.MistoContantiCent >= totaleCent)
-                        return EsitoVendita.Errore("PAGAMENTO MISTO", "La parte in contanti deve essere maggiore di zero e minore del totale.");
-                    contantiCent = pag.MistoContantiCent;
-                    cartaCent = totaleCent - contantiCent;
-                    break;
-                default:
-                    cartaCent = totaleCent;
-                    break;
-            }
+            using var rt = _creaRT(e.Cfg);
+            stop = await PreparaRTAsync(rt, e)
+                ?? await InviaRigheAsync(rt, e)
+                ?? await InviaScontiAsync(rt, e);
+            if (stop != null) return stop;
 
-            LogManager.Info($"VENDITA BANCO: totale €{totaleCent / 100m:F2}, metodo {pag.Metodo}, righe {prodotti.Count}");
+            await PreannunciaAppendiceAsync(rt, e);
+            stop = await ChiudiAsync(rt, e);
+            if (stop != null) return stop;
 
-            _ultimoDaRegistrare = new VenditaRegistrata
-            {
-                TotaleCentesimi = totaleCent,
-                MetodoPagamento = pag.Metodo,
-                ContantiCent = contantiCent,
-                CartaCent = cartaCent,
-                StampatoSuRT = true,
-                Righe = perArchivio
-            };
-            int restoFinale = restoCent;
-            _ultimoResto = restoCent;
+            var (fermo, footer) = await VerificaChiusuraAsync(rt, e);
+            if (fermo != null) return fermo;
 
-            using var rt = FiscalConnectorFactory.Create(cfg.TipoCassa, cfg.IP_RT, cfg.Porta_RT);
-
-            if (!await rt.ConnectAsync())
-            {
-                LogManager.Error("Connessione RT fallita");
-                return EsitoVendita.Errore("REGISTRATORE NON RAGGIUNGIBILE",
-                    $"Impossibile collegarsi al registratore {cfg.IP_RT}:{cfg.Porta_RT}.\n\n" +
-                    (string.IsNullOrEmpty(rt.UltimoErrore) ? "" : $"⚠️ {rt.UltimoErrore}\n\n") +
-                    "Verificare che sia acceso e sulla stessa rete Wi-Fi.\nLo scontrino NON è stato emesso.");
-            }
-
-            // ── HEALTH CHECK dopo una vendita fallita ──
-            if (_ultimaVenditaFallita)
-            {
-                LogManager.Info("HEALTH CHECK: recovery preventivo...");
-                if (!await rt.RecuperaScontrinoApertoAsync())
-                {
-                    string err = rt.UltimoErrore;
-                    rt.Disconnect();
-                    return EsitoVendita.Errore("RT BLOCCATO",
-                        (string.IsNullOrEmpty(err) ? "" : $"⚠️ {err}\n\n") +
-                        "Il registratore ha uno scontrino bloccato dalla vendita precedente.\n\n" +
-                        "1. Verificare coperchio e carta\n2. Usare 'FUNZIONI CASSA → RESET RT'\n3. Se persiste, spegnere e riaccendere il registratore");
-                }
-                _ultimaVenditaFallita = false;
-            }
-
-            // TX_FOOTER va configurato una volta per ogni registratore (se cambia tipo/IP in impostazioni, si rifà)
-            string chiaveRT = $"{cfg.TipoCassa}|{cfg.IP_RT}|{cfg.Porta_RT}";
-            if (_txFooterConfiguratoPer != chiaveRT)
-            {
-                // memorizzato solo se l'RT ha accettato: altrimenti si riprova alla vendita dopo
-                // un solo nuovo tentativo dopo un rifiuto (RT che non lo supporta: non si rallenta ogni vendita)
-                bool ok = await rt.ConfiguraTxFooterJsonAsync();
-                if (ok || _txFooterTentativo == chiaveRT) _txFooterConfiguratoPer = chiaveRT;
-                if (!ok)
-                {
-                    _txFooterTentativo = chiaveRT;
-                    LogManager.Warning("Configurazione TX_FOOTER non accettata dall'RT");
-                    try { await rt.RecuperaScontrinoApertoAsync(); } catch { }   // azzera NAK/XOFF lasciati dal rifiuto
-                }
-            }
-
-            // ── OPERATORE ──
-            if (!await rt.SelezionaOperatoreAsync(cfg.OperatoreRT))
-            {
-                string errOp = rt.UltimoErrore;
-                if (!string.IsNullOrEmpty(errOp) && errOp.Contains("COPERCHIO"))
-                {
-                    rt.Disconnect();
-                    _ultimaVenditaFallita = true;
-                    return EsitoVendita.Errore("ERRORE STAMPANTE", $"⚠️ {errOp}\n\nVerificare il registratore e riprovare.");
-                }
-                LogManager.Warning("RT ha rifiutato selezione operatore — continuo comunque");
-            }
-
-            // ── RIGHE ──
-            var daInviare = cfg.AccorpaRigheScontrino ? AccorpamentoRighe.Accorpa(prodotti) : prodotti;
-            _fase = 1;
-            foreach (var riga in daInviare)
-            {
-                // 3i ed Epson inviano ASCII: "CAFFÈ" o "PIZZA ½+½" verrebbero rifiutati o stampati male (È → E', ½ → 1/2)
-                string descr = TestoRT.SenzaAccenti(riga.Descrizione);
-                LogManager.Debug($"Riga: Rep{riga.RepartoFiscale} {descr} €{riga.PrezzoCentesimi / 100.0:F2} x{riga.Quantita}");
-                if (!await rt.VendiRepartoAsync(riga.RepartoFiscale, descr, riga.PrezzoCentesimi, riga.Quantita))
-                {
-                    LogManager.Error($"RT ha RIFIUTATO riga: {riga.Descrizione}");
-                    return await AnnullaEdEsci(rt, "ERRORE REGISTRATORE",
-                        "Il registratore ha rifiutato un articolo.\n\n" +
-                        "Verificare coperchio, carta e reparti/aliquote configurati sull'RT.");
-                }
-                // Varianti su scontrino fiscale (se configurato), come il PC: righe di messaggio sotto l'articolo
-                if (cfg.VariantiSuScontrino && !string.IsNullOrEmpty(riga.VariantiTesto))
-                    foreach (var vt in riga.VariantiTesto.Split('|'))
-                        if (!string.IsNullOrWhiteSpace(vt))
-                            await rt.StampaMessaggioAsync(TestoRT.SenzaAccenti(vt.Trim()));
-            }
-
-            // ── SCONTI ──
-            var sconti = righe.Where(r => r.Tipo == TipoRiga.Sconto).ToList();
-            if (sconti.Count > 0)
-            {
-                bool ok = await rt.SubtotaleAsync();
-                foreach (var s in sconti)
-                {
-                    if (!ok) break;
-                    ok = s.ScontoPercentualeCent.HasValue
-                        ? await rt.ScontoPercentualeTotaleAsync(s.ScontoPercentualeCent.Value / 100m)
-                        : await rt.ScontovaloreTotaleAsync(-s.PrezzoCentesimi);
-                }
-                if (!ok)
-                    return await AnnullaEdEsci(rt, "ERRORE SCONTI", "Il registratore ha rifiutato lo sconto.");
-            }
-
-            // ── APPENDICE ELIMINACODE (comanda da banco), come il PC: annunciata prima della chiusura ──
-            if (eliminacode > 0)
-            {
-                try { if (!await rt.PreannunciaAppendiceAsync(eliminacode)) LogManager.Warning("Appendice eliminacode non accettata"); }
-                catch (Exception ex) { LogManager.Warning($"Appendice eliminacode (non critico): {ex.Message}"); }
-            }
-
-            // ── CHIUSURA ──
-            // Importo esatto e parte carta del misto: chiusura "a saldo" calcolata dall'RT,
-            // così un centesimo di arrotondamento sugli sconti % non lascia lo scontrino aperto.
-            _fase = 2;
-            bool chiusuraOk = pag.Metodo switch
-            {
-                MetodiPagamento.Misto => await rt.ChiudiMistoAsync(contantiCent, 0),
-                MetodiPagamento.Contanti when pag.VersatoCent > totaleCent => await rt.ChiudiContantiAsync(pag.VersatoCent),
-                MetodiPagamento.Contanti => await rt.ChiudiContantiAutoAsync(),
-                _ => await rt.ChiudiCartaCreditoAsync()
-            };
-
-            if (!chiusuraOk)
-            {
-                // Chiusura inviata ma senza conferma (rifiuto o risposta persa): NON si annulla in automatico,
-                // altrimenti uno scontrino magari già stampato verrebbe rifatto (doppio scontrino).
-                // Decide l'operatore; se non è uscito, alla prossima vendita il controllo iniziale sblocca l'RT.
-                string err = rt.UltimoErrore;
-                LogManager.Error($"RT: chiusura senza conferma ({err})");
-                _ultimaVenditaFallita = true;
-                rt.Disconnect();
-                return new EsitoVendita
-                {
-                    Stato = StatoEsito.Incerto,
-                    Titolo = "VERIFICARE LO SCONTRINO",
-                    Messaggio = "Il registratore non ha confermato la chiusura dello scontrino." +
-                                (string.IsNullOrEmpty(err) ? "" : $"\n⚠️ {err}") +
-                                "\n\nControllare il registratore.",
-                    DaRegistrare = _ultimoDaRegistrare,
-                    RestoCent = restoFinale
-                };
-            }
-
-            _fase = 3;
-            var footer = await rt.LeggiTxFooterAsync();
-            if (footer.Confermato)
-                LogManager.Info($"✅ SCONTRINO CONFERMATO: Doc={footer.NumeroDocumento}, Azz={footer.NumeroAzzeramento}");
-            else
-            {
-                LogManager.Warning($"⚠️ TX_FOOTER non confermato: {footer.Errore ?? "risposta assente"}");
-                // nessuna conferma: se lo scontrino è ancora APERTO la chiusura non è avvenuta → si annulla e la vendita resta a video
-                bool? aperto = null;
-                try { aperto = await rt.StatoScontrinoDopoChiusuraAsync(); }
-                catch (Exception ex) { LogManager.Warning($"Verifica scontrino aperto: {ex.Message}"); }
-                if (aperto == true)
-                {
-                    LogManager.Error("RT: dopo la chiusura lo scontrino risulta ancora aperto");
-                    return await AnnullaEdEsci(rt, "SCONTRINO NON CHIUSO",
-                        "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato).\n\nLo scontrino è stato annullato: la vendita resta a video, riprova.");
-                }
-                if (aperto == null && cfg.TipoCassa == TipoCassaFiscale.RT3i)
-                {
-                    // né conferma né stato leggibile: non si dà per buono, decide l'operatore guardando l'RT
-                    LogManager.Error("RT: chiusura non confermata e stato scontrino non leggibile");
-                    _ultimaVenditaFallita = true;
-                    rt.Disconnect();
-                    return new EsitoVendita
-                    {
-                        Stato = StatoEsito.Incerto,
-                        Titolo = "VERIFICARE LO SCONTRINO",
-                        Messaggio = "Il registratore non ha confermato lo scontrino e non risponde (carta o coperchio?).\n\nControllare il registratore.",
-                        DaRegistrare = _ultimoDaRegistrare,
-                        RestoCent = restoFinale
-                    };
-                }
-            }
-
-            if (eliminacode > 0)
-            {
-                try { await rt.StampaAppendiceAsync(eliminacode); }
-                catch (Exception ex) { LogManager.Warning($"Stampa appendice eliminacode (non critico): {ex.Message}"); }
-            }
-
-            if (cfg.ApriCassetto)
-            {
-                // scontrino già chiuso: un errore del cassetto non deve far perdere il numero documento letto
-                try { await rt.ApriCassettoAsync(); }
-                catch (Exception ex) { LogManager.Warning($"Apertura cassetto non riuscita: {ex.Message}"); }
-            }
-
+            await OperazioniDopoChiusuraAsync(rt, e);
             rt.Disconnect();
             _ultimaVenditaFallita = !footer.Confermato;   // senza conferma, la prossima vendita controlla prima l'RT
 
             var esito = RegistraEsito(_ultimoDaRegistrare, footer, StatoEsito.Riuscito);
-            esito.RestoCent = restoFinale;
+            esito.RestoCent = e.RestoCent;
             return esito;
         }
 
