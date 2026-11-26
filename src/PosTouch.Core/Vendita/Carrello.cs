@@ -89,6 +89,8 @@ namespace PosTouch.Core.Vendita
                 Barcode = string.IsNullOrEmpty(p.Barcode) ? p.Codice : p.Barcode,
                 RepartoFiscale = p.RepartoFiscale,
                 CategoriaId = p.CategoriaId,
+                CategoriaNome = p.CategoriaNome ?? "",
+                AliquotaIVA = p.AliquotaIVA,
                 PrezzoCentesimi = prezzo,
                 PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
                 Quantita = quantita

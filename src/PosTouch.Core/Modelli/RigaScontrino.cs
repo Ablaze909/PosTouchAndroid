@@ -20,6 +20,10 @@ namespace PosTouch.Core.Modelli
         public string Barcode { get; set; } = "";
         public int RepartoFiscale { get; set; }
         public int CategoriaId { get; set; }
+        /// <summary>Nome della categoria al momento della vendita (per lo storico).</summary>
+        public string CategoriaNome { get; set; } = "";
+        /// <summary>Aliquota IVA al momento della vendita (per lo storico).</summary>
+        public int AliquotaIVA { get; set; }
         public int PrezzoOriginaleCentesimi { get; set; }
         public int? ScontoPercentualeCent { get; set; }
 

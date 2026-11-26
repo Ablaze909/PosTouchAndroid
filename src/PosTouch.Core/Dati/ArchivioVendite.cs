@@ -93,11 +93,30 @@ namespace PosTouch.Core.Dati
                         PrezzoOriginaleCentesimi INTEGER DEFAULT 0,
                         RepartoFiscale INTEGER NOT NULL,
                         CategoriaId INTEGER DEFAULT 0,
+                        CategoriaNome TEXT DEFAULT '',
+                        AliquotaIVA INTEGER DEFAULT 0,
                         FOREIGN KEY(VenditaId) REFERENCES Vendite(Id) ON DELETE CASCADE
                     );
                     CREATE INDEX IF NOT EXISTS IX_Vendite_DataOra ON Vendite(DataOra);";
                 cmd.ExecuteNonQuery();
+
+                // Archivi creati dalle versioni precedenti: aggiunge le colonne nuove (i dati esistenti restano)
+                AggiungiColonna(c, "RigheVendita", "CategoriaNome", "TEXT DEFAULT ''");
+                AggiungiColonna(c, "RigheVendita", "AliquotaIVA", "INTEGER DEFAULT 0");
             }
+        }
+
+        private static void AggiungiColonna(SqliteConnection c, string tabella, string colonna, string tipo)
+        {
+            using (var chk = c.CreateCommand())
+            {
+                chk.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{tabella}') WHERE name = $n";
+                chk.Parameters.AddWithValue("$n", colonna);
+                if (Convert.ToInt64(chk.ExecuteScalar()) > 0) return;
+            }
+            using var alt = c.CreateCommand();
+            alt.CommandText = $"ALTER TABLE {tabella} ADD COLUMN {colonna} {tipo}";
+            alt.ExecuteNonQuery();
         }
 
         /// <summary>Salva vendita e righe in un'unica transazione. Restituisce l'Id.</summary>
@@ -136,8 +155,9 @@ namespace PosTouch.Core.Dati
                         cmd.Transaction = tx;
                         cmd.CommandText = @"
                             INSERT INTO RigheVendita (VenditaId, ProdottoId, CodiceArticolo, Descrizione, Quantita,
-                                                      PrezzoCentesimi, PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId)
-                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat)";
+                                                      PrezzoCentesimi, PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId,
+                                                      CategoriaNome, AliquotaIVA)
+                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva)";
                         cmd.Parameters.AddWithValue("$v", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");
@@ -147,6 +167,8 @@ namespace PosTouch.Core.Dati
                         cmd.Parameters.AddWithValue("$orig", r.PrezzoOriginaleCentesimi);
                         cmd.Parameters.AddWithValue("$rep", r.RepartoFiscale);
                         cmd.Parameters.AddWithValue("$cat", r.CategoriaId);
+                        cmd.Parameters.AddWithValue("$catNome", r.CategoriaNome ?? "");
+                        cmd.Parameters.AddWithValue("$iva", r.AliquotaIVA);
                         cmd.ExecuteNonQuery();
                     }
 
