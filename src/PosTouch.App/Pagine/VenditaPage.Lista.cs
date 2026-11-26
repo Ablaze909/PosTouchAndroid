@@ -111,6 +111,33 @@ namespace PosTouch.App.Pagine
             AggiornaFrecce();
         }
 
+        private RigaScontrino _daMostrare;
+        private bool _scorrimentoProgrammato;
+
+        /// <summary>
+        /// Porta in vista una riga appena battuta. Lo scorrimento parte DOPO che la lista ha disegnato la riga nuova
+        /// (subito non c'è ancora e restava fuori vista); battendo veloce si scorre una volta sola, all'ultima riga.
+        /// </summary>
+        private void MostraInFondo(RigaScontrino riga)
+        {
+            if (riga == null) return;
+            _daMostrare = riga;
+            if (_scorrimentoProgrammato) return;
+            _scorrimentoProgrammato = true;
+            Dispatcher.Dispatch(() =>
+            {
+                _scorrimentoProgrammato = false;
+                var r = _daMostrare;
+                _daMostrare = null;
+                if (r == null || !Carrello.Righe.Contains(r)) return;
+                // l'articolo accorpato su una riga già presente si mostra lì; se è l'ultima si va proprio in fondo
+                if (ReferenceEquals(r, Carrello.Righe.LastOrDefault()))
+                    ListaRighe.ScrollTo(Carrello.Righe.Count - 1, position: ScrollToPosition.End, animate: false);
+                else
+                    ListaRighe.ScrollTo(r, position: ScrollToPosition.MakeVisible, animate: false);
+            });
+        }
+
         private void AggiornaFrecce()
         {
             int n = Carrello.Righe.Count;

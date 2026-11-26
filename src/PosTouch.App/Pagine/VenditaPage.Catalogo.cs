@@ -184,7 +184,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}");
                 return;
             }
-            ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
+            MostraInFondo(riga);
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace PosTouch.App.Pagine
             if (peso == null || peso <= 0) return;
             var riga = Carrello.Aggiungi(p, peso.Value, prezzo, accorpa: false);
             if (riga == null) { await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}"); return; }
-            ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
+            MostraInFondo(riga);
         }
 
         /// <summary>Etichetta bilancia (EAN-13 "2…"): articolo dal codice, prezzo dall'etichetta (non dal listino), come il PC.</summary>
@@ -234,7 +234,7 @@ namespace PosTouch.App.Pagine
             var riga = Carrello.Aggiungi(p, qta, l.PrezzoCentesimi, accorpa: false);
             if (riga == null) { await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}"); return; }
             riga.Barcode = barcode;   // nello storico l'etichetta letta
-            ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
+            MostraInFondo(riga);
         }
 
         private void AggiungiDaBarcode(string codice)

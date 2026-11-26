@@ -93,7 +93,7 @@ namespace PosTouch.App.Pagine
             bool ok = percentuale ? Carrello.ScontoPercentuale(valore.Value)
                                   : Carrello.ScontoValore((int)Math.Round(valore.Value * 100, MidpointRounding.AwayFromZero));
             if (!ok) { await MessaggioBox.Avviso("SCONTO", Carrello.UltimoErrore ?? "Sconto non applicabile."); return; }
-            ListaRighe.ScrollTo(Carrello.Righe.Count - 1, position: ScrollToPosition.End, animate: false);
+            MostraInFondo(Carrello.Righe.LastOrDefault());
         }
 
         private async void OnAnnulla(object sender, EventArgs e)

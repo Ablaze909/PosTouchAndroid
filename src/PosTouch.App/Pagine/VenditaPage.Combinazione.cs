@@ -21,7 +21,7 @@ namespace PosTouch.App.Pagine
             var comb = CombinazioneInCorso.Inizia(Carrello, p, ContestoCassa.Catalogo.ProdottiDi(p.CategoriaId), out string errore);
             if (comb == null) { await MessaggioBox.Avviso("NESSUN GUSTO", errore); return; }
             _combinazione = comb;
-            ListaRighe.ScrollTo(comb.Padre, position: ScrollToPosition.End, animate: false);
+            MostraInFondo(comb.Padre);
             AggiornaCombinazione();
         }
 
@@ -35,7 +35,7 @@ namespace PosTouch.App.Pagine
                 return;
             }
             var ultimo = Carrello.FigliDi(_combinazione.Padre).LastOrDefault();
-            if (ultimo != null) ListaRighe.ScrollTo(ultimo, position: ScrollToPosition.End, animate: false);
+            if (ultimo != null) MostraInFondo(ultimo);
             AggiornaCombinazione();
         }
 

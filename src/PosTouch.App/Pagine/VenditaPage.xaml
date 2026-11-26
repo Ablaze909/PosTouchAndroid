@@ -185,15 +185,19 @@
             </Grid>
 
             <!-- Lista con frecce ▲ / ▼ GIÙ -->
-            <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto">
-                <Button x:Name="BtnScrollSu" Text="▲" FontSize="11" FontAttributes="Bold" BackgroundColor="#E5E5E5" TextColor="#666666"
-                        HeightRequest="26" MinimumHeightRequest="26" Margin="2,0,2,2" CornerRadius="0" Padding="0" IsVisible="False" Clicked="OnScrollSu" />
-
-                <CollectionView x:Name="ListaRighe" Grid.Row="1" SelectionMode="None" Scrolled="OnListaScrolled" ItemTemplate="{StaticResource SelettoreRighe}">
+            <!-- frecce SOPRA la lista (non le tolgono spazio): quando comparivano/sparivano la lista cambiava altezza
+                 e l'ultima riga battuta finiva fuori vista ("righe sfalsate" battendo veloce) -->
+            <Grid Grid.Row="1">
+                <CollectionView x:Name="ListaRighe" SelectionMode="None" Scrolled="OnListaScrolled" ItemTemplate="{StaticResource SelettoreRighe}"
+                                ItemSizingStrategy="MeasureAllItems">
                 </CollectionView>
 
-                <Button x:Name="BtnScrollGiu" Grid.Row="2" Text="▼ GIÙ" FontSize="12" FontAttributes="Bold" BackgroundColor="#E5E5E5" TextColor="#666666"
-                        HeightRequest="30" MinimumHeightRequest="30" Margin="2,3,2,3" CornerRadius="0" Padding="0" IsVisible="False" Clicked="OnScrollGiu" />
+                <Button x:Name="BtnScrollSu" Text="▲" FontSize="11" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
+                        HeightRequest="26" MinimumHeightRequest="26" Margin="2,0,2,0" CornerRadius="0" Padding="0" VerticalOptions="Start"
+                        IsVisible="False" Clicked="OnScrollSu" />
+                <Button x:Name="BtnScrollGiu" Text="▼ GIÙ" FontSize="12" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
+                        HeightRequest="30" MinimumHeightRequest="30" Margin="2,0,2,2" CornerRadius="0" Padding="0" VerticalOptions="End"
+                        IsVisible="False" Clicked="OnScrollGiu" />
             </Grid>
 
             <!-- Display + pezzi + totale: tocco = calcolo resto -->
