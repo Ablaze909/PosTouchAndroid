@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using PosTouch.Core.Modelli;
 
@@ -15,6 +16,8 @@ namespace PosTouch.Core.Vendita
         {
             errore = null;
             RigaScontrino target = null;
+            // toccata una riga variante: vale l'articolo (o il gusto) a cui è attaccata
+            if (selezionata?.Tipo == TipoRiga.Variante) selezionata = c.ProprietarioDi(selezionata);
             if (selezionata != null && (selezionata.Tipo == TipoRiga.Prodotto || selezionata.Tipo == TipoRiga.Gusto))
             {
                 if (selezionata.Tipo == TipoRiga.Prodotto && combinazioneAperta)
@@ -90,6 +93,20 @@ namespace PosTouch.Core.Vendita
             }
             c.InserisciVariante(target, riga);
             c.Notifica();
+            return null;
+        }
+
+        /// <summary>
+        /// Applica più varianti in un colpo (scelta multipla come VarianteSelectionDialog del PC).
+        /// Si ferma alla prima che non va e restituisce il motivo; le precedenti restano applicate.
+        /// </summary>
+        public static string ApplicaTutte(Carrello c, RigaScontrino target, IEnumerable<Variante> varianti, bool aggiunta, bool combinazioneAperta)
+        {
+            foreach (var v in varianti)
+            {
+                string err = Applica(c, target, v, aggiunta, combinazioneAperta);
+                if (err != null) return $"{v.Nome}: {err}";
+            }
             return null;
         }
 

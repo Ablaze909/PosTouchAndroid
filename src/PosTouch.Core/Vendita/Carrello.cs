@@ -302,6 +302,29 @@ namespace PosTouch.Core.Vendita
             return null;
         }
 
+        /// <summary>
+        /// Stacca UN pezzo da un articolo con quantità > 1 (es. 3 pizze, una "senza cipolla"):
+        /// la riga originale scende di 1 e sotto il suo blocco nasce una riga da 1 pezzo con le stesse varianti.
+        /// Restituisce la nuova riga, o null se non si può (peso, combinazione, comandata, quantità non intera).
+        /// </summary>
+        public RigaScontrino SeparaUnPezzo(RigaScontrino riga)
+        {
+            if (riga == null || riga.Tipo != TipoRiga.Prodotto || riga.Comandata || riga.IsAPeso) return null;
+            if (riga.Quantita < 2 || riga.Quantita != decimal.Truncate(riga.Quantita)) return null;
+            var figli = FigliDi(riga);
+            if (figli.Any(f => f.Tipo == TipoRiga.Gusto)) return null;
+            var nuova = riga.Copia();
+            nuova.Quantita = 1;
+            nuova.Selezionata = false;
+            riga.Quantita -= 1;
+            int pos = Righe.IndexOf(riga) + 1 + figli.Count;
+            var blocco = new List<RigaScontrino> { nuova };
+            blocco.AddRange(figli.Select(f => { var c = f.Copia(); c.Selezionata = false; return c; }));
+            foreach (var r in blocco) { if (pos >= Righe.Count) Righe.Add(r); else Righe.Insert(pos, r); pos++; }
+            Aggiornato();
+            return nuova;
+        }
+
         /// <summary>Riga a cui è attaccata una variante (l'articolo o il gusto subito sopra).</summary>
         public RigaScontrino ProprietarioDi(RigaScontrino variante)
         {

@@ -32,10 +32,28 @@ namespace PosTouch.App.Pagine
             for (int i = 0; i < titoli.Length; i++)
                 intest.Add(new Label { Text = titoli[i], FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#78909C") }, i, 0);
 
-            var radice = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Star) } };
+            // spiegazione dei campi (sul PC non c'era e "GRUPPO" non si capiva)
+            var aiuto = new Label
+            {
+                FontSize = 13, TextColor = Ui.C("#5D4037"), BackgroundColor = Ui.C("#FFF3E0"), Padding = new Thickness(26, 8),
+                FormattedText = new FormattedString { Spans =
+                {
+                    new Span { Text = "GRUPPO", FontAttributes = FontAttributes.Bold },
+                    new Span { Text = " = titolo sotto cui la variante compare in vendita (es. AGGIUNTE, IMPASTI, COTTURA); vuoto = Generali.   " },
+                    new Span { Text = "TIPO", FontAttributes = FontAttributes.Bold },
+                    new Span { Text = ": Standard stampa + / − davanti al nome (+MOZZARELLA, −CIPOLLA); Preparazione stampa solo il nome (BEN COTTA).   " },
+                    new Span { Text = "+ €", FontAttributes = FontAttributes.Bold },
+                    new Span { Text = " si aggiunge con VAR＋, " },
+                    new Span { Text = "− €", FontAttributes = FontAttributes.Bold },
+                    new Span { Text = " si toglie con VAR﹣ (al pezzo)." }
+                } }
+            };
+
+            var radice = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Star) } };
             radice.Add(testa, 0, 0);
-            radice.Add(intest, 0, 1);
-            radice.Add(new ScrollView { Content = _lista, Padding = new Thickness(14) }, 0, 2);
+            radice.Add(aiuto, 0, 1);
+            radice.Add(intest, 0, 2);
+            radice.Add(new ScrollView { Content = _lista, Padding = new Thickness(14) }, 0, 3);
             Content = radice;
             Carica();
         }
@@ -81,7 +99,7 @@ namespace PosTouch.App.Pagine
             var g = new Grid { ColumnSpacing = 8 };
             Colonne(g);
             var nome = new Entry { Text = v.Nome, FontSize = 15, Placeholder = "es. MOZZARELLA" };
-            var gruppo = new Entry { Text = v.Gruppo, FontSize = 15, Placeholder = "Generali" };
+            var gruppo = new Entry { Text = v.Gruppo, FontSize = 15, Placeholder = "es. AGGIUNTE (vuoto = Generali)" };
             var tipo = new CampoScelta { Titolo = "Tipo variante", Colonne = 2, FontSize = 14, Voci = Tipi, Indice = (int)v.Tipo };
             var piu = new Entry { Text = Euro(v.PrezzoAggiuntaCent), FontSize = 15, Keyboard = Keyboard.Numeric };
             var meno = new Entry { Text = Euro(v.PrezzoRimozioneCent), FontSize = 15, Keyboard = Keyboard.Numeric };
