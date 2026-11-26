@@ -57,14 +57,13 @@ namespace PosTouch.Core.Sale
                                                                        && prev.CentroProduzioneId == g.Key && prev.Portata == r.Portata));
                 Dictionary<string, List<RigaScontrino>> altri = null;
                 if (Cfg.StampaRiepilogoAltriCentri && !Cfg.AbilitaPortate)
-                    altri = gruppi.Where(x => x.Key != g.Key)
-                                  .ToDictionary(x => Stampe.NomeUscita(x.Key), x => x.ToList());
+                    altri = Stampe.AltriPer(g.Key, gruppi);
 
                 var dati = new DatiComanda
                 {
                     NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = NomeSala,
                     Progressivo = progressivo, Coperti = coperti, Riordino = riordino,
-                    Righe = g.ToList(), AltriCentri = altri, FlussoPortate = flusso
+                    Righe = g.ToList(), AltriCentri = altri, FlussoPortate = Stampe.FlussoPer(g.Key, flusso)
                 };
                 stampe.Add(new JobStampa
                 {

@@ -24,6 +24,8 @@ namespace PosTouch.Core.Modelli
         public int CentroProduzioneId { get; set; }
         /// <summary>Centro effettivo per le comande (articolo, altrimenti categoria); 0 = nessuna stampa.</summary>
         public int CentroStampa { get; set; }
+        /// <summary>⚡ SUBITO automatico ereditato dalla categoria (calcolato dal catalogo).</summary>
+        public bool Subito { get; set; }
         /// <summary>Vendita a peso (dal PC): la quantità è il peso, il prezzo è per unità di peso.</summary>
         public bool VenditaAPeso { get; set; }
         public string UnitaPeso { get; set; } = "Kg";

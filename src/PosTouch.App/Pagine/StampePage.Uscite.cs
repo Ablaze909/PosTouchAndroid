@@ -28,11 +28,14 @@ namespace PosTouch.App.Pagine
             Disegna();
         }
 
+        /// <summary>✏️ Scheda uscita: nome ed esclusioni sulle comande. Si modifica l'uscita in elenco solo con OK.</summary>
         private async Task RinominaAsync(Uscita u)
         {
-            string nome = await TestoBox.Chiedi($"NOME USCITA {u.Numero}", u.Nome);
-            if (string.IsNullOrWhiteSpace(nome)) return;
-            u.Nome = nome.Trim().ToUpperInvariant();
+            var nuova = await UscitaBox.Modifica(u);
+            if (nuova == null) return;
+            u.Nome = nuova.Nome;
+            u.EscludiAltre = nuova.EscludiAltre;
+            u.EscludiInAltre = nuova.EscludiInAltre;
             Disegna();
         }
 

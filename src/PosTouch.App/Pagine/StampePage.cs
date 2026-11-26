@@ -85,7 +85,7 @@ namespace PosTouch.App.Pagine
             foreach (var u in _c.Uscite)
             {
                 int numero = u.Numero;
-                _sinistra.Add(Riga($"{u.Numero}  {u.Nome}", null, p.Uscita(numero), "#FFFFFF", v => Pagina.Uscite[numero] = v, u));
+                _sinistra.Add(Riga($"{u.Numero}  {u.Nome}", NotaEsclusioni(u), p.Uscita(numero), "#FFFFFF", v => Pagina.Uscite[numero] = v, u));
             }
             if (_c.Uscite.Count < ConfigStampe.MaxUscite)
             {
@@ -95,7 +95,15 @@ namespace PosTouch.App.Pagine
             }
         }
 
-        /// <summary>Riga "nome + stampante + Configura" come POSBY; per le uscite anche ✏️ nome e 🗑.</summary>
+        private static string NotaEsclusioni(Uscita u)
+        {
+            var parti = new List<string>();
+            if (u.EscludiAltre) parti.Add("🚫 altre");
+            if (u.EscludiInAltre) parti.Add("🚫 in altre");
+            return parti.Count > 0 ? string.Join(" · ", parti) : null;
+        }
+
+        /// <summary>Riga "nome + stampante + Configura" come POSBY; per le uscite anche ✏️ scheda (nome, esclusioni) e 🗑.</summary>
         private View Riga(string nome, string nota, ParametriStampa par, string coloreNome, Action<ParametriStampa> salva, Uscita uscita = null)
         {
             var g = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(new GridLength(150)) }, ColumnSpacing = 6 };

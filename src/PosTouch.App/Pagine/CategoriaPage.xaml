@@ -68,6 +68,11 @@
                                 <CheckBox x:Name="ChkEscludiBanco" Color="#4CAF50" />
                                 <Label Text="Non stampare in comanda da banco" FontSize="14" VerticalOptions="Center" />
                             </HorizontalStackLayout>
+                            <!-- solo con le portate attive (come il PC): senza portate tutto esce subito -->
+                            <HorizontalStackLayout x:Name="RigaSubito" Margin="0,6,0,0">
+                                <CheckBox x:Name="ChkSubito" Color="#FF6F00" />
+                                <Label Text="⚡ SUBITO automatico (al tavolo esce sempre per primo, es. bibite)" FontSize="14" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>

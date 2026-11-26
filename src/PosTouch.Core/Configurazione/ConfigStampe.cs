@@ -44,6 +44,12 @@ namespace PosTouch.Core.Configurazione
     {
         public int Numero { get; set; }
         public string Nome { get; set; } = "";
+        /// <summary>Sulla comanda di questa uscita non compaiono gli articoli delle altre (es. il BAR vede solo le bibite).</summary>
+        public bool EscludiAltre { get; set; }
+        /// <summary>Gli articoli di questa uscita non compaiono sulle comande delle altre (es. le bibite non escono piccole in CUCINA).</summary>
+        public bool EscludiInAltre { get; set; }
+
+        public Uscita Copia() => new Uscita { Numero = Numero, Nome = Nome, EscludiAltre = EscludiAltre, EscludiInAltre = EscludiInAltre };
     }
 
     /// <summary>Le stampe di una sala (o di tutte, se le impostazioni per sala sono spente).</summary>
@@ -114,6 +120,46 @@ namespace PosTouch.Core.Configurazione
         }
 
         public Uscita UscitaDa(int numero) => Uscite.FirstOrDefault(u => u.Numero == numero);
+
+        /// <summary>
+        /// Sulla comanda dell'uscita <paramref name="stampa"/> si possono mostrare gli articoli dell'uscita <paramref name="altra"/>?
+        /// No se la stampa ha "Escludi altre" o se l'altra ha "Escludi in altre". I propri articoli sempre.
+        /// </summary>
+        public bool MostraSu(int stampa, int altra) =>
+            stampa == altra || (UscitaDa(stampa)?.EscludiAltre != true && UscitaDa(altra)?.EscludiInAltre != true);
+
+        /// <summary>Riepilogo "altri centri" per la comanda di un'uscita, rispettando le esclusioni (null se vuoto).</summary>
+        public Dictionary<string, List<Modelli.RigaScontrino>> AltriPer(int stampa, IEnumerable<IGrouping<int, Modelli.RigaScontrino>> gruppi)
+        {
+            var d = new Dictionary<string, List<Modelli.RigaScontrino>>();
+            foreach (var g in gruppi.Where(x => x.Key != stampa && MostraSu(stampa, x.Key)))
+            {
+                string nome = NomeUscita(g.Key);
+                if (d.TryGetValue(nome, out var l)) l.AddRange(g); else d[nome] = g.ToList();   // due uscite con lo stesso nome: unite
+            }
+            return d.Count > 0 ? d : null;
+        }
+
+        /// <summary>
+        /// Flusso con le portate per la comanda di un'uscita: tolti gli articoli delle uscite escluse e i separatori
+        /// rimasti senza articoli.
+        /// </summary>
+        public List<Modelli.RigaScontrino> FlussoPer(int stampa, List<Modelli.RigaScontrino> flusso)
+        {
+            if (flusso == null) return null;
+            var righe = flusso.Where(r => r.Tipo == Modelli.TipoRiga.Portata || MostraSu(stampa, r.CentroProduzioneId)).ToList();
+            var ris = new List<Modelli.RigaScontrino>();
+            for (int i = 0; i < righe.Count; i++)
+            {
+                if (righe[i].Tipo != Modelli.TipoRiga.Portata) { ris.Add(righe[i]); continue; }
+                // come FlussoPortate: il separatore resta solo se dopo, prima del prossimo, c'è un articolo della SUA portata
+                bool haArticoli = false;
+                for (int j = i + 1; j < righe.Count && righe[j].Tipo != Modelli.TipoRiga.Portata; j++)
+                    if (righe[j].Portata == righe[i].Portata) { haArticoli = true; break; }
+                if (haArticoli) ris.Add(righe[i]);
+            }
+            return ris;
+        }
         public string NomeUscita(int numero) => UscitaDa(numero)?.Nome is { Length: > 0 } n ? n : $"Uscita {numero}";
 
         /// <summary>Stampante di un'uscita in una sala; null se l'uscita non esiste o non ha stampante.</summary>
@@ -202,7 +248,7 @@ namespace PosTouch.Core.Configurazione
             Normalizza();
             var c = (ConfigStampe)MemberwiseClone();
             c.IndirizziIP = IndirizziIP.ToList();
-            c.Uscite = Uscite.Select(u => new Uscita { Numero = u.Numero, Nome = u.Nome }).ToList();
+            c.Uscite = Uscite.Select(u => u.Copia()).ToList();
             c.Base = Base.Copia();
             c.PerSala = PerSala.ToDictionary(x => x.Key, x => x.Value.Copia());
             return c;

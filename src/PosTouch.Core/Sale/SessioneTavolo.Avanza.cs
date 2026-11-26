@@ -65,9 +65,7 @@ namespace PosTouch.Core.Sale
                     if (st == null) { esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, VAI NON stampato."); continue; }
                     // articoli della portata non ancora trasmessi: partono con il VAI (come il PC), solo se la stampante c'è (regola 12)
                     foreach (var r in g.Where(r => !r.Comandata)) r.Comandata = true;
-                    Dictionary<string, List<RigaScontrino>> altri = Cfg.StampaRiepilogoAltriCentri
-                        ? gruppi.Where(x => x.Key != g.Key).ToDictionary(x => Stampe.NomeUscita(x.Key), x => x.ToList())
-                        : null;
+                    Dictionary<string, List<RigaScontrino>> altri = Cfg.StampaRiepilogoAltriCentri ? Stampe.AltriPer(g.Key, gruppi) : null;
                     var dati = new DatiComanda
                     {
                         NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = NomeSala,

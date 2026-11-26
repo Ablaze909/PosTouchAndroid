@@ -1,6 +1,7 @@
 using System.Linq;
 using PosTouch.Core.Modelli;
 using PosTouch.Core.Vendita;
+using PosTouch.Core.Sale;
 using static PosTouch.Tests.Verifica;
 
 namespace PosTouch.Tests
@@ -37,6 +38,26 @@ namespace PosTouch.Tests
             Ok(uno != null && r.Quantita == 2 && uno.Quantita == 1, "stacca un pezzo: 3 → 2 + 1");
             Uguale(360, c.TotaleCent, "totale invariato dopo lo stacco");
             Ok(c.SeparaUnPezzo(uno) == null, "riga da 1 pezzo non si stacca");
+
+            // ── ⚡ SUBITO automatico della categoria ──
+            c = new Carrello();
+            var bibita = new Prodotto { Id = 9, Descrizione = "COCA", PrezzoCentesimi = 300, RepartoFiscale = 1, CategoriaId = 3, Subito = true };
+            var primo = new Prodotto { Id = 10, Descrizione = "SPAGHETTI", PrezzoCentesimi = 900, RepartoFiscale = 1, CategoriaId = 4 };
+            var b0 = c.Aggiungi(bibita, 1, null, true);
+            Uguale(0, b0.Portata, "senza separatori: la bibita è nella prima uscita");
+            c.Svuota();
+            c.ScegliPortata("SEGUE");
+            c.Aggiungi(primo, 1, null, true);
+            var b1 = c.Aggiungi(bibita, 1, null, true);
+            Ok(b1.Portata == 0 && c.Righe.Any(Portate.IsSubito), "con SEGUE scelto la bibita va comunque in SUBITO");
+            var spa = c.Righe.First(x => x.ProdottoId == 10);
+            Ok(spa.Portata > 0, "gli spaghetti restano nel SEGUE");
+            var dopo = c.Aggiungi(primo, 1, null, false);
+            Ok(dopo.Portata == spa.Portata, "dopo la bibita si continua a battere nel SEGUE scelto");
+            Ok(c.Righe.IndexOf(c.Righe.First(Portate.IsSubito)) < c.Righe.IndexOf(c.Righe.First(Portate.IsSeparatoreReale)), "SUBITO prima del SEGUE");
+            c.Aggiungi(bibita, 1, null, true);
+            Uguale(1, c.Righe.Count(Portate.IsSubito), "un solo separatore SUBITO");
+            Uguale(2, b1.Quantita, "le bibite SUBITO si accorpano tra loro");
         }
     }
 }

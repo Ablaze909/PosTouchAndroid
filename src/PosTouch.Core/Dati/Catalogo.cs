@@ -164,7 +164,8 @@ namespace PosTouch.Core.Dati
                         Ordine = l.Int("Ordine"),
                         Attiva = l.Bool("Attiva", true),
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
-                        EscludiComandaBanco = l.Bool("EscludiComandaBanco")
+                        EscludiComandaBanco = l.Bool("EscludiComandaBanco"),
+                        Subito = l.Bool("Subito")
                     });
                 }
             }
@@ -208,6 +209,7 @@ namespace PosTouch.Core.Dati
                         VariantiProporzionali = l.Bool("VariantiProporzionali"),
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
                         CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId),
+                        Subito = c.Subito,
                         Ordine = l.Int("Ordine")
                     });
                 }

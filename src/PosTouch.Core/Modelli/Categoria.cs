@@ -15,6 +15,8 @@ namespace PosTouch.Core.Modelli
         public int CentroProduzioneId { get; set; }
         /// <summary>Comanda da banco: gli articoli di questa categoria non vanno in comanda (EscludiComandaBanco del PC).</summary>
         public bool EscludiComandaBanco { get; set; }
+        /// <summary>⚡ SUBITO automatico (colonna Subito del PC): al tavolo con le portate gli articoli vanno sempre nella portata SUBITO.</summary>
+        public bool Subito { get; set; }
         /// <summary>Visibile nel POS (false = nascosta, come sul PC).</summary>
         public bool Attiva { get; set; } = true;
         /// <summary>Numero articoli attivi (calcolato dal catalogo).</summary>

@@ -37,14 +37,14 @@ namespace PosTouch.Core.Dati
                 {
                     // Id esplicito sotto 8000: nel pos.db del PC 8000-8999 sono Gratta e Vinci e 9000+ tabacchi;
                     // l'autoincremento darebbe Id riservati (categoria nuova invisibile nella vendita)
-                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva, CentroProduzioneId, EscludiComandaBanco)
+                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva, CentroProduzioneId, EscludiComandaBanco, Subito)
                                         VALUES ((SELECT IFNULL(MAX(Id),0)+1 FROM Categorie WHERE Id < 8000), $n, $rep, $iva, $col, $colT, $ico,
-                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 8000), $att, $centro, $escBanco)";
+                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 8000), $att, $centro, $escBanco, $subito)";
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Categorie SET Nome=$n, RepartoFiscale=$rep, AliquotaIVA=$iva, Colore=$col,
-                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att, CentroProduzioneId=$centro, EscludiComandaBanco=$escBanco WHERE Id=$id";
+                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att, CentroProduzioneId=$centro, EscludiComandaBanco=$escBanco, Subito=$subito WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", c.Id);
                 }
                 cmd.Parameters.AddWithValue("$n", c.Nome.Trim());
@@ -56,6 +56,7 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$att", c.Attiva ? 1 : 0);
                 cmd.Parameters.AddWithValue("$centro", c.CentroProduzioneId);
                 cmd.Parameters.AddWithValue("$escBanco", c.EscludiComandaBanco ? 1 : 0);
+                cmd.Parameters.AddWithValue("$subito", c.Subito ? 1 : 0);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Categoria salvata: {c.Nome} (reparto {c.RepartoFiscale}, IVA {c.AliquotaIVA}%)");

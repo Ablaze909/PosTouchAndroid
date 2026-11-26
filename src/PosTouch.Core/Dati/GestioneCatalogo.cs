@@ -98,6 +98,7 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Categorie", "Icona", "TEXT DEFAULT ''");
             AggiungiColonna(conn, "Categorie", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Categorie", "EscludiComandaBanco", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Categorie", "Subito", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "VenditaAPeso", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "UnitaPeso", "TEXT DEFAULT 'Kg'");

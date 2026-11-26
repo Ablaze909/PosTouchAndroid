@@ -79,9 +79,7 @@ namespace PosTouch.Core.Sale
                         avvisi.Add($"{nome}: nessuna stampante per il BANCO, comanda N° {eliminacode:D3} NON stampata.");
                         continue;
                     }
-                    Dictionary<string, List<RigaScontrino>> altri = cfg.StampaRiepilogoAltriCentri
-                        ? gruppi.Where(x => x.Key != g.Key).ToDictionary(x => st.NomeUscita(x.Key), x => x.ToList())
-                        : null;
+                    Dictionary<string, List<RigaScontrino>> altri = cfg.StampaRiepilogoAltriCentri ? st.AltriPer(g.Key, gruppi) : null;
                     var dati = new DatiComanda
                     {
                         NomeCentro = nome, CentroId = g.Key, NomeTavolo = titolo, NomeSala = "",

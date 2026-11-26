@@ -83,7 +83,7 @@ namespace PosTouch.Core.Vendita
             {
                 // mai accorpare su una riga già comandata (la cucina riceverebbe la differenza sbagliata)
                 // né su una riga di un'altra portata
-                int portataDest = PortataDestinazione();
+                int portataDest = p.Subito && HaSeparatori ? 0 : PortataDestinazione();
                 var esistente = Righe.FirstOrDefault(r => r.Tipo == TipoRiga.Prodotto
                                                        && r.ProdottoId == p.Id
                                                        && r.PrezzoCentesimi == prezzo
@@ -116,7 +116,8 @@ namespace PosTouch.Core.Vendita
                 Quantita = quantita,
                 CentroProduzioneId = p.CentroStampa
             };
-            InserisciArticolo(riga);
+            if (p.Subito && HaSeparatori) InserisciSubito(riga);   // ⚡ SUBITO automatico della categoria
+            else InserisciArticolo(riga);
             Aggiornato();
             return riga;
         }
@@ -252,6 +253,26 @@ namespace PosTouch.Core.Vendita
 
         // Gli articoli aggiunti dopo uno sconto vanno sopra il blocco SUBTOTALE/SCONTO;
         // al tavolo vanno in fondo alla sezione della portata scelta (PortataTarget).
+        /// <summary>Al tavolo con le portate in uso (c'è almeno un separatore reale).</summary>
+        private bool HaSeparatori => Righe.Any(Portate.IsSeparatoreReale);
+
+        /// <summary>
+        /// ⚡ SUBITO automatico: l'articolo va nella sezione SUBITO (creata se manca, prima del primo separatore)
+        /// qualunque sia la portata scelta per gli articoli successivi, che non cambia.
+        /// </summary>
+        private void InserisciSubito(RigaScontrino r)
+        {
+            var primo = Righe.First(Portate.IsSeparatoreReale);
+            int pos = Righe.IndexOf(primo);
+            if (!Righe.Any(Portate.IsSubito))
+            {
+                // SUBITO in testa alle righe (come ScegliPortata), così anche gli articoli già battuti prima restano nella prima uscita
+                Righe.Insert(pos, new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 });
+                pos++;
+            }
+            Righe.Insert(pos, r);
+        }
+
         private void InserisciArticolo(RigaScontrino r)
         {
             var inizioBlocco = InizioBloccoSconto();
