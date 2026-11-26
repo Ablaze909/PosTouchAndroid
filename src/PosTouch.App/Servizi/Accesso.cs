@@ -18,6 +18,9 @@ namespace PosTouch.App.Servizi
         /// <summary>Operatore "di comodo" con cui l'assistenza tecnica fa le operazioni da amministratore.</summary>
         public static Operatore Assistenza => new Operatore { Id = 0, Nome = "ASSISTENZA", Amministratore = true };
 
+        /// <summary>Un PIN operatore non può coincidere con la password assistenza (darebbe a quell'operatore accesso a tutto).</summary>
+        public static bool PinDisponibile(string pin) => !PasswordAssistenza.Verifica(ContestoCassa.Impostazioni, pin);
+
         /// <summary>true = il codice inserito è la password assistenza (apre tutto; lasciata traccia nel log).</summary>
         internal static bool EAssistenza(string codice, string titolo)
         {

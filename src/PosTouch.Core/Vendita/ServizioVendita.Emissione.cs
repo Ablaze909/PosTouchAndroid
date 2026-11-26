@@ -223,7 +223,12 @@ namespace PosTouch.Core.Vendita
                 MetodiPagamento.Contanti => await rt.ChiudiContantiAutoAsync(),
                 _ => await rt.ChiudiCartaCreditoAsync()
             };
-            if (chiusuraOk) return null;
+            if (chiusuraOk)
+            {
+                // Epson: la risposta positiva alla chiusura È la conferma (un errore dopo non deve dire "da verificare")
+                if (e.Cfg.TipoCassa == TipoCassaFiscale.Epson) _fase = 3;
+                return null;
+            }
 
             // Chiusura inviata ma senza conferma (rifiuto o risposta persa): NON si annulla in automatico,
             // altrimenti uno scontrino magari già stampato verrebbe rifatto (doppio scontrino).

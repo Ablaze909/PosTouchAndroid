@@ -21,10 +21,11 @@ namespace PosTouch.Core.Configurazione
             try
             {
                 byte[] atteso = Convert.FromBase64String(i.PasswordAssistenzaHash);
+                if (atteso.Length < 16) return false;
                 byte[] h = Rfc2898DeriveBytes.Pbkdf2(inserita, Convert.FromBase64String(i.PasswordAssistenzaSale), Iterazioni, HashAlgorithmName.SHA256, atteso.Length);
                 return CryptographicOperations.FixedTimeEquals(h, atteso);
             }
-            catch (FormatException) { return false; }   // impostazioni rovinate: la password non vale (mai "aperto")
+            catch (Exception) { return false; }   // impostazioni rovinate: la password non vale (mai "aperto", mai crash)
         }
 
         /// <summary>Imposta (o con null/vuota toglie) la password sull'oggetto indicato. Solo cifre, almeno 6.</summary>

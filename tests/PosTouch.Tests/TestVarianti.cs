@@ -60,6 +60,10 @@ namespace PosTouch.Tests
                 Uguale(300, padre.PrezzoCentesimi, "2,50 a mano + 0,50 panna = 3,00");
                 cc.Rimuovi(new List<RigaScontrino> { cc.FigliDi(padre).First(f => f.Tipo == TipoRiga.Variante) });
                 Uguale(250, padre.PrezzoCentesimi, "tolta la panna torna 2,50");
+                Varianti.Applica(cc, gusto, panna, true, false);
+                cc.CambiaPrezzo(padre, 30);   // a mano 0,30 con la panna dentro
+                cc.Rimuovi(new List<RigaScontrino> { cc.FigliDi(padre).First(f => f.Tipo == TipoRiga.Variante) });
+                Ok(padre.PrezzoCentesimi == 30 && cc.FigliDi(padre).Any(f => f.Tipo == TipoRiga.Variante), "togliere la panna non manda il prezzo sotto zero: resta tutto com'era");
             }
             finally { Carrello.RisolviProdotto = vecchio; }
         }

@@ -83,6 +83,16 @@ namespace PosTouch.Core.Fiscale
             bool? stato = await StatoScontrinoDopoChiusuraAsync();
             if (stato == null)
             {
+                // RT rimasto in un altro modo o in NAK: Clear + modo vendita e si rilegge una volta
+                LogManager.Warning("Recovery 3i: stato non leggibile, provo Clear + modo vendita");
+                try { await ClearAsync(); await SendCommandAsync(ComandiRT.ModoVendita); }
+                catch (Exception ex) { LogManager.Warning($"Recovery 3i: Clear/modo vendita: {ex.Message}"); }
+                _xoffRicevuto = false;
+                _nakRicevuto = false;
+                stato = await StatoScontrinoDopoChiusuraAsync();
+            }
+            if (stato == null)
+            {
                 UltimoErrore = "Stato del registratore non leggibile";
                 LogManager.Error("Recovery 3i: stato scontrino non leggibile — vendita bloccata finché l'RT non risponde");
                 return false;

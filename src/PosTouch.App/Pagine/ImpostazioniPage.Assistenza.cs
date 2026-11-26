@@ -30,6 +30,12 @@ namespace PosTouch.App.Pagine
         private static async Task CambiaAssistenzaAsync()
         {
             var cfg = ContestoCassa.Impostazioni;
+            if (!PasswordAssistenza.Impostata(cfg) && ContestoCassa.Operatori.Archivio.CeAmministratore())
+            {
+                // prima impostazione con operatori già creati: solo un amministratore (altrimenti chi entra in Impostazioni
+                // con il solo permesso si darebbe da solo una password che apre tutto)
+                if (await Accesso.VerificaAmministratoreAsync("IMPOSTA PASSWORD ASSISTENZA") == null) return;
+            }
             if (PasswordAssistenza.Impostata(cfg))
             {
                 string attuale = await TastierinoPrezzo.ChiediCodice("🔧 PASSWORD ASSISTENZA ATTUALE", nascondi: true);
@@ -47,6 +53,11 @@ namespace PosTouch.App.Pagine
                 if (nuova.Length < PasswordAssistenza.LunghezzaMinima)
                 {
                     await MessaggioBox.Avviso("PASSWORD ASSISTENZA", $"Servono almeno {PasswordAssistenza.LunghezzaMinima} cifre.");
+                    return;
+                }
+                if (await Task.Run(() => ContestoCassa.Operatori.Archivio.TrovaPerPin(nuova)) != null)
+                {
+                    await MessaggioBox.Avviso("PASSWORD ASSISTENZA", "Questo codice non è disponibile: scegline un altro.");
                     return;
                 }
                 string conferma = await TastierinoPrezzo.ChiediCodice("🔧 RIPETI LA PASSWORD ASSISTENZA", nascondi: true);

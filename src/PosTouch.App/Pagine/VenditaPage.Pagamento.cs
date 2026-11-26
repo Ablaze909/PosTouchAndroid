@@ -119,7 +119,8 @@ namespace PosTouch.App.Pagine
         private async void OnTotaleToccato(object sender, TappedEventArgs e)
         {
             if (CombinazioneAperta()) return;
-            if (Carrello.TotaleCent <= 0 || ContestoCassa.ServizioVendita.InCorso) return;
+            if (ContestoCassa.ServizioVendita.InCorso || Carrello.Vuoto) return;
+            if (Carrello.TotaleCent <= 0) { await MessaggioBox.Avviso("TOTALE NON VALIDO", $"Il totale è € {Carrello.TotaleCent / 100m:N2}: controlla prezzi e sconti."); return; }
             var esito = await CalcoloResto.Mostra(Carrello.TotaleEuro);
             if (esito == null) return;
 

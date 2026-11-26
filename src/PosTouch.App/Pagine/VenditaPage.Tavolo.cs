@@ -92,6 +92,7 @@ namespace PosTouch.App.Pagine
         private async void OnNoStampa(object sender, EventArgs e)
         {
             // NO STAMPA segna tutto come inviato senza stampare: con articoli nuovi si chiede (la cucina non riceverebbe nulla)
+            if (!UscitaPossibile()) return;   // prima i controlli, poi la domanda (niente conferma inutile)
             int nuovi = Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto && !r.Comandata);
             if (nuovi > 0 && !await MessaggioBox.Conferma("🚫 NO STAMPA",
                     $"{nuovi} articoli non ancora inviati verranno segnati come comandati SENZA stampare la comanda.\n\nLa cucina non li riceverà. Continuare?")) return;
@@ -100,6 +101,7 @@ namespace PosTouch.App.Pagine
         private async void OnAnnullaTavolo(object sender, EventArgs e)
         {
             // ANNULLA esce salvando il tavolo ma SENZA mandare la comanda: con articoli nuovi si avvisa
+            if (!UscitaPossibile()) return;   // prima i controlli, poi la domanda (niente conferma inutile)
             int nuovi = Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto && !r.Comandata);
             if (nuovi > 0 && !await MessaggioBox.Conferma("✖ ESCI SENZA COMANDA",
                     $"{nuovi} articoli nuovi restano sul tavolo ma NON vengono mandati in cucina.\n\n(Per eliminare tutto usa 🗑️ ANNULLA nella barra in basso.)\n\nUscire senza comanda?")) return;
@@ -107,6 +109,8 @@ namespace PosTouch.App.Pagine
         }
 
         private bool _uscitaInCorso;
+
+        private bool UscitaPossibile() => !CombinazioneAperta() && _sessione != null && !_uscitaInCorso && !Attesa.IsVisible && !_venditaAvviata;
 
         private async Task EsciDalTavoloAsync(Func<SessioneTavolo, EsitoTavolo> uscita)
         {

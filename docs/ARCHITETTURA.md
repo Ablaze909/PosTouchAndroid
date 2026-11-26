@@ -83,6 +83,6 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
 
 ## Password assistenza e UNISCI per portata
 - Password assistenza (`PasswordAssistenza`, hash PBKDF2 in Impostazioni): vale al posto di password amministratore e PIN autorizzati (permessi, gestione operatori, chiusura turni altrui). Si salva subito; per cambiarla/toglierla serve quella attuale. Ogni uso finisce nel log. Non apre turni di vendita.
-- UNISCI (`UnioneTavoli.Unisci`): ogni articolo resta nella sua portata, un solo separatore per numero, PortataCorrente = massima dei tavoli uniti.
+- UNISCI (`UnioneTavoli.Unisci`): ogni articolo resta nella sua portata, un solo separatore per numero, PortataCorrente resta quella del tavolo di destinazione (come il PC).
 - Gestione operatori già con un amministratore: per riaccenderla serve il PIN amministratore (o l'assistenza).
 - Impostazioni per sala riaccese con pagine vecchie: si chiede se ricopiare quelle attuali.

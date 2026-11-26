@@ -85,6 +85,7 @@ namespace PosTouch.App.Dialoghi
             if (p1 == null) return;
             try { PosTouch.Core.Dati.ArchivioOperatori.ControllaFormatoPin(p1); }
             catch (ArgumentException ex) { await MessaggioBox.Avviso("PIN", ex.Message); return; }
+            if (!Accesso.PinDisponibile(p1)) { await MessaggioBox.Avviso("PIN", "PIN non disponibile: scegline un altro."); return; }
             string p2 = await TastierinoPrezzo.ChiediCodice("🔑 RIPETI IL PIN", nascondi: true);
             if (p2 == null) return;
             if (p1 != p2) { await MessaggioBox.Avviso("PIN", "I due PIN non coincidono."); return; }

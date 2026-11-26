@@ -55,7 +55,8 @@ namespace PosTouch.App.Pagine
             // un gusto o una variante cancellati portano via il loro articolo (Carrello.Rimuovi risale al padre)
             var elenco0 = righe.ToList();
             // varianti di un articolo già in cucina: non si tolgono da sole (si storna l'articolo intero) → avviso subito, niente PIN
-            if (_sessione != null && elenco0.Any(r => r.Tipo == TipoRiga.Variante && Carrello.ProprietarioDi(r) is { Tipo: TipoRiga.Prodotto, Comandata: true }))
+            // (se l'articolo stesso è tra le righe scelte si storna tutto: va bene)
+            if (_sessione != null && elenco0.Any(r => r.Tipo == TipoRiga.Variante && Carrello.ProprietarioDi(r) is { Tipo: TipoRiga.Prodotto, Comandata: true } art && !elenco0.Contains(art)))
             {
                 await MessaggioBox.Avviso("VARIANTE GIÀ IN CUCINA", "Le varianti di un articolo già inviato in cucina non si tolgono.\n\nElimina l'articolo (verrà stornato) e battilo di nuovo.");
                 return false;

@@ -46,11 +46,12 @@ namespace PosTouch.Core.Sale
                 Portate.Assegna(r, Carrello.SeparatoriPortate);
                 perTavolo.Add(r);
             }
-            var aperti = _archivio.Aperti().Where(t => ids.Contains(t.Id)).ToList();
+            // lista unita calcolata PRIMA di toccare l'archivio: se qualcosa va storto non si perde niente
+            var unite = UnioneTavoli.Unisci(perTavolo, Carrello.SeparatoriPortate);
             _archivio.UnisciTavoli(Tavolo.Id, ids);
-            // ogni articolo nella sua portata; le portate già avviate in uno dei tavoli non ripartono
-            Carrello.Carica(UnioneTavoli.Unisci(perTavolo, Carrello.SeparatoriPortate));
-            if (aperti.Count > 0) Tavolo.PortataCorrente = Math.Max(Tavolo.PortataCorrente, aperti.Max(t => t.PortataCorrente));
+            // ogni articolo nella sua portata; la portata corrente resta quella di questo tavolo (come il PC):
+            // meglio un VAI ripetuto per il tavolo unito che un VAI mai partito per questo
+            Carrello.Carica(unite);
             // anche gli storni in sospeso dei tavoli uniti (altrimenti il prossimo salvataggio li cancellerebbe)
             _storniPendenti.Clear();
             _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));

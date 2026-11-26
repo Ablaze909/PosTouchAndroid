@@ -134,6 +134,7 @@ namespace PosTouch.Core.Vendita
                 return false;
             }
             if (riga == null || riga.Tipo != TipoRiga.Prodotto || !RigaAmmessa(riga.PrezzoCentesimi, quantita)) return false;
+            if (!ImportoConVariantiValido(riga.PrezzoCentesimi, quantita, riga)) return false;
             riga.Quantita = quantita;
             Aggiornato();
             return true;
@@ -142,9 +143,24 @@ namespace PosTouch.Core.Vendita
         public bool CambiaPrezzo(RigaScontrino riga, int prezzoCent)
         {
             if (riga == null || riga.Tipo != TipoRiga.Prodotto || !RigaAmmessa(prezzoCent, riga.Quantita)) return false;
+            if (FigliDi(riga).Any(f => f.Tipo == TipoRiga.Gusto) && !Combinazioni.Chiusa(riga))
+            {
+                UltimoErrore = "Chiudi prima la combinazione: il prezzo si può cambiare dopo.";
+                return false;
+            }
+            if (!ImportoConVariantiValido(prezzoCent, riga.Quantita, riga)) return false;
             riga.PrezzoCentesimi = prezzoCent;
             Aggiornato();
             return true;
+        }
+
+        /// <summary>Articolo a peso con varianti a importo fisso: la riga deve restare sopra zero.</summary>
+        private bool ImportoConVariantiValido(int prezzoCent, decimal quantita, RigaScontrino riga)
+        {
+            if (riga.SovrapprezzoCent == 0) return true;
+            if ((int)Math.Round(prezzoCent * quantita, MidpointRounding.AwayFromZero) + riga.SovrapprezzoCent > 0) return true;
+            UltimoErrore = "Con le varianti di questo articolo l'importo della riga andrebbe a zero o sotto.";
+            return false;
         }
 
         /// <summary>Elimina le righe indicate. Una riga del blocco sconto elimina tutto il blocco.</summary>

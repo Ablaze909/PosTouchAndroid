@@ -110,6 +110,7 @@ namespace PosTouch.App.Pagine
                 if (p1 == null) return null;
                 try { PosTouch.Core.Dati.ArchivioOperatori.ControllaFormatoPin(p1); }
                 catch (ArgumentException ex) { await MessaggioBox.Avviso("PIN", ex.Message); continue; }
+                if (!Accesso.PinDisponibile(p1)) { await MessaggioBox.Avviso("PIN", "PIN non disponibile: scegline un altro."); continue; }
                 string p2 = await TastierinoPrezzo.ChiediCodice("🔑 RIPETI IL PIN", nascondi: true);
                 if (p2 == null) return null;
                 if (p1 == p2) return p1;

@@ -134,7 +134,19 @@ namespace PosTouch.Core.Vendita
             }
             if (proprietario?.Tipo == TipoRiga.Gusto && padre != null && Combinazioni.Chiusa(padre))
             {
+                int prima = padre.PrezzoCentesimi;
+                string testoPrima = padre.VariantiTesto;
+                int pos = Righe.IndexOf(v);
                 Combinazioni.Aggiorna(this, padre, () => Righe.Remove(v));   // il prezzo a mano resta, si toglie solo la variante
+                if (!RigaAmmessa(padre.PrezzoCentesimi, padre.Quantita))
+                {
+                    string motivo = UltimoErrore;
+                    Righe.Insert(pos, v);   // si rimette com'era
+                    Combinazioni.Calcola(this, padre);
+                    padre.PrezzoCentesimi = prima; padre.VariantiTesto = testoPrima;
+                    UltimoErrore = $"Togliendo la variante il prezzo della combinazione non sarebbe valido.\n{motivo}\n\nCorreggi prima il prezzo.";
+                    Notifica();
+                }
                 return;
             }
             Righe.Remove(v);

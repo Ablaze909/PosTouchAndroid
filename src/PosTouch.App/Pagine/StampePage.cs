@@ -140,9 +140,10 @@ namespace PosTouch.App.Pagine
         {
             try
             {
-                bool ricopia = await MessaggioBox.Domanda("IMPOSTAZIONI PER SALA",
-                    "Ci sono impostazioni per sala salvate in precedenza.\n\nSÌ = ricopio in ogni sala le impostazioni attuali (stampanti e IP di adesso)\nNO = ogni sala riprende le sue impostazioni vecchie");
-                if (ricopia) _c.PerSala.Clear();
+                int scelta = await SceltaBox.Testi("IMPOSTAZIONI PER SALA: ci sono quelle salvate in precedenza",
+                    new[] { "📋 RICOPIA IN OGNI SALA QUELLE ATTUALI", "🕘 OGNI SALA RIPRENDE LE SUE VECCHIE" }, colonne: 1);
+                if (scelta < 0) { _c.ImpostazioniPerSala = false; Disegna(); return; }   // annullato (anche con indietro): resta spento
+                if (scelta == 0) _c.PerSala.Clear();
                 foreach (var (id, _) in SaleDisponibili()) _c.PaginaDi(id);   // le sale che mancano partono da quella attuale
             }
             catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Error($"Impostazioni per sala: {ex.Message}"); }
