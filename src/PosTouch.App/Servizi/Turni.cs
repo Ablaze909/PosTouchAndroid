@@ -132,10 +132,18 @@ namespace PosTouch.App.Servizi
             var cfg = ContestoCassa.Impostazioni;
             // con fondo cassa o movimenti si conta tutto il cassetto; altrimenti solo gli incassi (come prima)
             bool tuttoIlCassetto = t.FondoInizialeCent != null || anteprima.Movimenti.Count > 0;
+            bool obbligatorio = cfg.ConteggioObbligatorio;
+            string annulla = obbligatorio ? "ANNULLA = il turno resta aperto" : "ANNULLA = non contare";
             var contati = await TastierinoPrezzo.ChiediEuro(tuttoIlCassetto
-                ? $"💶 CONTANTI NEL CASSETTO (fondo compreso)\nAttesi {Importi.Euro(anteprima.ContantiAttesiCent)} — ANNULLA = non contare"
-                : "💶 CONTANTI INCASSATI NEL TURNO\n(senza fondo cassa — ANNULLA = non contare)");
+                ? $"💶 CONTANTI NEL CASSETTO (fondo compreso)\nAttesi {Importi.Euro(anteprima.ContantiAttesiCent)} — {annulla}"
+                : $"💶 CONTANTI INCASSATI NEL TURNO\n(senza fondo cassa — {annulla})");
             int? contatiCent = contati.HasValue && contati.Value >= 0 ? (int)Math.Round(contati.Value * 100, MidpointRounding.AwayFromZero) : (int?)null;
+            if (obbligatorio && contatiCent == null)
+            {
+                // conteggio obbligatorio: senza importo (anche 0) il turno non si chiude
+                await MessaggioBox.Avviso("CONTEGGIO OBBLIGATORIO", "Per chiudere il turno inserisci i contanti contati (0 se il cassetto è vuoto).\n\nIl turno resta aperto.");
+                return false;
+            }
             int? lasciatoCent = null;
             if (cfg.ChiediFondoLasciato)
             {

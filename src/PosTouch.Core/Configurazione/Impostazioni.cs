@@ -104,6 +104,8 @@ namespace PosTouch.Core.Configurazione
         public bool AbilitaMovimentiCassa { get; set; }
         /// <summary>Alla chiusura si indica il fondo lasciato per il turno dopo.</summary>
         public bool ChiediFondoLasciato { get; set; }
+        /// <summary>Il turno non si chiude senza il conteggio dei contanti (0 = cassetto vuoto).</summary>
+        public bool ConteggioObbligatorio { get; set; }
 
         // ── ⚙️ AVANZATE ──
         public int TimeoutConnessioneRT_ms { get; set; } = 5000;

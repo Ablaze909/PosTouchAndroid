@@ -95,6 +95,7 @@ namespace PosTouch.App.Pagine
             ChkFondoCassa.IsChecked = i.ChiediFondoCassa;
             ChkMovimentiCassa.IsChecked = i.AbilitaMovimentiCassa;
             ChkFondoLasciato.IsChecked = i.ChiediFondoLasciato;
+            ChkConteggioObbligatorio.IsChecked = i.ConteggioObbligatorio;
 
             CampoTimeoutConn.Text = i.TimeoutConnessioneRT_ms.ToString();
             CampoTimeoutRisp.Text = i.TimeoutRispostaRT_ms.ToString();
@@ -158,6 +159,7 @@ namespace PosTouch.App.Pagine
             n.ChiediFondoCassa = ChkFondoCassa.IsChecked;
             n.AbilitaMovimentiCassa = ChkMovimentiCassa.IsChecked;
             n.ChiediFondoLasciato = ChkFondoLasciato.IsChecked;
+            n.ConteggioObbligatorio = ChkConteggioObbligatorio.IsChecked;
             n.TimeoutConnessioneRT_ms = tc;
             n.TimeoutRispostaRT_ms = tr;
             n.LivelloLog = RbLogError.IsChecked ? "ERROR" : RbLogWarn.IsChecked ? "WARN" : RbLogInfo.IsChecked ? "INFO" : "DEBUG";
@@ -171,7 +173,7 @@ namespace PosTouch.App.Pagine
             CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked,
-            ChkFondoCassa.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked);
+            ChkFondoCassa.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked, ChkConteggioObbligatorio.IsChecked);
 
     }
 }

@@ -253,6 +253,10 @@
                                 <CheckBox x:Name="ChkFondoLasciato" Color="#4527A0" />
                                 <Label Text="📥 Alla chiusura indica il fondo lasciato per il turno dopo" FontSize="15" VerticalOptions="Center" />
                             </HorizontalStackLayout>
+                            <HorizontalStackLayout>
+                                <CheckBox x:Name="ChkConteggioObbligatorio" Color="#4527A0" />
+                                <Label Text="🔢 Conteggio contanti obbligatorio alla chiusura del turno" FontSize="15" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
                         </VerticalStackLayout>
                         <Button x:Name="BtnGestioneOperatori" Text="👥 GESTIONE OPERATORI" BackgroundColor="#4527A0" TextColor="White" FontAttributes="Bold"
                                 HeightRequest="52" CornerRadius="6" Clicked="OnGestioneOperatori" />
