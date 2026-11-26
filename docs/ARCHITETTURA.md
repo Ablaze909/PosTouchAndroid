@@ -3,30 +3,48 @@
 Regola: **la logica sta in `PosTouch.Core`** (libreria .NET senza interfaccia, testabile); **`PosTouch.App`** contiene solo schermate e dialoghi che chiamano il Core.
 Ogni file ha una responsabilità sola; i commenti in testa a ogni classe dicono da quale parte del software Windows deriva.
 
+**File divisi in parti (`partial`)**: le classi grandi sono spezzate per area con il nome `Classe.Area.cs`
+(es. `RT3iConnector.Flusso.cs`, `SessioneTavolo.Comande.cs`, `VenditaPage.Portate.cs`). Una correzione su un'area
+tocca solo quel file. Nessun file supera ~370 righe: un file nuovo che cresce oltre va diviso allo stesso modo.
+I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto alla classe.
+
 ## PosTouch.Core
 | Cartella | File | Cosa fa |
 |---|---|---|
-| `Fiscale/` | `RT3iConnector`, `EpsonConnector` | Driver RT copiati dal PC (non modificare senza test su RT) |
+| `Fiscale/` | `RT3iConnector`, `EpsonConnector` | Driver RT copiati dal PC (non modificare senza test su RT). Parti: connessione (file principale), `Flusso`/`Protocollo` (invio, XON/XOFF, risposte), `Vendita`, `Chiusura`, `Rapporti`, `AnnulloReso`, `Recovery` |
+| | `ModelliRT`, `ModelliEpson` | Risposte e risultati dei registratori (TX_FOOTER, 50F, frame Epson) |
 | | `AccessoRT` | Un solo dialogo alla volta con l'RT |
 | | `TestoRT` | Accentate e frazioni → ASCII per il 3i |
-| `Vendita/` | `Carrello` | Righe scontrino: articoli, sconti, portate, gusti, righe comandate (storno) |
+| `Vendita/` | `Carrello` (+ `.Combinazioni`, `.Portate`) | Righe scontrino: articoli, sconti, portate, gusti, righe comandate (storno) |
 | | `Tastierino` | Tastiera numerica (qta, X, €) |
 | | `CombinazioneInCorso` | Articoli multi-gusto (apertura, gusti, chiusura, annulla) |
 | | `Combinazioni` | Prezzo della combinazione (più caro / media / fisso + varianti, anche proporzionali) |
 | | `Varianti` | VAR＋ / VAR﹣: riga a cui applicarle, prezzo con segno, testo comanda |
 | | `BarcodeBilancia` | Etichette EAN-13 della bilancia |
-| | `ServizioVendita` | Emissione scontrino (fasi, esito incerto, archivio) |
+| | `ServizioVendita` (+ `.Emissione`) | Emissione scontrino: `Emissione.cs` ha le fasi in ordine di protocollo (valida → RT pronto → righe → sconti → chiusura → verifica → cassetto); ogni fase restituisce null o l'esito con cui fermarsi. Il registratore si può sostituire con uno finto nei test (`tests/RegistratoreFinto.cs`) |
 | `Conti/` | `ServizioConto` | Tasto CONTO (conto non fiscale su termica) |
-| `Sale/` | `SessioneTavolo` | Tavolo / conto cliente aperto: comanda, riordino, storno, NO STAMPA, VAI, preconto, chiusura |
+| `Sale/` | `SessioneTavolo` (+ `.Comande`, `.Avanza`, `.Operazioni`) | Tavolo / conto cliente aperto: uscite (principale), comanda e storno, VAI, sposta/unisci/preconto |
 | | `Portate` | Numero logico dei separatori (mai per posizione), riordino sezioni |
 | | `InstradamentoStampa` | Sala × centro → stampante (eccezioni tipo POSBY) |
-| | `ArchivioTavoli` | `tavoli.db`: tavoli aperti, sposta/scambia/unisci, coda di stampa, deviazioni, progressivo comande, registro storni |
+| | `ArchivioTavoli` (+ `.Coda`, `.Numeratori`, `.SpostaUnisci`) | `tavoli.db`: tavoli aperti, sposta/scambia/unisci, coda di stampa, deviazioni, progressivo comande ed eliminacode, registro storni |
 | | `SpoolerComande` | Coda di stampa in sottofondo con riprova |
 | `Stampa/` | `EscPos`, `StampanteTermica`, `AccessoStampanti` | Comandi ESC/POS, collegamento TCP, una stampa alla volta per stampante |
 | | `LayoutConto`, `LayoutComanda` | Impaginazioni di conto, comanda, storno, VAI (identiche al PC) |
-| `Dati/` | `Catalogo`, `GestioneCatalogo` | `catalogo.db` (schema pos.db del PC) |
-| | `ArchivioVendite` | `vendite.db`: scontrini, conti, righe con "fotografia" dei dati |
-| `Configurazione/` | `Impostazioni`, `ConfigSale` | `impostazioni.json` |
+| `Dati/` | `Catalogo`, `GestioneCatalogo` (+ `.Categorie`, `.Articoli`, `.Varianti`) | `catalogo.db` (schema pos.db del PC); import con copie `.bak` |
+| | `ArchivioVendite` (+ `.Conti`) | `vendite.db`: scontrini, conti, righe con "fotografia" dei dati (anche le varianti) |
+| `Configurazione/` | `Impostazioni`, `ConfigSale`, `ConfigStampe` | `impostazioni.json`; `ConfigStampe` = IP, uscite 1-8 e pagine di stampa per sala (stile POSBY) |
+
+## PosTouch.App (solo interfaccia)
+| Pagina | Parti |
+|---|---|
+| `VenditaPage` | `.Catalogo` (categorie/articoli/barcode), `.Lista` (righe), `.Tastiera`, `.Pagamento`, `.Varianti`, `.Combinazione`, `.Tavolo` (apertura/uscite/salvataggio), `.Posto` (banda "dove sono", barra tavolo), `.Portate` (preconto, VAI) |
+| `TavoliPage` | `.Schede` (sale), `.Griglia` (tavoli) |
+| `ImpostazioniPage` | `.Azioni` (import, dati di prova, log) + `Servizi/ManutenzioneDati` |
+| `BackOfficePage` | `.Prodotti`, `.Categorie` |
+| `ProdottoPage` | `.Tipo` (standard / coperto / peso / combinazione) |
+| `SaleConfigPage` | `.Sale`, `.Comande` |
+| `StampePage` | `.Uscite` |
+| `CalcoloResto` | `.Logica` (calcolo identico al PC) |
 
 ## Regole che non vanno rotte (dai bug del PC)
 1. Righe "comandate" segnate **solo nella stessa transazione** in cui la stampa entra in coda (`ArchivioTavoli.Salva`).

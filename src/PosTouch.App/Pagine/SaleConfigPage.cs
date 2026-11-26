@@ -11,7 +11,7 @@ namespace PosTouch.App.Pagine
     /// 🍽️ SALE E COMANDE: sale e tavoli, stampanti, centri di produzione, stampanti per sala (come POSBY)
     /// e opzioni comande/portate. Si lavora su una copia: si salva solo con 💾 SALVA.
     /// </summary>
-    public class SaleConfigPage : PaginaPos
+    public partial class SaleConfigPage : PaginaPos
     {
         private readonly ConfigSale _c = ContestoCassa.Impostazioni.Sale.Copia();
         private readonly ContentView _contenuto = new ContentView();
@@ -115,110 +115,6 @@ namespace PosTouch.App.Pagine
             var b = Ui.Tasto("🗑️", "#F44336", fontSize: 18, altezza: 46, clic: async (s, e) => await azione());
             b.WidthRequest = 54;
             return b;
-        }
-
-        // ══════════════ SALE ══════════════
-
-        private View SchedaSale()
-        {
-            var v = new VerticalStackLayout { Spacing = 10 };
-            v.Add(Card(new VerticalStackLayout
-            {
-                Children =
-                {
-                    Spunta("Abilita sale e tavoli (tasto 🍽️ SALE in vendita)", _c.AbilitaSale, x => _c.AbilitaSale = x),
-                    Spunta("Abilita conti clienti sospesi (scheda 👤 CONTI, con il nome del cliente)", _c.AbilitaContiClienti, x => _c.AbilitaContiClienti = x),
-                    new HorizontalStackLayout
-                    {
-                        Spacing = 10, Margin = new Thickness(34, 0, 0, 6),
-                        Children =
-                        {
-                            new Label { Text = "Numero conti clienti:", FontSize = 15, VerticalOptions = LayoutOptions.Center },
-                            Campo(_c.NumeroSlotContiClienti.ToString(), t => _c.NumeroSlotContiClienti = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric, 90)
-                        }
-                    },
-                    Ui.Testo("Il coperto (se scelto) viene chiesto all'apertura di un tavolo nuovo. Qui compaiono solo gli articoli di tipo 🍽️ COPERTO (scheda articolo → Tipo articolo).", 13, "#999999")
-                }
-            }));
-            // come il PC: si scelgono solo gli articoli segnati 🍽️ COPERTO (più quello già assegnato, per non perderlo);
-            var tutti = ContestoCassa.Catalogo.TuttiProdotti.ToList();
-            var assegnati = _c.Sale.Select(s => s.CopertoProdottoId).ToHashSet();
-            var prodotti = tutti.Where(p => p.IsCoperto || assegnati.Contains(p.Id)).ToList();   // solo i COPERTI, come il PC
-            var vociCoperto = new[] { "Nessuno" }.Concat(prodotti.Select(p => $"{p.Descrizione} ({p.CategoriaNome})")).ToList();
-
-            var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8, ColumnDefinitions = { new(GridLength.Star), new(new GridLength(110)), new(new GridLength(120)), new(GridLength.Star), new(GridLength.Auto) } };
-            griglia.Add(Intestazione("NOME SALA"), 0, 0); griglia.Add(Intestazione("N. TAVOLI"), 1, 0);
-            griglia.Add(Intestazione("PRIMO N."), 2, 0); griglia.Add(Intestazione("COPERTO"), 3, 0);
-            int riga = 1;
-            foreach (var sala in _c.Sale.ToList())
-            {
-                griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-                griglia.Add(Campo(sala.Nome, t => sala.Nome = t.Trim()), 0, riga);
-                griglia.Add(Campo(sala.NumeroTavoli.ToString(), t => sala.NumeroTavoli = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric), 1, riga);
-                griglia.Add(Campo(sala.NumeroIniziale.ToString(), t => sala.NumeroIniziale = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric), 2, riga);
-                int ic = prodotti.FindIndex(p => p.Id == sala.CopertoProdottoId);
-                griglia.Add(InBox(Scelta("Articolo coperto", vociCoperto, ic >= 0 ? ic + 1 : 0, i => sala.CopertoProdottoId = i > 0 ? prodotti[i - 1].Id : 0, 3)), 3, riga);
-                griglia.Add(TastoElimina(async () =>
-                {
-                    if (ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Occupato))
-                    { await MessaggioBox.Avviso("SALA CON TAVOLI APERTI", "Chiudi prima i tavoli aperti di questa sala."); return; }
-                    if (!await MessaggioBox.Conferma("ELIMINA SALA", $"Eliminare la sala {sala.Nome}?")) return;
-                    _c.Sale.Remove(sala);
-                    Mostra(_scheda);
-                }), 4, riga);
-                riga++;
-            }
-            griglia.RowDefinitions.Insert(0, new RowDefinition(GridLength.Auto));
-            v.Add(Card(griglia));
-            v.Add(Ui.Tasto("➕ AGGIUNGI SALA", "#00897B", altezza: 52, clic: (s, e) =>
-            {
-                int id = _c.Sale.Count == 0 ? 1 : _c.Sale.Max(x => x.Id) + 1;
-                int primo = _c.Sale.Count == 0 ? 1 : _c.Sale.Max(x => x.NumeroIniziale + x.NumeroTavoli);
-                _c.Sale.Add(new Sala { Id = id, Nome = $"Sala {id}", NumeroTavoli = 10, NumeroIniziale = primo });
-                Mostra(_scheda);
-            }));
-            return v;
-        }
-
-        // ══════════════ STAMPANTI ══════════════
-
-        private View SchedaOpzioni()
-        {
-            var v = new VerticalStackLayout { Spacing = 10 };
-            v.Add(Card(new VerticalStackLayout
-            {
-                Spacing = 4,
-                Children =
-                {
-                    Spunta("Abilita stampa comande", _c.AbilitaComande, x => _c.AbilitaComande = x),
-                    Spunta("Stampa riepilogo altri centri in fondo alla comanda", _c.StampaRiepilogoAltriCentri, x => _c.StampaRiepilogoAltriCentri = x),
-                    Spunta("Accorpa righe uguali in comanda", _c.AccorpaStampaComanda, x => _c.AccorpaStampaComanda = x),
-                    Spunta("Stampa gli storni anche con 🚫 NO STAMPA", _c.StampaStorniConNoStampa, x => _c.StampaStorniConNoStampa = x),
-                }
-            }));
-            var stili = new Grid { ColumnSpacing = 10, RowSpacing = 8, ColumnDefinitions = { new(new GridLength(240)), new(GridLength.Star) } };
-            for (int i = 0; i < 4; i++) stili.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            stili.Add(new Label { Text = "Stile articoli:", FontSize = 16, VerticalOptions = LayoutOptions.Center }, 0, 0);
-            stili.Add(InBox(Scelta("Stile articoli in comanda", Stili, Math.Clamp(_c.StileComandaProdotto - 1, 0, 11), i => _c.StileComandaProdotto = i + 1)), 1, 0);
-            stili.Add(new Label { Text = "Stile separatori portata:", FontSize = 16, VerticalOptions = LayoutOptions.Center }, 0, 1);
-            stili.Add(InBox(Scelta("Stile separatori", Stili, Math.Clamp(_c.StileComandaSeparatore - 1, 0, 11), i => _c.StileComandaSeparatore = i + 1)), 1, 1);
-            stili.Add(new Label { Text = "Cicalino comande:", FontSize = 16, VerticalOptions = LayoutOptions.Center }, 0, 2);
-            stili.Add(InBox(Scelta("Cicalino", Cicalini, Math.Clamp(_c.CicalinoComande, 0, 4), i => _c.CicalinoComande = i)), 1, 2);
-            v.Add(Card(stili));
-            v.Add(Card(new VerticalStackLayout
-            {
-                Spacing = 8,
-                Children =
-                {
-                    Spunta("Abilita portate (📑 FUNZIONI e ⏩ AVANZA al tavolo)", _c.AbilitaPortate, x => _c.AbilitaPortate = x),
-                    Spunta("Abilita 🔀 SPOSTA tavolo", _c.AbilitaSpostaTavolo, x => _c.AbilitaSpostaTavolo = x),
-                    Spunta("Abilita 🔗 UNISCI conti", _c.AbilitaUnisciConti, x => _c.AbilitaUnisciConti = x),
-                    new Label { Text = "Separatori portate, in ordine (separati da virgola):", FontSize = 15 },
-                    Campo(string.Join(", ", _c.SeparatoriPortate), t => _c.SeparatoriPortate = t.Split(',').Select(x => x.Trim().ToUpperInvariant()).Where(x => x.Length > 0).Distinct().ToList(),
-                          segnaposto: "SEGUE, SEGUE 2, SEGUE 3")
-                }
-            }));
-            return v;
         }
 
         // ══════════════ SALVA ══════════════
