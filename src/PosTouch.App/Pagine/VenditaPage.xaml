@@ -149,6 +149,9 @@
                     <Button x:Name="BtnModifica" Text="✏️" WidthRequest="46" BackgroundColor="#757575" Style="{StaticResource TastoToolbar}" Clicked="OnModifica" />
                     <Button x:Name="BtnFunzioniCassa" Text="💰 FUNZIONI CASSA" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
                             Style="{StaticResource TastoToolbar}" Clicked="OnFunzioniCassa" />
+                    <!-- operatore del turno (gestione operatori): sospendi, chiudi turno, riepilogo -->
+                    <Button x:Name="BtnOperatore" Text="👤" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#4527A0"
+                            Style="{StaticResource TastoToolbar}" Clicked="OnOperatore" IsVisible="False" />
                 </HorizontalStackLayout>
                 <BoxView HeightRequest="1" Color="#E5E5E5" VerticalOptions="End" />
             </Grid>

@@ -28,6 +28,8 @@ namespace PosTouch.App.Servizi
         public static SpoolerComande Spooler { get; private set; }
         /// <summary>Comanda da banco con eliminacode (scontrino e conto al banco).</summary>
         public static ComandaBanco ComandaBanco { get; private set; }
+        /// <summary>Operatori e turni (gestione attivabile da Impostazioni → Sicurezza).</summary>
+        public static ServizioOperatori Operatori { get; private set; }
 
         /// <summary>Apre un tavolo (lo crea se libero) con le impostazioni correnti.</summary>
         public static SessioneTavolo ApriTavolo(int salaId, int numero, string nomeCliente = null)
@@ -62,6 +64,10 @@ namespace PosTouch.App.Servizi
             Carrello.RisolviProdotto = id => Catalogo.ProdottoDa(id);   // ricalcolo combinazioni
 
             Vendite = new ArchivioVendite(cartellaDati);
+            Operatori = new ServizioOperatori(new ArchivioOperatori(cartellaDati), Vendite, () => Impostazioni.AbilitaGestioneOperatori);
+            // vendite, conti e stampe registrano l'operatore del turno senza doverlo passare a ogni chiamata
+            Vendite.OperatoreCorrente = () => Operatori.Abilitata && Operatori.Corrente is { } o ? (o.Id, o.Nome) : ((int, string)?)null;
+            PosTouch.Core.Stampa.OperatoreStampa.Nome = () => Operatori.Abilitata ? Operatori.Corrente?.Nome : null;
             ServizioVendita = new ServizioVendita(() => Impostazioni, Vendite);
             ServizioConto = new PosTouch.Core.Conti.ServizioConto(() => Impostazioni, Vendite);
             FunzioniCassa = new FunzioniCassa(() => Impostazioni);

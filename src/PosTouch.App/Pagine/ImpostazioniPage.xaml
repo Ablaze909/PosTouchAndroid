@@ -217,17 +217,33 @@
 
         <!-- ═══ 🔒 SICUREZZA ═══ -->
         <ScrollView x:Name="PannelloSicurezza" Grid.Row="2" Padding="10" IsVisible="False">
-            <Border Style="{StaticResource Card}" VerticalOptions="Start" MaximumWidthRequest="700" HorizontalOptions="Start">
-                <VerticalStackLayout>
-                    <Label Text="🔑 PASSWORD" Style="{StaticResource TitoloCard}" TextColor="#9C27B0" />
-                    <Label Text="Password Amministratore:" FontSize="16" FontAttributes="Bold" />
-                    <Border BackgroundColor="#F5F5F5" Stroke="#E0E0E0" StrokeThickness="2" HeightRequest="55" Padding="15,0" Margin="0,8,0,8">
-                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCambiaPassword" /></Border.GestureRecognizers>
-                        <Label x:Name="TestoPassword" Text="Non configurata (clicca per impostare)" FontSize="16" VerticalOptions="Center" />
-                    </Border>
-                    <Label Text="⚠️ Admin: richiesta per Strumenti, Back Office e Impostazioni" FontSize="14" TextColor="#FF9800" />
-                </VerticalStackLayout>
-            </Border>
+            <VerticalStackLayout Spacing="10" HorizontalOptions="Start">
+                <Border x:Name="CardPassword" Style="{StaticResource Card}" VerticalOptions="Start" MaximumWidthRequest="700" HorizontalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="🔑 PASSWORD" Style="{StaticResource TitoloCard}" TextColor="#9C27B0" />
+                        <Label Text="Password Amministratore:" FontSize="16" FontAttributes="Bold" />
+                        <Border BackgroundColor="#F5F5F5" Stroke="#E0E0E0" StrokeThickness="2" HeightRequest="55" Padding="15,0" Margin="0,8,0,8">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCambiaPassword" /></Border.GestureRecognizers>
+                            <Label x:Name="TestoPassword" Text="Non configurata (clicca per impostare)" FontSize="16" VerticalOptions="Center" />
+                        </Border>
+                        <Label Text="⚠️ Admin: richiesta per Strumenti, Back Office e Impostazioni" FontSize="14" TextColor="#FF9800" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- operatori: la scelta si salva subito (serve un amministratore per accenderla e per spegnerla) -->
+                <Border Style="{StaticResource Card}" VerticalOptions="Start" MaximumWidthRequest="700" HorizontalOptions="Start">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="👥 OPERATORI E TURNI" Style="{StaticResource TitoloCard}" TextColor="#4527A0" />
+                        <HorizontalStackLayout>
+                            <CheckBox x:Name="ChkOperatori" Color="#4527A0" CheckedChanged="OnOperatoriCambiato" />
+                            <Label Text="Gestione operatori (PIN all'apertura del turno, permessi)" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label x:Name="NotaOperatori" FontSize="13" TextColor="#607D8B" />
+                        <Button x:Name="BtnGestioneOperatori" Text="👥 GESTIONE OPERATORI" BackgroundColor="#4527A0" TextColor="White" FontAttributes="Bold"
+                                HeightRequest="52" CornerRadius="6" Clicked="OnGestioneOperatori" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
         </ScrollView>
 
         <!-- ═══ ⚙️ AVANZATE ═══ -->

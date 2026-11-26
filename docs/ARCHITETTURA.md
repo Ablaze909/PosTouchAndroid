@@ -32,6 +32,8 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
 | | `LayoutConto`, `LayoutComanda` | Impaginazioni di conto, comanda, storno, VAI (identiche al PC) |
 | `Dati/` | `Catalogo`, `GestioneCatalogo` (+ `.Categorie`, `.Articoli`, `.Varianti`) | `catalogo.db` (schema pos.db del PC); import con copie `.bak` |
 | | `ArchivioVendite` (+ `.Conti`) | `vendite.db`: scontrini, conti, righe con "fotografia" dei dati (anche le varianti) |
+| `Dati/` | `ArchivioOperatori` | `operatori.db`: operatori (PIN con hash PBKDF2, mai in chiaro; un PIN = una persona), permessi, turni |
+| `Vendita/` | `ServizioOperatori` | Turni: un solo turno alla volta, accesso con PIN, sospensione, chiusura (solo il suo operatore o un amministratore), autorizzazione al volo con PIN |
 | `Configurazione/` | `Impostazioni`, `ConfigSale`, `ConfigStampe` | `impostazioni.json`; `ConfigStampe` = IP, uscite 1-8 e pagine di stampa per sala (stile POSBY) |
 
 ## PosTouch.App (solo interfaccia)
@@ -47,6 +49,8 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
 | `CalcoloResto` | `.Logica` (calcolo identico al PC) |
 
 ## Regole che non vanno rotte (dai bug del PC)
+- **Operatori**: con la gestione accesa non si vende senza turno aperto; il turno di un altro rimasto aperto blocca la cassa finché non viene chiuso; deve restare sempre un amministratore attivo; le autorizzazioni con PIN valgono per una sola operazione.
+- **Esclusioni uscite** (`Uscita.EscludiAltre/EscludiInAltre`): si applicano solo con `ConfigStampe.AltriPer` / `FlussoPer`, mai filtrando a mano nelle singole comande.
 1. Righe "comandate" segnate **solo nella stessa transazione** in cui la stampa entra in coda (`ArchivioTavoli.Salva`).
 2. Portate per **numero logico** del separatore (`Portate.NumeroLogico`), mai contando le posizioni.
 3. Toccare un gusto o il padre di una combinazione toglie **tutta** la combinazione (storno compreso), senza domande.

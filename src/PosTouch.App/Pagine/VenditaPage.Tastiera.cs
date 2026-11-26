@@ -21,6 +21,7 @@ namespace PosTouch.App.Pagine
             if (_tastierino.Attivo)
             {
                 _tastierino.Azzera();
+                _prezzoAutorizzato = false;
                 return;
             }
             if (CancellaInCombinazione()) return;
@@ -57,10 +58,14 @@ namespace PosTouch.App.Pagine
             if (_sessione == null || comandate.Count == 0) return true;
             string elenco = string.Join("\n", comandate.Take(5).Select(r => $"• {r.Quantita:0.##} x {r.Descrizione}")) + (comandate.Count > 5 ? "\n…" : "");
             return await MessaggioBox.Conferma("STORNO ARTICOLI",
-                $"Questi articoli sono già stati inviati in cucina:\n\n{elenco}\n\nEliminandoli verrà stampato lo storno all'uscita dal tavolo.");
+                       $"Questi articoli sono già stati inviati in cucina:\n\n{elenco}\n\nEliminandoli verrà stampato lo storno all'uscita dal tavolo.")
+                   && await Accesso.VerificaAsync(Permesso.StornoComandati, "STORNO");
         }
 
         private void OnPer(object sender, EventArgs e) => _tastierino.Moltiplica();
+
+        /// <summary>Prezzo battuto con € già autorizzato (PIN di un altro operatore): non si richiede di nuovo sull'articolo.</summary>
+        private bool _prezzoAutorizzato;
 
         private async void OnEuro(object sender, EventArgs e)
         {
@@ -69,7 +74,10 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
                 return;
             }
-            switch (_tastierino.Euro())
+            if (_tastierino.Attivo && !await Accesso.VerificaAsync(Permesso.ModificaPrezzi, "CAMBIO PREZZO")) { _tastierino.Azzera(); _prezzoAutorizzato = false; return; }
+            var esitoEuro = _tastierino.Euro();
+            _prezzoAutorizzato = esitoEuro == EsitoTastoEuro.Impostato;
+            switch (esitoEuro)
             {
                 case EsitoTastoEuro.NonValido:
                     await MessaggioBox.Errore("PREZZO NON VALIDO", "Digita un importo valido!\n\nEsempio: 1,50 o 12,00");
@@ -109,6 +117,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("SCONTO GIÀ PRESENTE", "È già presente uno sconto nello scontrino!\n\nRimuovilo prima di applicarne un altro.");
                 return;
             }
+            if (!await Accesso.VerificaAsync(Permesso.Sconti, "SCONTO")) return;
             var valore = await ScontoBox.Chiedi(percentuale, subtotale);
             if (valore == null) return;
             bool ok = percentuale ? Carrello.ScontoPercentuale(valore.Value)
@@ -122,6 +131,10 @@ namespace PosTouch.App.Pagine
             if (Occupata || Carrello.Righe.Count == 0) return;
             if (!await MessaggioBox.Conferma("ANNULLA SCONTRINO", "Vuoi annullare tutto lo scontrino?\n\nQuesta operazione non può essere annullata."))
                 return;
+            if (!await Accesso.VerificaAsync(Permesso.AnnullaScontrino, "ANNULLA SCONTRINO")) return;
+            // al tavolo gli articoli già in cucina vengono stornati: serve anche quel permesso
+            if (_sessione != null && Carrello.Righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata)
+                && !await Accesso.VerificaAsync(Permesso.StornoComandati, "STORNO")) return;
             if (_sessione != null)
             {
                 // al tavolo: gli articoli già comandati vengono stornati all'uscita

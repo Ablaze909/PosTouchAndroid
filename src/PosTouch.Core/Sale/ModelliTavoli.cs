@@ -31,7 +31,7 @@ namespace PosTouch.Core.Sale
         public int PortataMassima { get; set; }
     }
 
-    public enum TipoJob { Comanda = 0, Storno = 1, Vai = 2 }
+    public enum TipoJob { Comanda = 0, Storno = 1, Vai = 2, Riepilogo = 3 }
     public enum StatoJob { InAttesa = 0, Errore = 1, Fatto = 2 }
 
     /// <summary>Stampa in coda (byte ESC/POS già pronti), salvata nel database: non si perde se la stampante è spenta.</summary>

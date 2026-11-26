@@ -178,6 +178,9 @@ namespace PosTouch.App.Pagine
         private async Task AggiungiProdottoAsync(Prodotto p)
         {
             if (Occupata) return;
+            // l'autorizzazione del tasto € vale solo per il prezzo che è ancora sul tastierino, e per un solo articolo
+            bool prezzoGiaAutorizzato = _prezzoAutorizzato && _tastierino.PrezzoPersonalizzato.HasValue;
+            _prezzoAutorizzato = false;
             NascondiResto();
             if (_combinazione != null) { await AggiungiGustoAsync(p); return; }   // combinazione aperta: il tasto è un gusto
             if (Cfg.BloccoRigaSingola && Carrello.HaArticoli)
@@ -195,6 +198,11 @@ namespace PosTouch.App.Pagine
                 // il prezzo battuto ("3 X 1,50") è un cambio prezzo: se disabilitato vale il prezzo di listino
                 prezzoCent = null;
                 await MessaggioBox.Avviso("CAMBIO PREZZO DISABILITATO", $"Il prezzo digitato è stato ignorato: {p.Descrizione} va al prezzo di listino.");
+            }
+            else if (prezzoCent.HasValue && !prezzoGiaAutorizzato && !await Accesso.VerificaAsync(Permesso.ModificaPrezzi, "CAMBIO PREZZO"))
+            {
+                prezzoCent = null;   // operatore senza permesso e nessuna autorizzazione: prezzo di listino
+                await MessaggioBox.Avviso("CAMBIO PREZZO", $"Il prezzo digitato è stato ignorato: {p.Descrizione} va al prezzo di listino.");
             }
             if (Cfg.VirgolaImplicita && !quantitaEsplicita && prezzoCent == null && quantita > 99 && quantita == Math.Floor(quantita) && !p.VenditaAPeso)
             {

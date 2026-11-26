@@ -63,6 +63,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
                 return;
             }
+            if (!await Accesso.VerificaAsync(Permesso.ModificaPrezzi, "CAMBIO PREZZO")) return;
             var p = await TastierinoPrezzo.ChiediEuro("💶 PREZZO UNITARIO", riga.PrezzoEuro);
             if (p == null) return;
             if (!Carrello.CambiaPrezzo(riga, (int)Math.Round(p.Value * 100, MidpointRounding.AwayFromZero)))

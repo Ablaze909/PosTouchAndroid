@@ -77,6 +77,7 @@ namespace PosTouch.App.Pagine
                 CaricaCategorie();
             }
             LettoreBarcode.Destinatario = AggiungiDaBarcode;
+            AggiornaOperatore();
         }
 
         protected override void OnDisappearing()
@@ -148,7 +149,8 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("TAVOLO APERTO", "Esci dal tavolo prima di aprire gli strumenti.");
                 return;
             }
-            if (await Accesso.VerificaPinAsync("🔧 STRUMENTI"))
+            // con la gestione operatori si entra liberi: ogni voce di Strumenti chiede il suo permesso
+            if (ContestoCassa.Operatori.Abilitata || await Accesso.VerificaPinAsync("🔧 STRUMENTI"))
                 await Navigazione.Apri(this, () => new StrumentiPage());
         }
 
@@ -160,6 +162,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
                 return;
             }
+            if (!_modalitaModifica && !await Accesso.VerificaAsync(Permesso.ModalitaModifica, "MODALITÀ MODIFICA")) return;
             ImpostaModalitaModifica(!_modalitaModifica);
         }
 

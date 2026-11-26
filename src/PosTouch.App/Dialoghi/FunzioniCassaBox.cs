@@ -16,6 +16,7 @@ namespace PosTouch.App.Dialoghi
             lista.Add(Sezione("📊 RAPPORTI FISCALI", 0));
             lista.Add(Tasto("✅ CHIUSURA FISCALE (Z)", "#4CAF50", async () =>
             {
+                if (!await Accesso.VerificaAsync(PosTouch.Core.Modelli.Permesso.ChiusuraFiscale, "CHIUSURA FISCALE (Z)")) return;
                 if (await MessaggioBox.Conferma("CHIUSURA FISCALE", "Eseguire la chiusura fiscale giornaliera (Z)?\n\nL'operazione non può essere annullata."))
                     await EseguiAsync(Funzioni.ChiusuraFiscaleAsync, dopoOk: () =>
                     {

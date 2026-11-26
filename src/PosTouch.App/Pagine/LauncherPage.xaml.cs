@@ -73,11 +73,16 @@ namespace PosTouch.App.Pagine
 
         private void AggiornaOra() => OraData.Text = DateTime.Now.ToString("dddd dd/MM/yyyy  HH:mm");
 
-        private async void OnVendita(object sender, TappedEventArgs e) => await Navigazione.Apri(this, () => ContestoCassa.PaginaVendita);
+        private async void OnVendita(object sender, TappedEventArgs e)
+        {
+            // gestione operatori: PIN all'apertura del turno (una volta), poi si vende
+            if (!await Turni.AssicuraTurnoAsync()) return;
+            await Navigazione.Apri(this, () => ContestoCassa.PaginaVendita);
+        }
 
         private async void OnBackOffice(object sender, TappedEventArgs e)
         {
-            if (await Accesso.VerificaPinAsync("BACK OFFICE")) await Navigazione.Apri(this, () => new BackOfficePage());
+            if (await Accesso.VerificaPinAsync("BACK OFFICE", PosTouch.Core.Modelli.Permesso.BackOffice)) await Navigazione.Apri(this, () => new BackOfficePage());
         }
 
         private async void OnStatistiche(object sender, TappedEventArgs e)

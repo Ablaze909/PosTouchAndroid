@@ -12,8 +12,15 @@ namespace PosTouch.App.Pagine
             InitializeComponent();
         }
 
-        private async void OnBackOffice(object sender, TappedEventArgs e) => await Navigazione.Apri(this, () => new BackOfficePage());
-        private async void OnImpostazioni(object sender, TappedEventArgs e) => await Navigazione.Apri(this, () => new ImpostazioniPage());
+        // con la gestione operatori ogni voce chiede il suo permesso (senza: la password è già stata chiesta per entrare)
+        private async void OnBackOffice(object sender, TappedEventArgs e)
+        {
+            if (await Accesso.VerificaAsync(PosTouch.Core.Modelli.Permesso.BackOffice, "BACK OFFICE")) await Navigazione.Apri(this, () => new BackOfficePage());
+        }
+        private async void OnImpostazioni(object sender, TappedEventArgs e)
+        {
+            if (await Accesso.VerificaAsync(PosTouch.Core.Modelli.Permesso.Impostazioni, "IMPOSTAZIONI")) await Navigazione.Apri(this, () => new ImpostazioniPage());
+        }
         private async void OnStatistiche(object sender, TappedEventArgs e) => await ProssimaVersione("📊 STATISTICHE");
         private async void OnDocumenti(object sender, TappedEventArgs e) => await ProssimaVersione("📄 DOCUMENTI");
         private async void OnDatabase(object sender, TappedEventArgs e) => await ProssimaVersione("🗄️ DATABASE");

@@ -91,6 +91,7 @@ namespace PosTouch.App.Pagine
 
             _password = i.PinImpostazioni ?? "";
             AggiornaPassword();
+            CaricaOperatori();
 
             CampoTimeoutConn.Text = i.TimeoutConnessioneRT_ms.ToString();
             CampoTimeoutRisp.Text = i.TimeoutRispostaRT_ms.ToString();
