@@ -222,7 +222,7 @@ namespace PosTouch.App.Pagine
                 if (nuove == null) return;
                 ContestoCassa.SalvaImpostazioni(nuove);
             }
-            await Navigation.PopAsync();
+            await Navigazione.Chiudi(this);
         }
 
         private async void OnImportaCatalogo(object sender, EventArgs e)

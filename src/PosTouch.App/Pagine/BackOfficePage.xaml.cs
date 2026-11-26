@@ -36,7 +36,6 @@ namespace PosTouch.App.Pagine
         private bool _soloPreferiti, _soloNascosti;
         private bool _schedaProdotti = true;
         private DateTime _toccoFreccia = DateTime.MinValue;
-        private bool _apertura;
 
         public BackOfficePage()
         {
@@ -81,7 +80,7 @@ namespace PosTouch.App.Pagine
             TestoSchedaCategorie.TextColor = Ui.C(prodotti ? "#333333" : "#FFFFFF");
         }
 
-        private async void OnChiudi(object sender, EventArgs e) => await Navigation.PopAsync();
+        private async void OnChiudi(object sender, EventArgs e) => await Navigazione.Chiudi(this);
 
         // ══════════════ PRODOTTI ══════════════
 
@@ -121,14 +120,19 @@ namespace PosTouch.App.Pagine
             AggiornaBarraAzioni();
         }
 
+        private DateTime _toccoSpunta = DateTime.MinValue;
+
         private async void OnProdottoToccato(object sender, TappedEventArgs e)
         {
+            await Task.Delay(60); // lascia passare prima l'eventuale tocco sulla spunta ☐
+            if ((DateTime.Now - _toccoSpunta).TotalMilliseconds < 400) return;
             if ((sender as BindableObject)?.BindingContext is VoceProdotto v)
-                await Navigation.PushAsync(new ProdottoPage(v.P, v.P.CategoriaId));
+                await Navigazione.Apri(this, () => new ProdottoPage(v.P, v.P.CategoriaId));
         }
 
         private void OnSpuntaToccata(object sender, TappedEventArgs e)
         {
+            _toccoSpunta = DateTime.Now;
             if ((sender as BindableObject)?.BindingContext is not VoceProdotto v) return;
             v.Selezionato = !v.Selezionato;
             AggiornaBarraAzioni();
@@ -159,7 +163,7 @@ namespace PosTouch.App.Pagine
                 return;
             }
             int catId = (FiltroCategoria.SelectedItem as Categoria)?.Id ?? 0;
-            await Navigation.PushAsync(new ProdottoPage(null, catId > 0 ? catId : categorie[0].Id));
+            await Navigazione.Apri(this, () => new ProdottoPage(null, catId > 0 ? catId : categorie[0].Id));
         }
 
         private async void OnSposta(object sender, EventArgs e)
@@ -255,16 +259,13 @@ namespace PosTouch.App.Pagine
             {
                 await Task.Delay(60); // lascia passare prima l'eventuale tocco su ▲▼
                 if ((DateTime.Now - _toccoFreccia).TotalMilliseconds < 400) return; // era una freccia ▲▼
-                if (_apertura) return;
-                _apertura = true;
-                try { await Navigation.PushAsync(new CategoriaPage(c)); }
-                finally { _apertura = false; }
+                await Navigazione.Apri(this, () => new CategoriaPage(c));
             });
             return tessera;
         }
 
         private async Task Sposta(Categoria c, int direzione) => await Esegui(() => ContestoCassa.GestioneCatalogo.SpostaCategoria(c.Id, direzione));
 
-        private async void OnNuovaCategoria(object sender, EventArgs e) => await Navigation.PushAsync(new CategoriaPage(null));
+        private async void OnNuovaCategoria(object sender, EventArgs e) => await Navigazione.Apri(this, () => new CategoriaPage(null));
     }
 }

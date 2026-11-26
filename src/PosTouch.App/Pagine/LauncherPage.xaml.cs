@@ -53,11 +53,11 @@ namespace PosTouch.App.Pagine
 
         private void AggiornaOra() => OraData.Text = DateTime.Now.ToString("dddd dd/MM/yyyy  HH:mm");
 
-        private async void OnVendita(object sender, TappedEventArgs e) => await Navigation.PushAsync(new VenditaPage());
+        private async void OnVendita(object sender, TappedEventArgs e) => await Navigazione.Apri(this, () => ContestoCassa.PaginaVendita);
 
         private async void OnBackOffice(object sender, TappedEventArgs e)
         {
-            if (await Accesso.VerificaPinAsync("BACK OFFICE")) await Navigation.PushAsync(new BackOfficePage());
+            if (await Accesso.VerificaPinAsync("BACK OFFICE")) await Navigazione.Apri(this, () => new BackOfficePage());
         }
 
         private async void OnStatistiche(object sender, TappedEventArgs e)
@@ -66,11 +66,17 @@ namespace PosTouch.App.Pagine
         private async void OnDocumenti(object sender, TappedEventArgs e)
             => await MessaggioBox.Info("📄 DOCUMENTI", "L'elenco documenti (ristampe, annulli, resi) arriverà nella prossima versione.");
 
-        private async void OnFunzioniCassa(object sender, TappedEventArgs e) => await Navigation.PushAsync(new FunzioniCassaPage());
+        private async void OnFunzioniCassa(object sender, TappedEventArgs e) => await Navigazione.ApriModale(this, () => new FunzioniCassaPage());
 
         private async void OnImpostazioni(object sender, TappedEventArgs e)
         {
-            if (await Accesso.VerificaPinAsync("IMPOSTAZIONI")) await Navigation.PushAsync(new ImpostazioniPage());
+            if (await Accesso.VerificaPinAsync("IMPOSTAZIONI")) await Navigazione.Apri(this, () => new ImpostazioniPage());
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            OnEsci(this, null);
+            return true;
         }
 
         private async void OnEsci(object sender, TappedEventArgs e)

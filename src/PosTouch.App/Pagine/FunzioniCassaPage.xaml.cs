@@ -40,7 +40,9 @@ namespace PosTouch.App.Pagine
                 await EseguiAsync(Funzioni.SbloccaRTAsync);
         }
 
-        private async void OnChiudi(object sender, EventArgs e) => await Navigation.PopAsync();
+        protected override bool OnBackButtonPressed() => Attesa.IsVisible || base.OnBackButtonPressed();
+
+        private async void OnChiudi(object sender, EventArgs e) => await Navigazione.Chiudi(this);
 
         private async Task EseguiAsync(Func<Task<EsitoOperazione>> operazione)
         {

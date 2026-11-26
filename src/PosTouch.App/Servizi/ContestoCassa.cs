@@ -23,6 +23,13 @@ namespace PosTouch.App.Servizi
         public static FunzioniCassa FunzioniCassa { get; private set; }
         public static Carrello Carrello { get; } = new Carrello();
 
+        private static PosTouch.App.Pagine.VenditaPage _paginaVendita;
+        /// <summary>Una sola schermata vendita per tutta l'app (lo scontrino in corso è uno solo).</summary>
+        public static PosTouch.App.Pagine.VenditaPage PaginaVendita => _paginaVendita ??= new PosTouch.App.Pagine.VenditaPage();
+
+        /// <summary>Aumenta a ogni salvataggio impostazioni: la vendita si ridisegna solo se serve.</summary>
+        public static int VersioneImpostazioni { get; private set; }
+
         public static void Avvia(string cartellaDati)
         {
             if (CartellaDati != null) return;
@@ -50,6 +57,7 @@ namespace PosTouch.App.Servizi
         {
             ArchivioImpostazioni.Salva(nuove);
             Impostazioni = nuove;
+            VersioneImpostazioni++;
         }
     }
 }

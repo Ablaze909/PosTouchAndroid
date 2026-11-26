@@ -60,12 +60,26 @@ namespace PosTouch.App.Dialoghi
 
     public static class Dialogo
     {
+        private static bool _aperto;
+
+        /// <summary>
+        /// Mostra il dialogo e attende la risposta. Un secondo dialogo chiesto mentre uno è già aperto
+        /// (es. doppio tocco su TOTALE) viene ignorato.
+        /// </summary>
         public static async Task<T> Mostra<T>(DialogoBase<T> dialogo)
         {
             var nav = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation;
-            if (nav == null) return default;
-            await nav.PushModalAsync(dialogo, false);
-            return await dialogo.Risultato;
+            if (nav == null || _aperto) return default;
+            _aperto = true;
+            try
+            {
+                await nav.PushModalAsync(dialogo, false);
+                return await dialogo.Risultato;
+            }
+            finally
+            {
+                _aperto = false;
+            }
         }
     }
 }

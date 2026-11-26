@@ -32,7 +32,12 @@ namespace PosTouch.Core.Vendita
         /// <summary>Scontrino emesso ma salvataggio locale fallito (l'incasso c'è, manca il dato).</summary>
         RiuscitoSenzaArchivio,
         /// <summary>Niente è stato emesso: il carrello va lasciato com'è.</summary>
-        Fallito
+        Fallito,
+        /// <summary>
+        /// La comunicazione si è interrotta DOPO l'invio della chiusura: lo scontrino potrebbe
+        /// essere uscito. L'operatore deve controllare prima di riprovare (evita doppi scontrini).
+        /// </summary>
+        Incerto
     }
 
     public class EsitoVendita
@@ -44,7 +49,10 @@ namespace PosTouch.Core.Vendita
         public int NumeroDocumento { get; set; }
         public int NumeroAzzeramento { get; set; }
 
-        public bool Emesso => Stato != StatoEsito.Fallito;
+        public bool Emesso => Stato == StatoEsito.Riuscito || Stato == StatoEsito.RiuscitoSenzaArchivio;
+
+        /// <summary>Dati della vendita da registrare se l'operatore conferma che lo scontrino è uscito (stato Incerto).</summary>
+        public VenditaRegistrata DaRegistrare { get; set; }
 
         public static EsitoVendita Errore(string titolo, string messaggio) =>
             new EsitoVendita { Stato = StatoEsito.Fallito, Titolo = titolo, Messaggio = messaggio };
@@ -63,7 +71,8 @@ namespace PosTouch.Core.Vendita
 
         private int _inCorso;                 // 1 = vendita in corso (blocca doppio tocco)
         private bool _ultimaVenditaFallita;   // FIX #16 originale: recovery preventivo alla vendita successiva
-        private bool _txFooterConfigurato;
+        private string _txFooterConfiguratoPer;  // tipo|ip|porta del registratore già configurato
+        private int _fase;                       // 0 = prima delle righe, 1 = righe inviate, 2 = chiusura inviata, 3 = chiuso
 
         public ServizioVendita(Func<Impostazioni> impostazioni, ArchivioVendite archivio)
         {
@@ -83,9 +92,27 @@ namespace PosTouch.Core.Vendita
             }
             catch (Exception ex)
             {
-                LogManager.Error($"Vendita: errore imprevisto: {ex}");
+                LogManager.Error($"Vendita: errore imprevisto (fase {_fase}): {ex}");
                 _ultimaVenditaFallita = true;
-                return EsitoVendita.Errore("ERRORE", $"Errore imprevisto durante la vendita:\n{ex.Message}\n\nControllare il registratore prima di riprovare.");
+                if (_fase >= 3)
+                {
+                    // Scontrino già chiuso dall'RT: l'errore è avvenuto dopo (lettura numero, cassetto)
+                    return RegistraEsito(_ultimoDaRegistrare, null, StatoEsito.Riuscito);
+                }
+                if (_fase == 2)
+                {
+                    return new EsitoVendita
+                    {
+                        Stato = StatoEsito.Incerto,
+                        Titolo = "VERIFICARE LO SCONTRINO",
+                        Messaggio = "La comunicazione con il registratore si è interrotta durante la chiusura.\n\n" +
+                                    "Lo scontrino potrebbe essere stato stampato.\nControllare il registratore.",
+                        DaRegistrare = _ultimoDaRegistrare
+                    };
+                }
+                return EsitoVendita.Errore("ERRORE DI COMUNICAZIONE",
+                    $"Comunicazione con il registratore interrotta:\n{ex.Message}\n\n" +
+                    "Lo scontrino NON è stato chiuso. Alla prossima vendita verrà eseguito un controllo automatico del registratore.");
             }
             finally
             {
@@ -93,8 +120,12 @@ namespace PosTouch.Core.Vendita
             }
         }
 
+        private VenditaRegistrata _ultimoDaRegistrare;
+
         private async Task<EsitoVendita> EmettiInternoAsync(List<RigaScontrino> righe, Pagamento pag)
         {
+            _fase = 0;
+            _ultimoDaRegistrare = null;
             var cfg = _impostazioni();
             righe = righe.Where(r => r.ContaNelTotale).ToList(); // subtotale e separatori sono solo visivi
             var prodotti = righe.Where(r => r.Tipo == TipoRiga.Prodotto).ToList();
@@ -130,6 +161,17 @@ namespace PosTouch.Core.Vendita
 
             LogManager.Info($"VENDITA BANCO: totale €{totaleCent / 100m:F2}, metodo {pag.Metodo}, righe {prodotti.Count}");
 
+            _ultimoDaRegistrare = new VenditaRegistrata
+            {
+                TotaleCentesimi = totaleCent,
+                MetodoPagamento = pag.Metodo,
+                ContantiCent = contantiCent,
+                CartaCent = cartaCent,
+                StampatoSuRT = true,
+                Righe = righe
+            };
+            int restoFinale = restoCent;
+
             using var rt = FiscalConnectorFactory.Create(cfg.TipoCassa, cfg.IP_RT, cfg.Porta_RT);
 
             if (!await rt.ConnectAsync())
@@ -152,15 +194,17 @@ namespace PosTouch.Core.Vendita
                     return EsitoVendita.Errore("RT BLOCCATO",
                         (string.IsNullOrEmpty(err) ? "" : $"⚠️ {err}\n\n") +
                         "Il registratore ha uno scontrino bloccato dalla vendita precedente.\n\n" +
-                        "1. Verificare coperchio e carta\n2. Usare 'Funzioni cassa → Sblocca RT'\n3. Se persiste, spegnere e riaccendere il registratore");
+                        "1. Verificare coperchio e carta\n2. Usare 'FUNZIONI CASSA → RESET RT'\n3. Se persiste, spegnere e riaccendere il registratore");
                 }
                 _ultimaVenditaFallita = false;
             }
 
-            if (!_txFooterConfigurato)
+            // TX_FOOTER va configurato una volta per ogni registratore (se cambia tipo/IP in impostazioni, si rifà)
+            string chiaveRT = $"{cfg.TipoCassa}|{cfg.IP_RT}|{cfg.Porta_RT}";
+            if (_txFooterConfiguratoPer != chiaveRT)
             {
                 await rt.ConfiguraTxFooterJsonAsync();
-                _txFooterConfigurato = true;
+                _txFooterConfiguratoPer = chiaveRT;
             }
 
             // ── OPERATORE ──
@@ -178,10 +222,13 @@ namespace PosTouch.Core.Vendita
 
             // ── RIGHE ──
             var daInviare = cfg.AccorpaRigheScontrino ? AccorpamentoRighe.Accorpa(prodotti) : prodotti;
+            _fase = 1;
             foreach (var riga in daInviare)
             {
-                LogManager.Debug($"Riga: Rep{riga.RepartoFiscale} {riga.Descrizione} €{riga.PrezzoCentesimi / 100.0:F2} x{riga.Quantita}");
-                if (!await rt.VendiRepartoAsync(riga.RepartoFiscale, riga.Descrizione, riga.PrezzoCentesimi, riga.Quantita))
+                // Il protocollo 3i accetta solo ASCII: "CAFFÈ" diventerebbe "CAFF". Convertiamo le accentate (È → E').
+                string descr = cfg.TipoCassa == TipoCassaFiscale.RT3i ? TestoRT.SenzaAccenti(riga.Descrizione) : riga.Descrizione;
+                LogManager.Debug($"Riga: Rep{riga.RepartoFiscale} {descr} €{riga.PrezzoCentesimi / 100.0:F2} x{riga.Quantita}");
+                if (!await rt.VendiRepartoAsync(riga.RepartoFiscale, descr, riga.PrezzoCentesimi, riga.Quantita))
                 {
                     LogManager.Error($"RT ha RIFIUTATO riga: {riga.Descrizione}");
                     return await AnnullaEdEsci(rt, "ERRORE REGISTRATORE",
@@ -207,19 +254,25 @@ namespace PosTouch.Core.Vendita
             }
 
             // ── CHIUSURA ──
+            // Importo esatto e parte carta del misto: chiusura "a saldo" calcolata dall'RT,
+            // così un centesimo di arrotondamento sugli sconti % non lascia lo scontrino aperto.
+            _fase = 2;
             bool chiusuraOk = pag.Metodo switch
             {
-                MetodiPagamento.Misto => await rt.ChiudiMistoAsync(contantiCent, cartaCent),
-                MetodiPagamento.Contanti => await rt.ChiudiContantiAsync(Math.Max(pag.VersatoCent, totaleCent)),
+                MetodiPagamento.Misto => await rt.ChiudiMistoAsync(contantiCent, 0),
+                MetodiPagamento.Contanti when pag.VersatoCent > totaleCent => await rt.ChiudiContantiAsync(pag.VersatoCent),
+                MetodiPagamento.Contanti => await rt.ChiudiContantiAutoAsync(),
                 _ => await rt.ChiudiCartaCreditoAsync()
             };
 
             if (!chiusuraOk)
             {
+                _fase = 1;
                 LogManager.Error("RT ha rifiutato la chiusura scontrino");
                 return await AnnullaEdEsci(rt, "ERRORE CHIUSURA", "Il registratore ha rifiutato la chiusura dello scontrino.");
             }
 
+            _fase = 3;
             var footer = await rt.LeggiTxFooterAsync();
             if (footer.Confermato)
                 LogManager.Info($"✅ SCONTRINO CONFERMATO: Doc={footer.NumeroDocumento}, Azz={footer.NumeroAzzeramento}");
@@ -232,30 +285,28 @@ namespace PosTouch.Core.Vendita
             rt.Disconnect();
             _ultimaVenditaFallita = false;
 
-            // ── SALVATAGGIO LOCALE ──
-            var esito = new EsitoVendita
-            {
-                Stato = StatoEsito.Riuscito,
-                Titolo = "SCONTRINO EMESSO",
-                RestoCent = restoCent,
-                NumeroDocumento = footer.Confermato ? footer.NumeroDocumento : 0,
-                NumeroAzzeramento = footer.Confermato ? footer.NumeroAzzeramento : 0
-            };
+            var esito = RegistraEsito(_ultimoDaRegistrare, footer, StatoEsito.Riuscito);
+            esito.RestoCent = restoFinale;
+            return esito;
+        }
 
+        /// <summary>
+        /// Scontrino uscito (confermato dall'RT o dall'operatore): salva la vendita nell'archivio locale.
+        /// </summary>
+        private EsitoVendita RegistraEsito(VenditaRegistrata v, RisultatoChiusuraRT footer, StatoEsito stato)
+        {
+            var esito = new EsitoVendita { Stato = stato, Titolo = "SCONTRINO EMESSO" };
+            if (v == null) return esito;
+            if (footer != null && footer.Confermato)
+            {
+                v.NumeroScontrino = esito.NumeroDocumento = footer.NumeroDocumento;
+                v.NumeroAzzeramento = esito.NumeroAzzeramento = footer.NumeroAzzeramento;
+                v.DataEmissioneRT = DataEmissione(footer);
+            }
+            v.DataOra = DateTime.Now;
             try
             {
-                _archivio.Salva(new VenditaRegistrata
-                {
-                    NumeroScontrino = esito.NumeroDocumento,
-                    NumeroAzzeramento = esito.NumeroAzzeramento,
-                    TotaleCentesimi = totaleCent,
-                    MetodoPagamento = pag.Metodo,
-                    ContantiCent = contantiCent,
-                    CartaCent = cartaCent,
-                    StampatoSuRT = true,
-                    DataEmissioneRT = DataEmissione(footer),
-                    Righe = righe
-                });
+                _archivio.Salva(v);
             }
             catch (Exception ex)
             {
@@ -263,6 +314,17 @@ namespace PosTouch.Core.Vendita
                 esito.Messaggio = $"Scontrino emesso, ma la vendita non è stata salvata in archivio:\n{ex.Message}";
             }
             return esito;
+        }
+
+        /// <summary>
+        /// Stato Incerto: l'operatore conferma che lo scontrino è uscito → si registra la vendita
+        /// (senza numero documento, che non è stato letto).
+        /// </summary>
+        public EsitoVendita ConfermaScontrinoUscito(EsitoVendita incerto)
+        {
+            _ultimaVenditaFallita = false;
+            LogManager.Warning("Scontrino confermato a mano dall'operatore dopo comunicazione interrotta");
+            return RegistraEsito(incerto?.DaRegistrare, null, StatoEsito.Riuscito);
         }
 
         /// <summary>Recovery dello scontrino rimasto aperto sull'RT e messaggio d'errore.</summary>
@@ -278,7 +340,7 @@ namespace PosTouch.Core.Vendita
                 (string.IsNullOrEmpty(errore) ? "" : $"⚠️ {errore}\n\n") +
                 (recuperato
                     ? "Lo scontrino è stato annullato sull'RT."
-                    : "⚠️ NON È STATO POSSIBILE ANNULLARE LO SCONTRINO SULL'RT.\nUsare 'Funzioni cassa → Sblocca RT' o riavviare il registratore."));
+                    : "⚠️ NON È STATO POSSIBILE ANNULLARE LO SCONTRINO SULL'RT.\nUsare 'FUNZIONI CASSA → RESET RT' o riavviare il registratore."));
         }
 
         private static string DataEmissione(RisultatoChiusuraRT f)

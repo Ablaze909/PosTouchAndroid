@@ -124,7 +124,7 @@ namespace PosTouch.App.Pagine
             try
             {
                 await Task.Run(() => ContestoCassa.GestioneCatalogo.SalvaCategoria(_cat));
-                await Navigation.PopAsync();
+                await Navigazione.Chiudi(this);
             }
             catch (Exception ex)
             {
@@ -132,7 +132,7 @@ namespace PosTouch.App.Pagine
             }
         }
 
-        private async void OnAnnulla(object sender, EventArgs e) => await Navigation.PopAsync();
+        private async void OnAnnulla(object sender, EventArgs e) => await Navigazione.Chiudi(this);
 
         private async void OnElimina(object sender, EventArgs e)
         {
@@ -140,7 +140,7 @@ namespace PosTouch.App.Pagine
             try
             {
                 await Task.Run(() => ContestoCassa.GestioneCatalogo.EliminaCategoria(_cat.Id));
-                await Navigation.PopAsync();
+                await Navigazione.Chiudi(this);
             }
             catch (Exception ex)
             {

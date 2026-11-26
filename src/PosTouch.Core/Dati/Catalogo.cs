@@ -28,6 +28,8 @@ namespace PosTouch.Core.Dati
         }
 
         public bool Presente => File.Exists(_percorso);
+        /// <summary>Aumenta a ogni caricamento: le schermate ridisegnano i tasti solo se è cambiato.</summary>
+        public int Versione { get; private set; }
         internal string Percorso => _percorso;
         /// <summary>Categorie visibili nel POS (attive), in ordine.</summary>
         public IReadOnlyList<Categoria> Categorie => _categorie.Where(c => c.Attiva).ToList();
@@ -53,7 +55,7 @@ namespace PosTouch.Core.Dati
         {
             var categorie = new List<Categoria>();
             var prodotti = new List<Prodotto>();
-            if (!Presente) { _categorie = categorie; _prodotti = prodotti; return 0; }
+            if (!Presente) { _categorie = categorie; _prodotti = prodotti; Versione++; return 0; }
 
             using var conn = Apri(_percorso);
 
@@ -108,7 +110,10 @@ namespace PosTouch.Core.Dati
                         ColoreTesto = l.Testo("ColoreTestoTasto", "#FFFFFF"),
                         DimensioneFontTasto = l.Int("DimensioneFontTasto", 12),
                         IsPreferito = l.Bool("IsPreferito"),
-                        Attivo = l.Bool("Attivo", true)
+                        Attivo = l.Bool("Attivo", true),
+                        VenditaAPeso = l.Bool("VenditaAPeso"),
+                        UnitaPeso = l.Testo("UnitaPeso", "Kg"),
+                        IsCombinazione = l.Bool("IsCombinazione")
                     });
                 }
             }
@@ -118,6 +123,7 @@ namespace PosTouch.Core.Dati
 
             _categorie = categorie;
             _prodotti = prodotti;
+            Versione++;
             LogManager.Info($"Catalogo caricato: {categorie.Count} categorie, {prodotti.Count} prodotti");
             return prodotti.Count;
         }

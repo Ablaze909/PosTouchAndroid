@@ -8,7 +8,6 @@ namespace PosTouch.Core.Vendita
     /// <summary>
     /// Tastiera numerica della vendita, stessa logica di MainWindow (PC):
     /// - cifre → quantità del prossimo articolo ("Qta: 3")
-    /// - cifre con virgola o ≥ 10 → mostrate come importo ("€ 12,00")
     /// - X → blocca la quantità ("Qta: 3 ×"), poi si può digitare il prezzo
     /// - € → il numero digitato diventa il prezzo del prossimo articolo ("Qta: 1 × € 1,50")
     /// - C → azzera
@@ -53,9 +52,11 @@ namespace PosTouch.Core.Vendita
                     Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(PrezzoPersonalizzato.Value)}", "#2E7D32");
                 else if (QuantitaBloccata)
                     Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(q)}", "#FF9800");
-                else if (BloccoModificaQuantita || _input.Contains(",") || q >= 10)
+                else if (BloccoModificaQuantita)
                     Mostra($"€ {Euro(q)}", "#111111");
                 else
+                    // Sul PC "12" o "1,5" venivano mostrati come "€ 12,00" ma usati come quantità:
+                    // qui il display dice quello che succede davvero.
                     Mostra($"Qta: {Num(q)}", "#111111");
             }
             else Cambiato?.Invoke();

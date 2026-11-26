@@ -169,8 +169,15 @@ namespace PosTouch.Core.Vendita
             var subtot = Righe.FirstOrDefault(r => r.Tipo == TipoRiga.Subtotale);
             if (subtot != null) subtot.PrezzoCentesimi = sub;
 
-            // Sconto percentuale ricalcolato sul subtotale attuale (l'RT lo applica sul totale finale)
+            // Sconto a valore diventato maggiore del subtotale (articoli tolti): il blocco sconto non ha più senso
             var s = Sconto;
+            if (s != null && !s.ScontoPercentualeCent.HasValue && (sub <= 0 || -s.PrezzoCentesimi >= sub))
+            {
+                RimuoviBloccoSconto();
+                s = null;
+                subtot = null;
+            }
+            // Sconto percentuale ricalcolato sul subtotale attuale (l'RT lo applica sul totale finale)
             if (s?.ScontoPercentualeCent is int pc)
                 s.PrezzoCentesimi = -(int)Math.Round(sub * pc / 10000m, MidpointRounding.AwayFromZero);
 

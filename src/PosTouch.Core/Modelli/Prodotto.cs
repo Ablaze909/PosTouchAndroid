@@ -18,6 +18,11 @@ namespace PosTouch.Core.Modelli
         /// <summary>Dimensione testo del tasto: 10 piccolo, 12 medio, 14 grande, 16 XL (come sul PC).</summary>
         public int DimensioneFontTasto { get; set; } = 12;
         public bool IsPreferito { get; set; }
+        /// <summary>Vendita a peso (dal PC): la quantità è il peso, il prezzo è per unità di peso.</summary>
+        public bool VenditaAPeso { get; set; }
+        public string UnitaPeso { get; set; } = "Kg";
+        /// <summary>Articolo combinazione multi-gusto (dal PC): non ancora gestito su Android.</summary>
+        public bool IsCombinazione { get; set; }
         /// <summary>Visibile nel POS (false = nascosto).</summary>
         public bool Attivo { get; set; } = true;
 

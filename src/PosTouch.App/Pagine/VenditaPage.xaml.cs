@@ -22,6 +22,7 @@ namespace PosTouch.App.Pagine
         private int _categoriaCorrente = IdPreferiti;
         private bool _modalitaModifica;
         private bool _scontrinoEspanso;
+        private (int, int) _versioneMostrata = (-1, -1);
 
         // doppio tocco sulle righe
         private RigaScontrino _ultimaRigaToccata;
@@ -54,7 +55,14 @@ namespace PosTouch.App.Pagine
             _orologio.Start();
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
-            CaricaCategorie();   // il catalogo o le impostazioni possono essere cambiati
+            // Ridisegna categorie e articoli solo se catalogo o impostazioni sono cambiati
+            // (OnAppearing scatta anche alla chiusura di ogni finestra: niente ridisegni inutili)
+            var versione = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni);
+            if (versione != _versioneMostrata)
+            {
+                _versioneMostrata = versione;
+                CaricaCategorie();
+            }
             LettoreBarcode.Destinatario = AggiungiDaBarcode;
         }
 
@@ -226,7 +234,7 @@ namespace PosTouch.App.Pagine
             };
             Tocco(tasto, async () =>
             {
-                if (_modalitaModifica) await Navigation.PushAsync(new ProdottoPage(p, p.CategoriaId));
+                if (_modalitaModifica) await Navigazione.Apri(this, () => new ProdottoPage(p, p.CategoriaId));
                 else await AggiungiProdottoAsync(p);
             });
             return tasto;
@@ -236,7 +244,20 @@ namespace PosTouch.App.Pagine
         private async Task AggiungiProdottoAsync(Prodotto p)
         {
             NascondiResto();
+            if (p.IsCombinazione)
+            {
+                _tastierino.Azzera();
+                await MessaggioBox.Avviso("COMBINAZIONE", $"{p.Descrizione} è un articolo multi-gusto.\n\nLe combinazioni non sono ancora disponibili su Android.");
+                return;
+            }
             var (quantita, prezzoCent) = _tastierino.PrendiPerArticolo();
+            if (p.VenditaAPeso)
+            {
+                // Vendita a peso (dal PC): quantità = peso, prezzo per unità di peso
+                var peso = await TastierinoPrezzo.ChiediQuantita($"⚖️ PESO ({p.UnitaPeso}) — {p.Descrizione}");
+                if (peso == null || peso <= 0) return;
+                quantita = peso.Value;
+            }
             int prezzo = prezzoCent ?? p.PrezzoCentesimi;
 
             if (prezzo == 0)
@@ -251,7 +272,7 @@ namespace PosTouch.App.Pagine
                 prezzo = (int)Math.Round(v.Value * 100, MidpointRounding.AwayFromZero);
             }
 
-            bool accorpa = Cfg.AccorpaRigheVideo && !Cfg.BloccoModificaQuantita;
+            bool accorpa = Cfg.AccorpaRigheVideo && !Cfg.BloccoModificaQuantita && !p.VenditaAPeso;
             var riga = Carrello.Aggiungi(p, quantita, prezzo, accorpa);
             if (riga != null) ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
         }
@@ -268,7 +289,7 @@ namespace PosTouch.App.Pagine
         private async void OnStrumenti(object sender, EventArgs e)
         {
             if (await Accesso.VerificaPinAsync("🔧 STRUMENTI"))
-                await Navigation.PushAsync(new StrumentiPage());
+                await Navigazione.Apri(this, () => new StrumentiPage());
         }
 
         private async void OnModifica(object sender, EventArgs e)
@@ -284,7 +305,7 @@ namespace PosTouch.App.Pagine
         }
 
         private async void OnFunzioniCassa(object sender, EventArgs e)
-            => await Navigation.PushAsync(new FunzioniCassaPage());
+            => await Navigazione.ApriModale(this, () => new FunzioniCassaPage());
 
         /// <summary>🚪: torna alla schermata iniziale (come TornaAlLauncher del PC).</summary>
         private async void OnEsci(object sender, EventArgs e)
@@ -294,7 +315,16 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("SCONTRINO APERTO", "Chiudi o svuota lo scontrino prima di uscire.");
                 return;
             }
-            await Navigation.PopAsync();
+            await Navigazione.Chiudi(this);
+        }
+
+        /// <summary>Tasto indietro di Android: come 🚪 (non si esce con lo scontrino aperto o durante la stampa).</summary>
+        protected override bool OnBackButtonPressed()
+        {
+            if (Attesa.IsVisible) return true;
+            if (OverlayPagamento.IsVisible) { OverlayPagamento.IsVisible = false; return true; }
+            OnEsci(this, EventArgs.Empty);
+            return true;
         }
 
         // ══════════════ TASTIERA ══════════════
@@ -572,10 +602,18 @@ namespace PosTouch.App.Pagine
             await EseguiVenditaAsync(pagamento, esito.RestoCent);
         }
 
+        private bool _venditaAvviata;
+
         private async Task EseguiVenditaAsync(Pagamento pagamento, int restoCent)
         {
-            if (Carrello.Vuoto || ContestoCassa.ServizioVendita.InCorso) return;
+            if (Carrello.Vuoto || ContestoCassa.ServizioVendita.InCorso || _venditaAvviata) return;
+            _venditaAvviata = true;
+            try { await EseguiVenditaInternaAsync(pagamento, restoCent); }
+            finally { _venditaAvviata = false; }
+        }
 
+        private async Task EseguiVenditaInternaAsync(Pagamento pagamento, int restoCent)
+        {
             var righe = Carrello.Fotografia();
             MostraAttesa(true, "⏳ Vendita in corso...");
             EsitoVendita esito;
@@ -593,6 +631,18 @@ namespace PosTouch.App.Pagine
             {
                 await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
                 return; // scontrino intatto: l'operatore può riprovare
+            }
+            if (esito.Stato == StatoEsito.Incerto)
+            {
+                // Comunicazione interrotta durante la chiusura: decide l'operatore guardando l'RT (evita doppi scontrini)
+                bool uscito = await MessaggioBox.Domanda(esito.Titolo, esito.Messaggio + "\n\nLo scontrino è stato STAMPATO?");
+                if (!uscito)
+                {
+                    await MessaggioBox.Avviso("SCONTRINO NON EMESSO",
+                        "Lo scontrino resta a video.\nAlla prossima vendita il registratore verrà controllato e sbloccato automaticamente.");
+                    return;
+                }
+                esito = ContestoCassa.ServizioVendita.ConfermaScontrinoUscito(esito);
             }
 
             SvuotaScontrino();

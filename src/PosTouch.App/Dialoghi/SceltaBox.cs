@@ -38,7 +38,14 @@ namespace PosTouch.App.Dialoghi
                 Content = corpo
             };
             Content = riquadro;
-            Dimensiona(riquadro, Math.Min(760, 110 * colonne + 80));
+            Dimensiona(riquadro, Math.Min(760, 110 * colonne + 80), Math.Min(720, 170 + righe * (altezzaTasto + 8)));
+        }
+
+        /// <summary>Tasto indietro di Android = ANNULLA (-1), non la prima voce.</summary>
+        protected override bool OnBackButtonPressed()
+        {
+            Chiudi(-1);
+            return true;
         }
 
         public static Task<int> Testi(string titolo, IList<string> voci, int colonne = 3)
