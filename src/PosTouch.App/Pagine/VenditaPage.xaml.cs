@@ -56,7 +56,10 @@ namespace PosTouch.App.Pagine
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
             RigaQuantita.IsVisible = Cfg.MostraRigaPiuMeno;
-            RigaSconti.IsVisible = Cfg.AbilitaSconti;   // sconti disattivati: tasti nascosti
+            // Sconti disattivati: spariscono i due tasti sconto, ANNULLA resta e occupa tutta la riga
+            BtnScontoValore.IsVisible = BtnScontoPerc.IsVisible = Cfg.AbilitaSconti;
+            Grid.SetColumn(BtnAnnulla, Cfg.AbilitaSconti ? 2 : 0);
+            Grid.SetColumnSpan(BtnAnnulla, Cfg.AbilitaSconti ? 1 : 3);
             // Ridisegna categorie e articoli solo se catalogo o impostazioni sono cambiati
             // (OnAppearing scatta anche alla chiusura di ogni finestra: niente ridisegni inutili)
             var versione = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni);

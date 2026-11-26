@@ -188,9 +188,9 @@
                 </Grid>
 
                 <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,1.2*" ColumnSpacing="6">
-                    <Button Text="€ SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoValore" />
-                    <Button Grid.Column="1" Text="% SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoPercentuale" />
-                    <Button Grid.Column="2" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
+                    <Button x:Name="BtnScontoValore" Text="€ SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoValore" />
+                    <Button x:Name="BtnScontoPerc" Grid.Column="1" Text="% SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoPercentuale" />
+                    <Button x:Name="BtnAnnulla" Grid.Column="2" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
                 </Grid>
 
                 <Grid x:Name="RigaQuantita" Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*" ColumnSpacing="4">
