@@ -97,7 +97,8 @@ namespace PosTouch.Core.Dati
                         AliquotaIVA INTEGER DEFAULT 0,
                         FOREIGN KEY(VenditaId) REFERENCES Vendite(Id) ON DELETE CASCADE
                     );
-                    CREATE INDEX IF NOT EXISTS IX_Vendite_DataOra ON Vendite(DataOra);";
+                    CREATE INDEX IF NOT EXISTS IX_Vendite_DataOra ON Vendite(DataOra);
+                    CREATE INDEX IF NOT EXISTS IX_RigheVendita_VenditaId ON RigheVendita(VenditaId);";
                 cmd.ExecuteNonQuery();
 
                 // Archivi creati dalle versioni precedenti: aggiunge le colonne nuove (i dati esistenti restano)
