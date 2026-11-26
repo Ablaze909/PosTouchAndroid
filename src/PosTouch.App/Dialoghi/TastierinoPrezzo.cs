@@ -88,7 +88,7 @@ namespace PosTouch.App.Dialoghi
             {
                 if (virgola < 0) _input += _input.Length == 0 ? "0," : ",";
             }
-            else if (virgola < 0 ? _input.Length < 5 : _input.Length - virgola - 1 < maxDecimali)
+            else if (virgola < 0 ? _input.Length < (Implicita ? 7 : 5) : _input.Length - virgola - 1 < maxDecimali)
             {
                 _input = _input == "0" ? t : _input + t;
             }
@@ -105,8 +105,14 @@ namespace PosTouch.App.Dialoghi
                 _display.Text = _input.Length == 0 ? "0" : _input;
         }
 
-        private decimal Valore() =>
-            decimal.TryParse(_input.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v) ? v : 0;
+        /// <summary>Virgola implicita (impostazione): negli importi in euro le cifre sono centesimi finché non si preme la virgola.</summary>
+        private bool Implicita => _modo == ModoTastierino.Euro && PosTouch.App.Servizi.ContestoCassa.Impostazioni.VirgolaImplicita;
+
+        private decimal Valore()
+        {
+            if (!decimal.TryParse(_input.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v)) return 0;
+            return Implicita && !_input.Contains(',') ? v / 100m : v;
+        }
 
         private void Conferma()
         {

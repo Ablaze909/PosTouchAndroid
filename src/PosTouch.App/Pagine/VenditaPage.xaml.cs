@@ -41,6 +41,10 @@ namespace PosTouch.App.Pagine
                 DisplayTastierino.Text = _tastierino.Display;
                 DisplayTastierino.TextColor = Ui.C(_tastierino.ColoreDisplay);
                 DisplayTastierino.IsVisible = !string.IsNullOrEmpty(_tastierino.Display);   // riquadro bianco leggibile sul totale colorato
+                // il testo deve entrare tutto nella riga: più è lungo, più il carattere si rimpicciolisce (mai cifre tagliate)
+                double spazio = Math.Max(120, RiquadroTotale.Width - 110);
+                int lettere = Math.Max(1, _tastierino.Display.Length);
+                DisplayTastierino.FontSize = Math.Clamp(spazio / (lettere * 0.6), 11, 17);
             };
 
             _orologio = Dispatcher.CreateTimer();
@@ -55,6 +59,7 @@ namespace PosTouch.App.Pagine
             base.OnAppearing();
             _orologio.Start();
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
+            _tastierino.VirgolaImplicita = Cfg.VirgolaImplicita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
             RigaQuantita.IsVisible = Cfg.MostraRigaPiuMeno;
             BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata

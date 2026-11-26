@@ -21,6 +21,12 @@ namespace PosTouch.Core.Vendita
         public decimal? PrezzoPersonalizzato { get; private set; }
         /// <summary>Impostazione "Blocco modifica quantità": le cifre valgono solo come prezzo.</summary>
         public bool BloccoModificaQuantita { get; set; }
+        /// <summary>
+        /// Virgola implicita: i prezzi si digitano in centesimi senza la virgola (350 € = 3,50).
+        /// Vale solo per i prezzi (tasto €, prezzo dopo X); le quantità restano numeri interi normali.
+        /// Se si preme la virgola, vale quella.
+        /// </summary>
+        public bool VirgolaImplicita { get; set; }
 
         public string Display { get; private set; } = "";
         /// <summary>Colore display: nero normale, arancio dopo X, verde con prezzo €.</summary>
@@ -43,7 +49,8 @@ namespace PosTouch.Core.Vendita
             }
             else if (tasto.Length == 1 && char.IsDigit(tasto[0]))
             {
-                bool spazio = virgola < 0 ? _input.Length < 5 : _input.Length - virgola - 1 < 3;
+                // con la virgola implicita servono 2 cifre in più (99999,99 = "9999999")
+                bool spazio = virgola < 0 ? _input.Length < (VirgolaImplicita ? 7 : 5) : _input.Length - virgola - 1 < 3;
                 if (spazio) _input = _input == "0" ? tasto : _input + tasto;
             }
 
@@ -52,12 +59,16 @@ namespace PosTouch.Core.Vendita
                 if (!QuantitaBloccata && !BloccoModificaQuantita)
                     QuantitaCorrente = q;
 
+                decimal prezzo = Prezzo(_input, q);
                 if (PrezzoPersonalizzato.HasValue)
                     Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(PrezzoPersonalizzato.Value)}", "#2E7D32");
                 else if (QuantitaBloccata)
-                    Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(q)}", "#FF9800");
+                    Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(prezzo)}", "#FF9800");
                 else if (BloccoModificaQuantita)
-                    Mostra($"€ {Euro(q)}", "#111111");
+                    Mostra($"€ {Euro(prezzo)}", "#111111");
+                else if (VirgolaImplicita && !_input.Contains(','))
+                    // non si sa ancora se sarà quantità o prezzo: si mostrano tutte e due le letture
+                    Mostra($"Qta: {Num(q)}  ·  € {Euro(prezzo)}", "#111111");
                 else
                     // Sul PC "12" o "1,5" venivano mostrati come "€ 12,00" ma usati come quantità:
                     // qui il display dice quello che succede davvero.
@@ -81,7 +92,9 @@ namespace PosTouch.Core.Vendita
         public EsitoTastoEuro Euro()
         {
             if (_input.Length == 0) return EsitoTastoEuro.Vuoto;
-            if (!ProvaNumero(_input, out decimal prezzo) || prezzo <= 0 || Cent(prezzo) <= 0) return EsitoTastoEuro.NonValido;
+            if (!ProvaNumero(_input, out decimal letto)) return EsitoTastoEuro.NonValido;
+            decimal prezzo = Prezzo(_input, letto);
+            if (prezzo <= 0 || Cent(prezzo) <= 0) return EsitoTastoEuro.NonValido;
             PrezzoPersonalizzato = prezzo;
             _input = "";
             if (!QuantitaBloccata) QuantitaCorrente = 1;
@@ -96,10 +109,10 @@ namespace PosTouch.Core.Vendita
             int? prezzo = null;
             if (PrezzoPersonalizzato.HasValue)
                 prezzo = Cent(PrezzoPersonalizzato.Value);
-            else if (QuantitaBloccata && ProvaNumero(_input, out decimal p) && p > 0)
-                prezzo = Cent(p);            // "3 X 1,50" e poi l'articolo
-            else if (BloccoModificaQuantita && ProvaNumero(_input, out decimal pb) && pb > 0)
-                prezzo = Cent(pb);
+            else if (QuantitaBloccata && ProvaNumero(_input, out decimal p) && Prezzo(_input, p) > 0)
+                prezzo = Cent(Prezzo(_input, p));            // "3 X 1,50" e poi l'articolo
+            else if (BloccoModificaQuantita && ProvaNumero(_input, out decimal pb) && Prezzo(_input, pb) > 0)
+                prezzo = Cent(Prezzo(_input, pb));
             if (BloccoModificaQuantita) qta = 1;
             Azzera();
             return (qta, prezzo);
@@ -121,6 +134,9 @@ namespace PosTouch.Core.Vendita
             ColoreDisplay = colore;
             Cambiato?.Invoke();
         }
+
+        /// <summary>Il numero digitato letto come prezzo: con la virgola implicita e senza virgola scritta sono centesimi.</summary>
+        private decimal Prezzo(string input, decimal letto) => VirgolaImplicita && !(input ?? "").Contains(',') ? letto / 100m : letto;
 
         private static int Cent(decimal euro) => (int)Math.Round(euro * 100, MidpointRounding.AwayFromZero);
         private static string Euro(decimal v) => v.ToString("F2", CultureInfo.InvariantCulture).Replace('.', ',');

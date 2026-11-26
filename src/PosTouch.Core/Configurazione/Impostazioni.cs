@@ -32,6 +32,8 @@ namespace PosTouch.Core.Configurazione
         public bool MostraStrumentiVendita { get; set; } = true;
         public bool RichiestaPrezzoArticoliZero { get; set; } = true;
         public bool BloccoModificaQuantita { get; set; } = false;
+        /// <summary>Virgola implicita: i prezzi si battono in centesimi (350 = € 3,50), in vendita e nei tastierini prezzo.</summary>
+        public bool VirgolaImplicita { get; set; } = false;
         /// <summary>Blocco riga singola: un solo articolo per scontrino (come sul PC).</summary>
         public bool BloccoRigaSingola { get; set; } = false;
         /// <summary>Riconosce le etichette EAN-13 della bilancia (prefisso 2, prezzo nel codice), come sul PC.</summary>
