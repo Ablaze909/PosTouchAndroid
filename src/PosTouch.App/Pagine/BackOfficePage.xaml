@@ -21,6 +21,42 @@
             <Setter Property="VerticalOptions" Value="Center" />
             <Setter Property="LineBreakMode" Value="TailTruncation" />
         </Style>
+        <DataTemplate x:Key="ProdottoLargo" x:DataType="local:VoceProdotto">
+                        <Grid Padding="15,12" ColumnDefinitions="40,80,*,90,90,150,50,55,140" ColumnSpacing="6"
+                              BackgroundColor="{Binding Sfondo, Converter={StaticResource Colore}}" Opacity="{Binding Opacita}">
+                            <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnProdottoToccato" /></Grid.GestureRecognizers>
+                            <Label Text="{Binding Spunta}" FontSize="18" HorizontalTextAlignment="Center" VerticalOptions="Center">
+                                <Label.GestureRecognizers><TapGestureRecognizer Tapped="OnSpuntaToccata" /></Label.GestureRecognizers>
+                            </Label>
+                            <Label Grid.Column="1" Text="{Binding P.Codice}" Style="{StaticResource Cella}" TextColor="#757575" />
+                            <Label Grid.Column="2" Text="{Binding Titolo}" Style="{StaticResource Cella}" FontAttributes="Bold" />
+                            <Label Grid.Column="3" Text="{Binding P.PrezzoDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                            <Label Grid.Column="4" Text="{Binding P.MargineDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" TextColor="#2E7D32" />
+                            <Label Grid.Column="5" Text="{Binding P.CategoriaNome}" Style="{StaticResource Cella}" />
+                            <Label Grid.Column="6" Text="{Binding P.RepartoFiscale}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="7" Text="{Binding Iva}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="8" Text="{Binding P.Barcode}" Style="{StaticResource Cella}" FontSize="13" TextColor="#757575" />
+                            <BoxView Grid.ColumnSpan="9" HeightRequest="1" Color="#EEEEEE" VerticalOptions="End" />
+                        </Grid>
+                    </DataTemplate>
+        <!-- schermi stretti (8"): descrizione larga, barcode sotto il nome; Margine, Rep e IVA si vedono aprendo il prodotto -->
+        <DataTemplate x:Key="ProdottoStretto" x:DataType="local:VoceProdotto">
+                        <Grid Padding="15,10" ColumnDefinitions="40,70,*,90,130" ColumnSpacing="6"
+                              BackgroundColor="{Binding Sfondo, Converter={StaticResource Colore}}" Opacity="{Binding Opacita}">
+                            <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnProdottoToccato" /></Grid.GestureRecognizers>
+                            <Label Text="{Binding Spunta}" FontSize="18" HorizontalTextAlignment="Center" VerticalOptions="Center">
+                                <Label.GestureRecognizers><TapGestureRecognizer Tapped="OnSpuntaToccata" /></Label.GestureRecognizers>
+                            </Label>
+                            <Label Grid.Column="1" Text="{Binding P.Codice}" Style="{StaticResource Cella}" TextColor="#757575" />
+                            <VerticalStackLayout Grid.Column="2" VerticalOptions="Center">
+                                <Label Text="{Binding Titolo}" Style="{StaticResource Cella}" FontAttributes="Bold" />
+                                <Label Text="{Binding P.Barcode}" Style="{StaticResource Cella}" FontSize="12" TextColor="#757575" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="3" Text="{Binding P.PrezzoDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                            <Label Grid.Column="4" Text="{Binding P.CategoriaNome}" Style="{StaticResource Cella}" />
+                            <BoxView Grid.ColumnSpan="5" HeightRequest="1" Color="#EEEEEE" VerticalOptions="End" />
+                        </Grid>
+        </DataTemplate>
     </ctl:PaginaPos.Resources>
 
     <Grid RowDefinitions="70,Auto,*">
@@ -92,43 +128,23 @@
                 <Button Grid.Column="4" Text="🗑️ Elimina" BackgroundColor="#E53935" CornerRadius="6" FontSize="14" Clicked="OnElimina" />
             </Grid>
             <!-- intestazione colonne -->
-            <Grid Grid.Row="3" BackgroundColor="#FAFAFA" Padding="15,10" ColumnDefinitions="40,80,*,90,90,150,50,55,140" ColumnSpacing="6">
+            <Grid x:Name="IntestazioneProdotti" Grid.Row="3" BackgroundColor="#FAFAFA" Padding="15,10" ColumnDefinitions="40,80,*,90,90,150,50,55,140" ColumnSpacing="6">
                 <Label Text="☐" Style="{StaticResource Intest}" HorizontalTextAlignment="Center">
                     <Label.GestureRecognizers><TapGestureRecognizer Tapped="OnSelezionaTutti" /></Label.GestureRecognizers>
                 </Label>
                 <Label Grid.Column="1" Text="Codice" Style="{StaticResource Intest}" />
                 <Label Grid.Column="2" Text="Descrizione" Style="{StaticResource Intest}" />
                 <Label Grid.Column="3" Text="Prezzo" Style="{StaticResource Intest}" HorizontalTextAlignment="End" />
-                <Label Grid.Column="4" Text="Margine" Style="{StaticResource Intest}" HorizontalTextAlignment="End" />
-                <Label Grid.Column="5" Text="Categoria" Style="{StaticResource Intest}" />
-                <Label Grid.Column="6" Text="Rep" Style="{StaticResource Intest}" HorizontalTextAlignment="Center" />
-                <Label Grid.Column="7" Text="IVA" Style="{StaticResource Intest}" HorizontalTextAlignment="Center" />
-                <Label Grid.Column="8" Text="Barcode" Style="{StaticResource Intest}" />
+                <Label x:Name="IntestMargine" Grid.Column="4" Text="Margine" Style="{StaticResource Intest}" HorizontalTextAlignment="End" />
+                <Label x:Name="IntestCategoria" Grid.Column="5" Text="Categoria" Style="{StaticResource Intest}" />
+                <Label x:Name="IntestRep" Grid.Column="6" Text="Rep" Style="{StaticResource Intest}" HorizontalTextAlignment="Center" />
+                <Label x:Name="IntestIVA" Grid.Column="7" Text="IVA" Style="{StaticResource Intest}" HorizontalTextAlignment="Center" />
+                <Label x:Name="IntestBarcode" Grid.Column="8" Text="Barcode" Style="{StaticResource Intest}" />
             </Grid>
-            <CollectionView x:Name="ListaProdotti" Grid.Row="4" SelectionMode="None">
+            <CollectionView x:Name="ListaProdotti" Grid.Row="4" SelectionMode="None" ItemTemplate="{StaticResource ProdottoLargo}">
                 <CollectionView.EmptyView>
                     <Label Text="Nessun prodotto" HorizontalTextAlignment="Center" VerticalOptions="Center" TextColor="#999999" FontSize="16" />
                 </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="local:VoceProdotto">
-                        <Grid Padding="15,12" ColumnDefinitions="40,80,*,90,90,150,50,55,140" ColumnSpacing="6"
-                              BackgroundColor="{Binding Sfondo, Converter={StaticResource Colore}}" Opacity="{Binding Opacita}">
-                            <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnProdottoToccato" /></Grid.GestureRecognizers>
-                            <Label Text="{Binding Spunta}" FontSize="18" HorizontalTextAlignment="Center" VerticalOptions="Center">
-                                <Label.GestureRecognizers><TapGestureRecognizer Tapped="OnSpuntaToccata" /></Label.GestureRecognizers>
-                            </Label>
-                            <Label Grid.Column="1" Text="{Binding P.Codice}" Style="{StaticResource Cella}" TextColor="#757575" />
-                            <Label Grid.Column="2" Text="{Binding Titolo}" Style="{StaticResource Cella}" FontAttributes="Bold" />
-                            <Label Grid.Column="3" Text="{Binding P.PrezzoDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" FontAttributes="Bold" />
-                            <Label Grid.Column="4" Text="{Binding P.MargineDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" TextColor="#2E7D32" />
-                            <Label Grid.Column="5" Text="{Binding P.CategoriaNome}" Style="{StaticResource Cella}" />
-                            <Label Grid.Column="6" Text="{Binding P.RepartoFiscale}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
-                            <Label Grid.Column="7" Text="{Binding Iva}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
-                            <Label Grid.Column="8" Text="{Binding P.Barcode}" Style="{StaticResource Cella}" FontSize="13" TextColor="#757575" />
-                            <BoxView Grid.ColumnSpan="9" HeightRequest="1" Color="#EEEEEE" VerticalOptions="End" />
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
             </CollectionView>
         </Grid>
 

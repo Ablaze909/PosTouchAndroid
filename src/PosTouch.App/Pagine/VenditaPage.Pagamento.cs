@@ -207,23 +207,19 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("⚠️ COMANDA BANCO", string.Join("\n\n", avvisi) + "\n\nImposta le stampanti in IMPOSTAZIONI → 🖨️ STAMPE.");
         }
 
-        /// <summary>Barra RESTO arancione per 3 secondi (MostraRestoConTimer del PC).</summary>
+        /// <summary>RESTO arancione nel riquadro del totale: resta finché non si batte l'articolo dopo (o si cambia posto).</summary>
         private void MostraRestoConTimer(int restoCent)
         {
             EtichettaResto.Text = $"€ {restoCent / 100m:F2}".Replace('.', ',');
             BarraResto.IsVisible = true;
-            _timerResto?.Stop();
-            _timerResto = Dispatcher.CreateTimer();
-            _timerResto.Interval = TimeSpan.FromSeconds(3);
-            _timerResto.IsRepeating = false;
-            _timerResto.Tick += (s, e) => NascondiResto();
-            _timerResto.Start();
+            AggiornaRigaPosto();
         }
 
         private void NascondiResto()
         {
-            _timerResto?.Stop();
+            if (!BarraResto.IsVisible) return;
             BarraResto.IsVisible = false;
+            AggiornaRigaPosto();
         }
 
         private void MostraAttesa(bool visibile, string testo = null)

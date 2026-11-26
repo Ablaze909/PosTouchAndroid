@@ -28,7 +28,8 @@ namespace PosTouch.Core.Modelli
         /// <summary>Aliquota IVA al momento della vendita (per lo storico).</summary>
         public int AliquotaIVA { get; set; }
         /// <summary>Unità di peso ("Kg", "g"...) per gli articoli venduti a peso; null = articolo a pezzi.</summary>
-        public string UnitaPeso { get; set; }
+        public string UnitaPeso { get => _unitaPeso; set { if (_unitaPeso != value) { _unitaPeso = value; Notifica(); } } }
+        private string _unitaPeso;
         public bool IsAPeso => !string.IsNullOrEmpty(UnitaPeso);
         /// <summary>
         /// Varianti con prezzo su un articolo a peso: importo fisso NON moltiplicato per il peso
@@ -83,7 +84,7 @@ namespace PosTouch.Core.Modelli
         }
 
         /// <summary>Sfondo come sul PC: alternato bianco/#EEEEEE, selezionata #E0E0E0.</summary>
-        public string ColoreSfondo => Selezionata ? "#E0E0E0" : (Alternata ? "#EEEEEE" : "#FFFFFF");
+        public string ColoreSfondo => Selezionata ? "#BBDEFB" : (Alternata ? "#EEEEEE" : "#FFFFFF");   // selezionata azzurra: si vede bene cosa cancella C
 
         public bool IsProdotto => Tipo == TipoRiga.Prodotto;
         public bool IsSconto => Tipo == TipoRiga.Sconto;
@@ -105,14 +106,19 @@ namespace PosTouch.Core.Modelli
         public int ImportoCentesimi => (int)System.Math.Round(PrezzoCentesimi * Quantita, System.MidpointRounding.AwayFromZero) + SovrapprezzoCent;
         public decimal PrezzoEuro => PrezzoCentesimi / 100m;
 
-        public string QuantitaDisplay => Tipo != TipoRiga.Prodotto ? "" :
+        public string QuantitaDisplay => Tipo != TipoRiga.Prodotto ? "" : IsAPeso ? "⚖" :
             (Quantita == decimal.Truncate(Quantita) ? Quantita.ToString("0") : Quantita.ToString("0.###"));
+        /// <summary>Riga a peso: "0,385 Kg × € 12,00/Kg" (+ varianti a importo fisso).</summary>
+        public string DettaglioPeso => !IsAPeso ? "" :
+            $"{Quantita.ToString("0.000", It)} {UnitaPeso} × € {(PrezzoCentesimi / 100m).ToString("N2", It)}/{UnitaPeso}"
+            + (SovrapprezzoCent != 0 ? $"  {(SovrapprezzoCent > 0 ? "+" : "-")}€ {(System.Math.Abs(SovrapprezzoCent) / 100m).ToString("N2", It)}" : "");
+        private static readonly System.Globalization.CultureInfo It = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
         public string ImportoDisplay => Tipo == TipoRiga.Separatore ? "" : $"€ {ImportoEuro:F2}".Replace('.', ',');
 
         private void Notifica()
         {
             foreach (var p in new[] { nameof(PrezzoCentesimi), nameof(Quantita), nameof(ImportoEuro), nameof(ImportoDisplay),
-                                      nameof(QuantitaDisplay), nameof(Alternata), nameof(Selezionata), nameof(ColoreSfondo), nameof(VarianteDisplay) })
+                                      nameof(QuantitaDisplay), nameof(DettaglioPeso), nameof(IsAPeso), nameof(Alternata), nameof(Selezionata), nameof(ColoreSfondo), nameof(VarianteDisplay) })
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
         }
 

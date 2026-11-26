@@ -15,68 +15,75 @@
 
     <ctl:PaginaPos.Resources>
         <conv:ColoreConverter x:Key="Colore" />
+        <!-- carattere delle righe dello scontrino: cresce sugli schermi grandi (vedi OnSizeAllocated) -->
+        <x:Double x:Key="FontRiga">13</x:Double>
+        <x:Double x:Key="FontRigaPiccola">12</x:Double>
         <!-- righe dello scontrino: un modello per tipo (vedi SelettoreRiga) -->
         <DataTemplate x:Key="RigaProdotto" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Text="{Binding QuantitaDisplay}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="13" FontAttributes="Bold" LineBreakMode="WordWrap" Margin="4,0,3,0" VerticalOptions="Center" />
-                <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                <Label Text="{Binding QuantitaDisplay}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                <VerticalStackLayout Grid.Column="1" Margin="4,0,3,0" VerticalOptions="Center">
+                    <Label Text="{Binding Descrizione}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" LineBreakMode="WordWrap" />
+                    <!-- articoli a peso: "0,385 Kg × € 12,00/Kg" (la colonna quantità mostra solo ⚖) -->
+                    <Label Text="{Binding DettaglioPeso}" FontSize="{DynamicResource FontRigaPiccola}" TextColor="#455A64" IsVisible="{Binding IsAPeso}" />
+                </VerticalStackLayout>
+                <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" HorizontalTextAlignment="End" VerticalOptions="Center" />
                     <BoxView WidthRequest="3" Color="#43A047" HorizontalOptions="Start" Margin="-4,-6,0,-6" IsVisible="{Binding Comandata}" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="RigaSconto" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Text="🎯" FontSize="12" HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="13" FontAttributes="Bold" TextColor="#D84315" Margin="4,0,3,0" VerticalOptions="Center" />
-                <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="13" FontAttributes="Bold" TextColor="#D84315" HorizontalTextAlignment="End" VerticalOptions="Center" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <Label Text="🎯" FontSize="{DynamicResource FontRigaPiccola}" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" TextColor="#D84315" Margin="4,0,3,0" VerticalOptions="Center" />
+                <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" TextColor="#D84315" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="RigaSubtotale" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="End" Margin="0,0,10,0" VerticalOptions="Center" />
-                <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="End" VerticalOptions="Center" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" HorizontalTextAlignment="End" Margin="0,0,10,0" VerticalOptions="Center" />
+                <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="RigaSeparatore" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="10" TextColor="#BDBDBD" HorizontalTextAlignment="Center" VerticalOptions="Center" LineBreakMode="NoWrap" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRigaPiccola}" TextColor="#78909C" HorizontalTextAlignment="Center" VerticalOptions="Center" LineBreakMode="NoWrap" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="RigaVariante" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="12" FontAttributes="Italic" TextColor="#6D4C41" Margin="14,0,3,0" VerticalOptions="Center" />
-                <Label Grid.Column="2" Text="{Binding VarianteDisplay}" FontSize="12" TextColor="#6D4C41" HorizontalTextAlignment="End" VerticalOptions="Center" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRigaPiccola}" FontAttributes="Italic" TextColor="#6D4C41" Margin="14,0,3,0" VerticalOptions="Center" />
+                <Label Grid.Column="2" Text="{Binding VarianteDisplay}" FontSize="{DynamicResource FontRigaPiccola}" TextColor="#6D4C41" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="RigaGusto" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Descrizione}" FontSize="12" TextColor="#E65100" Margin="4,0,3,0" VerticalOptions="Center" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <Label Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRigaPiccola}" TextColor="#E65100" Margin="4,0,3,0" VerticalOptions="Center" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="RigaPortata" x:DataType="m:RigaScontrino">
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="13" FontAttributes="Bold" TextColor="White" BackgroundColor="#546E7A" Padding="0,3" HorizontalTextAlignment="Center" VerticalOptions="Center" />
-                <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End" IsVisible="{Binding Selezionata}" />
+                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" TextColor="White" BackgroundColor="#546E7A" Padding="0,3" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
         <ctl:SelettoreRiga x:Key="SelettoreRighe" Prodotto="{StaticResource RigaProdotto}" Sconto="{StaticResource RigaSconto}"
@@ -104,8 +111,8 @@
             <Setter Property="FontSize" Value="18" />
             <Setter Property="CornerRadius" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="HeightRequest" Value="32" />
-            <Setter Property="MinimumHeightRequest" Value="32" />
+            <Setter Property="HeightRequest" Value="44" />
+            <Setter Property="MinimumHeightRequest" Value="44" />
             <Setter Property="Margin" Value="3,0" />
         </Style>
     </ctl:PaginaPos.Resources>
@@ -114,11 +121,16 @@
 
         <!-- ═════════ BANDA "DOVE SONO": BANCO / TAVOLO / CONTO, colore della sala ═════════ -->
         <Grid x:Name="BandaPosto" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HeightRequest="40" Padding="14,0"
-              BackgroundColor="#37474F" ColumnDefinitions="*,Auto">
+              BackgroundColor="#37474F" ColumnDefinitions="Auto,*" ColumnSpacing="14">
             <Label x:Name="BandaTitolo" Text="🧾 BANCO" FontSize="18" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"
                    LineBreakMode="TailTruncation" />
-            <Label x:Name="BandaDettaglio" Grid.Column="1" Text="Vendita diretta" FontSize="14" TextColor="White" VerticalOptions="Center" />
+            <Label x:Name="BandaDettaglio" Grid.Column="1" Text="Vendita diretta" FontSize="14" TextColor="White" VerticalOptions="Center" HorizontalTextAlignment="End"
+                   LineBreakMode="TailTruncation" MaxLines="1" />
         </Grid>
+        <!-- salvataggio automatico del tavolo non riuscito: resta finché il salvataggio dopo non va -->
+        <Label x:Name="AvvisoSalvataggio" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="⚠️ TAVOLO NON SALVATO" FontSize="14" FontAttributes="Bold"
+               TextColor="White" BackgroundColor="#C62828" Padding="10,0" HorizontalOptions="Center" VerticalOptions="Fill" VerticalTextAlignment="Center"
+               IsVisible="False" InputTransparent="True" />
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie → ▲▼ → 🏠 ═════════ -->
         <Grid Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
@@ -140,17 +152,17 @@
         <BoxView Grid.Row="1" Grid.Column="0" WidthRequest="1" Color="#E5E5E5" HorizontalOptions="End" />
 
         <!-- ═════════ COLONNA CENTRO: toolbar + articoli ═════════ -->
-        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="40,*">
+        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="50,*">
             <Grid BackgroundColor="#FAFAFA">
                 <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
-                    <Button x:Name="BtnSale" Text="🍽️ SALE" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#00897B"
+                    <Button x:Name="BtnSale" Text="🍽️ SALE" FontSize="13" FontAttributes="Bold" Padding="12,0" BackgroundColor="#00897B"
                             Style="{StaticResource TastoToolbar}" Clicked="OnSale" IsVisible="False" />
                     <Button x:Name="BtnStrumenti" Text="🔧" WidthRequest="46" BackgroundColor="#555555" Style="{StaticResource TastoToolbar}" Clicked="OnStrumenti" />
                     <Button x:Name="BtnModifica" Text="✏️" WidthRequest="46" BackgroundColor="#757575" Style="{StaticResource TastoToolbar}" Clicked="OnModifica" />
-                    <Button x:Name="BtnFunzioniCassa" Text="💰 FUNZIONI CASSA" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
+                    <Button x:Name="BtnFunzioniCassa" Text="💰 FUNZIONI CASSA" FontSize="13" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
                             Style="{StaticResource TastoToolbar}" Clicked="OnFunzioniCassa" />
                     <!-- operatore del turno (gestione operatori): sospendi, chiudi turno, riepilogo -->
-                    <Button x:Name="BtnOperatore" Text="👤" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#4527A0"
+                    <Button x:Name="BtnOperatore" Text="👤" FontSize="13" FontAttributes="Bold" Padding="12,0" BackgroundColor="#4527A0"
                             Style="{StaticResource TastoToolbar}" Clicked="OnOperatore" IsVisible="False" />
                 </HorizontalStackLayout>
                 <BoxView HeightRequest="1" Color="#E5E5E5" VerticalOptions="End" />
@@ -165,9 +177,9 @@
             <!-- Combinazione in corso (bannerCombinazione del PC) -->
             <Grid x:Name="BannerCombinazione" Grid.Row="1" VerticalOptions="End" BackgroundColor="#E65100" Padding="12,8"
                   ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="False">
-                <Label x:Name="TestoCombinazione" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" LineBreakMode="WordWrap" />
-                <Button Grid.Column="1" Text="✅ CHIUDI COMBINAZIONE" FontSize="14" BackgroundColor="#2E7D32" HeightRequest="50" CornerRadius="6" Clicked="OnChiudiCombinazione" />
-                <Button Grid.Column="2" Text="❌ ANNULLA" FontSize="14" BackgroundColor="#B71C1C" HeightRequest="50" CornerRadius="6" Clicked="OnAnnullaCombinazione" />
+                <Label x:Name="TestoCombinazione" FontSize="15" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" LineBreakMode="WordWrap" />
+                <Button Grid.Column="1" Text="✅ CHIUDI" FontSize="15" FontAttributes="Bold" Padding="14,0" BackgroundColor="#2E7D32" HeightRequest="50" CornerRadius="6" Clicked="OnChiudiCombinazione" />
+                <Button Grid.Column="2" Text="❌ ANNULLA" FontSize="15" FontAttributes="Bold" Padding="14,0" BackgroundColor="#B71C1C" HeightRequest="50" CornerRadius="6" Clicked="OnAnnullaCombinazione" />
             </Grid>
         </Grid>
 
@@ -195,25 +207,33 @@
                                 ItemSizingStrategy="MeasureAllItems">
                 </CollectionView>
 
-                <Button x:Name="BtnScrollSu" Text="▲" FontSize="11" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
-                        HeightRequest="26" MinimumHeightRequest="26" Margin="2,0,2,0" CornerRadius="0" Padding="0" VerticalOptions="Start"
+                <Button x:Name="BtnScrollSu" Text="▲ SU" FontSize="13" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
+                        HeightRequest="40" MinimumHeightRequest="40" Margin="2,0,2,0" CornerRadius="0" Padding="0" VerticalOptions="Start"
                         IsVisible="False" Clicked="OnScrollSu" />
-                <Button x:Name="BtnScrollGiu" Text="▼ GIÙ" FontSize="12" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
-                        HeightRequest="30" MinimumHeightRequest="30" Margin="2,0,2,2" CornerRadius="0" Padding="0" VerticalOptions="End"
+                <Button x:Name="BtnScrollGiu" Text="▼ GIÙ" FontSize="13" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
+                        HeightRequest="40" MinimumHeightRequest="40" Margin="2,0,2,2" CornerRadius="0" Padding="0" VerticalOptions="End"
                         IsVisible="False" Clicked="OnScrollGiu" />
             </Grid>
 
             <!-- Display + pezzi + totale: tocco = calcolo resto -->
             <!-- riga 1: posto a sinistra, quello che si digita a destra (riquadro bianco) · riga 2: pezzi e TOTALE sempre liberi -->
-            <Grid x:Name="RiquadroTotale" Grid.Row="2" BackgroundColor="#F5F5F5" Padding="10,6,10,8" Margin="4,4,4,0"
-                  RowDefinitions="30,Auto">
+            <!-- totale sempre nero su chiaro (come il PC): il colore della sala è la striscia a sinistra -->
+            <Grid x:Name="RiquadroTotale" Grid.Row="2" BackgroundColor="#F5F5F5" Padding="14,6,10,8" Margin="4,4,4,0"
+                  RowDefinitions="Auto,Auto">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnTotaleToccato" />
                 </Grid.GestureRecognizers>
+                <BoxView x:Name="StrisciaPosto" Grid.RowSpan="2" WidthRequest="6" Color="#37474F" HorizontalOptions="Start" Margin="-14,-6,0,-8" />
                 <!-- due griglie separate: un posto lungo ("TAVOLO 101 · TERRAZZA") non deve allargare la colonna del TOTALE -->
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <Label x:Name="TotalePosto" FontSize="12" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" HorizontalOptions="Start"
+                <Grid x:Name="RigaPosto" ColumnDefinitions="*,Auto" ColumnSpacing="8" HeightRequest="30">
+                    <Label x:Name="TotalePosto" FontSize="12" FontAttributes="Bold" TextColor="#37474F" VerticalOptions="Center" HorizontalOptions="Start"
                            LineBreakMode="TailTruncation" MaxLines="1" />
+                    <!-- RESTO dopo un incasso in contanti: resta finché non si batte l'articolo dopo -->
+                    <Grid x:Name="BarraResto" Grid.ColumnSpan="2" BackgroundColor="#FF9800" Padding="8,0" IsVisible="False">
+                        <Label Text="RESTO" FontSize="15" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                        <Label x:Name="EtichettaResto" Text="€ 0,00" FontSize="20" FontAttributes="Bold" TextColor="White"
+                               HorizontalOptions="End" VerticalOptions="Center" />
+                    </Grid>
                     <Label x:Name="DisplayTastierino" Grid.Column="1" BackgroundColor="White" Padding="8,2" IsVisible="False" FontSize="16" FontAttributes="Bold"
                            TextColor="#666666" HorizontalOptions="End" VerticalOptions="Center" LineBreakMode="NoWrap" />
                 </Grid>
@@ -227,12 +247,6 @@
                 </Grid>
             </Grid>
 
-            <!-- RESTO arancione (compare dopo un incasso in contanti con resto) -->
-            <Grid x:Name="BarraResto" Grid.Row="3" BackgroundColor="#FF9800" Padding="10,10" Margin="0,10,0,0" IsVisible="False">
-                <Label Text="RESTO" FontSize="18" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
-                <Label x:Name="EtichettaResto" Text="€ 0,00" FontSize="24" FontAttributes="Bold" TextColor="White"
-                       HorizontalOptions="End" VerticalOptions="Center" />
-            </Grid>
 
             <!-- Tastiera 4x4 + sconti + quantità -->
             <Grid Grid.Row="4" Margin="4,4,4,4" RowDefinitions="Auto,Auto,Auto,Auto">
@@ -255,7 +269,7 @@
                     <Button Text="," Grid.Row="3" Grid.Column="2" Style="{StaticResource TastoNum}" FontSize="32" Clicked="OnCifra" />
                 </Grid>
 
-                <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,1.2*" ColumnSpacing="6">
+                <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="44" Margin="0,10,0,0" ColumnDefinitions="*,*,1.2*" ColumnSpacing="6">
                     <Button x:Name="BtnScontoValore" Text="€ SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoValore" />
                     <Button x:Name="BtnScontoPerc" Grid.Column="1" Text="% SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoPercentuale" />
                     <Button x:Name="BtnAnnulla" Grid.Column="2" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
@@ -296,7 +310,7 @@
             <Button x:Name="BtnContoTavolo" Grid.Column="2" Text="📄 CONTO" FontSize="14" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button x:Name="BtnPreconto" Grid.Column="3" Text="📋 PRECONTO" FontSize="13" BackgroundColor="#FDD835" TextColor="#333333" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnPreconto" />
             <Button Grid.Column="4" Text="🚫 NO STAMPA" FontSize="13" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnNoStampa" />
-            <Button Grid.Column="5" Text="✖ ANNULLA" FontSize="13" BackgroundColor="#757575" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAnnullaTavolo" />
+            <Button Grid.Column="5" Text="⬅ SENZA COMANDA" FontSize="13" BackgroundColor="#757575" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAnnullaTavolo" />
             <Button x:Name="BtnFunzioniPortate" Grid.Column="6" Text="📑 FUNZIONI" FontSize="13" BackgroundColor="#546E7A" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnFunzioniPortate" />
             <Button x:Name="BtnAvanza" Grid.Column="7" Text="⏩ AVANZA" FontSize="13" BackgroundColor="#1565C0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAvanza" />
         </Grid>
@@ -335,11 +349,11 @@
                     <TapGestureRecognizer Tapped="OnChiudiPagamento" />
                 </BoxView.GestureRecognizers>
             </BoxView>
-            <Border BackgroundColor="White" StrokeThickness="0" WidthRequest="420" HeightRequest="260"
+            <Border BackgroundColor="White" StrokeThickness="0" WidthRequest="420" HeightRequest="274"
                     HorizontalOptions="Center" VerticalOptions="Center">
                 <Border.GestureRecognizers><TapGestureRecognizer /></Border.GestureRecognizers>
                 <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
-                <Grid RowDefinitions="50,*,44">
+                <Grid RowDefinitions="50,*,58">
                     <Grid BackgroundColor="#388E3C">
                         <Label Text="💰  SCEGLI METODO DI PAGAMENTO" TextColor="White" FontSize="15" FontAttributes="Bold"
                                HorizontalOptions="Center" VerticalOptions="Center" />
@@ -348,8 +362,8 @@
                         <Button Text="💵&#10;CONTANTI" BackgroundColor="#4CAF50" FontSize="16" CornerRadius="4" Clicked="OnContanti" />
                         <Button Grid.Column="2" Text="💳&#10;PAG. ELETTRONICO" BackgroundColor="#1976D2" FontSize="16" CornerRadius="4" Clicked="OnCarta" />
                     </Grid>
-                    <Button Grid.Row="2" Text="✕  ANNULLA" Margin="20,0,20,10" MinimumHeightRequest="34" BackgroundColor="#EEEEEE" TextColor="#555555"
-                            FontSize="13" CornerRadius="4" Clicked="OnChiudiPagamento" />
+                    <Button Grid.Row="2" Text="ANNULLA" Margin="20,0,20,10" MinimumHeightRequest="46" BackgroundColor="#9E9E9E" TextColor="White"
+                            FontSize="15" FontAttributes="Bold" CornerRadius="4" Clicked="OnChiudiPagamento" />
                 </Grid>
             </Border>
         </Grid>

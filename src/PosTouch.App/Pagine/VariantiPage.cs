@@ -22,7 +22,7 @@ namespace PosTouch.App.Pagine
             var testa = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto) }, ColumnSpacing = 10, BackgroundColor = Ui.C("#E65100"), Padding = new Thickness(16, 8) };
             testa.Add(new Label { Text = "🧩 VARIANTI", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center }, 0, 0);
             var nuova = Ui.Tasto("➕ NUOVA", "#43A047", fontSize: 15, altezza: 46, clic: (s, e) => { if (_vuota != null) { _lista.Remove(_vuota); _vuota = null; } _lista.Insert(0, Riga(new Variante { Ordine = 0 })); });
-            var chiudi = Ui.Tasto("CHIUDI", "#BF360C", fontSize: 15, altezza: 46, clic: async (s, e) => await Navigazione.Chiudi(this));
+            var chiudi = Ui.Tasto("✖ CHIUDI", "#78909C", fontSize: 15, altezza: 46, clic: async (s, e) => await Navigazione.Chiudi(this));
             nuova.WidthRequest = 130; chiudi.WidthRequest = 120;
             testa.Add(nuova, 1, 0); testa.Add(chiudi, 2, 0);
 

@@ -28,17 +28,18 @@ namespace PosTouch.App.Pagine
             var griglia = new Grid
             {
                 RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) },
-                ColumnDefinitions = { new(GridLength.Star), new(new GridLength(36)), new(new GridLength(36)) },
+                ColumnDefinitions = { new(GridLength.Star), new(new GridLength(44)), new(new GridLength(44)) },
                 Padding = new Thickness(8)
             };
             if (!c.Attiva)
                 griglia.Add(Ui.Riquadro(new Label { Text = "NASCOSTA", FontSize = 9, FontAttributes = FontAttributes.Bold, TextColor = Colors.White },
                                         "#80FF0000", 4, new Thickness(4, 2)), 0, 0);
-            var su = Ui.Riquadro(new Label { Text = "▲", FontSize = 12, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
+            var su = Ui.Riquadro(new Label { Text = "▲", FontSize = 16, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
                                  "#FFFFFF", 5, new Thickness(0, 4));
-            var giu = Ui.Riquadro(new Label { Text = "▼", FontSize = 12, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
+            var giu = Ui.Riquadro(new Label { Text = "▼", FontSize = 16, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
                                   "#FFFFFF", 5, new Thickness(0, 4));
             su.Margin = giu.Margin = new Thickness(2, 0);
+            su.HeightRequest = giu.HeightRequest = 40;   // frecce toccabili col dito (prima circa 32×24)
             Ui.Tocco(su, async () => { _toccoFreccia = DateTime.Now; await Sposta(c, -1); });
             Ui.Tocco(giu, async () => { _toccoFreccia = DateTime.Now; await Sposta(c, +1); });
             griglia.Add(su, 1, 0);

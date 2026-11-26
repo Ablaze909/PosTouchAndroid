@@ -62,13 +62,14 @@ namespace PosTouch.App.Dialoghi
             destra.Add(aggiungi, 0, 1);
 
             var corpo = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star) }, ColumnSpacing = 12, HeightRequest = 380 };
+            _corpoIP = corpo;
             corpo.Add(sinistra, 0, 0);
             corpo.Add(destra, 1, 0);
 
             // ── piede ──
             _cerca = Ui.Tasto("🔍 CERCA", "#455A64", fontSize: 15, altezza: 56, clic: (s, e) => _ = CercaAsync());
             var piede = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star), new(new GridLength(2, GridUnitType.Star)) }, ColumnSpacing = 10 };
-            piede.Add(Ui.Tasto("⬅ ESCI", "#C2185B", fontSize: 15, altezza: 56, clic: (s, e) => Chiudi(null)), 0, 0);
+            piede.Add(Ui.Tasto("⬅ ESCI", "#78909C", fontSize: 15, altezza: 56, clic: (s, e) => Chiudi(null)), 0, 0);
             piede.Add(_cerca, 1, 0);
             piede.Add(Ui.Tasto("🗑 ELIMINA", "#F9A825", "#263238", 15, 8, (s, e) => _ = EliminaAsync(), 56), 2, 0);
             piede.Add(Ui.Tasto("✅ OK", "#2E7D32", fontSize: 16, altezza: 56, clic: (s, e) => Chiudi(_ip.ToList())), 3, 0);
@@ -88,6 +89,15 @@ namespace PosTouch.App.Dialoghi
             Dimensiona(riquadro, 860);
             DisegnaElenco();
             Aggiorna();
+        }
+
+        private Grid _corpoIP;
+
+        /// <summary>8": il corpo si accorcia perché ✅ OK resti in vista senza scorrere.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (height > 0 && _corpoIP != null) _corpoIP.HeightRequest = Math.Clamp(height - 24 - 32 - 60 - 56 - 24, 260, 380);
         }
 
         private static Button Tasto(string t, Action a) => Ui.Tasto(t, "#424242", "#4DD0E1", 26, 4, (s, e) => a());

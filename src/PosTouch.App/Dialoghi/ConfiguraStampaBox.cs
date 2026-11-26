@@ -69,7 +69,7 @@ namespace PosTouch.App.Dialoghi
 
             // tasti
             var tasti = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) }, ColumnSpacing = 10, Margin = new Thickness(0, 10, 0, 0) };
-            tasti.Add(Ui.Tasto("⬅ ESCI", "#C2185B", fontSize: 15, altezza: 58, clic: (s, e) => Chiudi(null)), 0, 0);
+            tasti.Add(Ui.Tasto("⬅ ESCI", "#78909C", fontSize: 15, altezza: 58, clic: (s, e) => Chiudi(null)), 0, 0);
             tasti.Add(Ui.Tasto("🖨️ PROVA", "#00897B", fontSize: 15, altezza: 58, clic: async (s, e) => await ProvaAsync()), 1, 0);
             tasti.Add(Ui.Tasto("📋 COPIA", "#546E7A", fontSize: 15, altezza: 58, clic: async (s, e) => { Leggi(); _appunti = _p.Copia(); await MessaggioBox.Info("COPIA", "Parametri copiati: aprili su un'altra stampa e premi INCOLLA."); }), 2, 0);
             tasti.Add(Ui.Tasto("📥 INCOLLA", "#546E7A", fontSize: 15, altezza: 58, clic: (s, e) => Incolla()), 3, 0);

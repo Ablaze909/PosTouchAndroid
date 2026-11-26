@@ -56,8 +56,26 @@ namespace PosTouch.App.Controlli
         public static void Tocco(View vista, Action azione)
         {
             var tap = new TapGestureRecognizer();
-            tap.Tapped += (s, e) => azione();
+            tap.Tapped += (s, e) => { Lampeggia(vista); azione(); };
             vista.GestureRecognizers.Add(tap);
+        }
+
+        /// <summary>Riscontro del tocco: la vista si scurisce un attimo (come i tasti), così si capisce che il tocco è arrivato.</summary>
+        private static void Lampeggia(View vista)
+        {
+            try
+            {
+                var d = vista.Dispatcher;
+                if (d == null) return;   // senza dispatcher non si potrebbe rimettere com'era
+                double prima = vista.Opacity;
+                double scuro = prima * 0.6;
+                vista.Opacity = scuro;
+                d.DispatchDelayed(TimeSpan.FromMilliseconds(150), () =>
+                {
+                    if (Math.Abs(vista.Opacity - scuro) < 0.001) vista.Opacity = prima;   // se intanto qualcuno l'ha cambiata, non si tocca
+                });
+            }
+            catch { }   // solo estetica: mai un errore per questo
         }
 
         public static Grid Griglia(int righe, int colonne, double spazio = 0)

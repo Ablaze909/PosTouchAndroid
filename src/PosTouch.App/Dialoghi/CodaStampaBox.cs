@@ -16,7 +16,7 @@ namespace PosTouch.App.Dialoghi
             var azioni = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star) }, ColumnSpacing = 10 };
             azioni.Add(Ui.Tasto("🔄 RIPROVA TUTTE", "#1976D2", altezza: 56, clic: (s, e) => { ContestoCassa.Spooler.RiprovaTutto(); Chiudi(true); }), 0, 0);
             azioni.Add(Ui.Tasto("🔀 FORZA DEVIAZIONE", "#6A1B9A", altezza: 56, clic: async (s, e) => { await ForzaDeviazioneAsync(); Carica(); }), 1, 0);
-            azioni.Add(Ui.Tasto("CHIUDI", "#607D8B", altezza: 56, clic: (s, e) => Chiudi(true)), 2, 0);
+            azioni.Add(Ui.Tasto("✖ CHIUDI", "#78909C", altezza: 56, clic: (s, e) => Chiudi(true)), 2, 0);
 
             var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, Padding = new Thickness(20), RowSpacing = 14 };
             corpo.Add(titolo, 0, 0);

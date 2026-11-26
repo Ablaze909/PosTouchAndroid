@@ -27,7 +27,7 @@ namespace PosTouch.App.Pagine
             _c = (ContestoCassa.Impostazioni.Stampe ?? new ConfigStampe()).Copia();
             BackgroundColor = Ui.C("#263238");
 
-            var chiudi = Ui.Tasto("✖ CHIUDI", "#C2185B", fontSize: 15, altezza: 46, clic: async (s, e) => await ChiudiAsync());
+            var chiudi = Ui.Tasto("✖ CHIUDI", "#78909C", fontSize: 15, altezza: 46, clic: async (s, e) => await ChiudiAsync());
             var salva = Ui.Tasto("💾 SALVA", "#2E7D32", fontSize: 15, altezza: 46, clic: async (s, e) => await SalvaAsync());
             chiudi.WidthRequest = 130; salva.WidthRequest = 130;
             var testa = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto) }, ColumnSpacing = 10, BackgroundColor = Ui.C("#37474F"), Padding = new Thickness(16, 8) };

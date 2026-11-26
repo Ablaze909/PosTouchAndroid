@@ -73,20 +73,21 @@ namespace PosTouch.App.Pagine
                 return Slot(g, sfondo, t, () => ApriAsync(sala, numero));
             }
 
-            if (!occupato) sfondo = "#F5F5F5";
+            // verde e rosso un po' più scuri del PC: il testo bianco si legge anche su 8"
+            if (!occupato) sfondo = "#ECEFF1";
             else if (t.Preconto) sfondo = "#FDD835";
-            else if (inCorso) sfondo = "#EF5350";
-            else sfondo = "#66BB6A";
+            else if (inCorso) sfondo = "#E53935";
+            else sfondo = "#43A047";
 
             stack.Add(IconaTavolo(occupato));
-            stack.Add(Testo($"Tav.{numero}", 15, !occupato ? "#90A4AE" : t.Preconto ? "#333333" : "#FFFFFF", true, 4));
+            stack.Add(Testo($"Tav.{numero}", 16, !occupato ? "#546E7A" : t.Preconto ? "#333333" : "#FFFFFF", true, 4));
             if (occupato)
             {
-                stack.Add(Testo(t.Preconto ? $"📋 {Euro(t.TotaleCent)}" : Euro(t.TotaleCent), 13, t.Preconto ? "#333333" : "#E8F5E9", true, 2));
+                stack.Add(Testo(t.Preconto ? $"📋 {Euro(t.TotaleCent)}" : Euro(t.TotaleCent), 14, t.Preconto ? "#333333" : "#FFFFFF", true, 2));
                 string stato = t.Preconto ? "PRECONTO" : inCorso ? $"⏩ {t.PortataCorrente}/{t.PortataMassima}" : completate ? "✅ PORTATE OK" : t.Apertura.ToString("dd/MM HH:mm");
-                stack.Add(Testo(stato, 10, t.Preconto ? "#E65100" : inCorso ? "#FFFFFF" : "#C8E6C9", t.Preconto || t.PortataMassima > 0));
+                stack.Add(Testo(stato, 12, t.Preconto ? "#BF360C" : "#FFFFFF", t.Preconto || t.PortataMassima > 0));
             }
-            else stack.Add(Testo("libero", 11, "#BDBDBD", false, 2));
+            else stack.Add(Testo("libero", 12, "#607D8B", false, 2));
             return Slot(stack, sfondo, t, () => ApriAsync(sala, numero));
         }
 
@@ -102,23 +103,26 @@ namespace PosTouch.App.Pagine
                 if (nome.Length > 12) nome = nome[..12] + "…";
                 stack.Add(Testo(nome, 13, t.Preconto ? "#333333" : "#1B5E20", true, 2));
                 stack.Add(Testo(t.Preconto ? $"📋 {Euro(t.TotaleCent)}" : Euro(t.TotaleCent), 14, t.Preconto ? "#333333" : "#2E7D32", true, 2));
-                stack.Add(Testo(t.Preconto ? "PRECONTO" : t.Apertura.ToString("dd/MM HH:mm"), 10, t.Preconto ? "#E65100" : "#4CAF50", t.Preconto));
+                stack.Add(Testo(t.Preconto ? "PRECONTO" : t.Apertura.ToString("dd/MM HH:mm"), 12, t.Preconto ? "#BF360C" : "#2E7D32", t.Preconto));
             }
             else
             {
-                stack.Add(Testo($"Cliente {numero}", 12, "#BDBDBD", false, 3));
-                stack.Add(Testo("vuoto", 11, "#BDBDBD"));
+                stack.Add(Testo($"Cliente {numero}", 13, "#546E7A", false, 3));
+                stack.Add(Testo("vuoto", 12, "#607D8B"));
             }
-            string sfondo = !occupato ? "#F5F5F5" : t.Preconto ? "#FDD835" : "#A5D6A7";
+            string sfondo = !occupato ? "#ECEFF1" : t.Preconto ? "#FDD835" : "#A5D6A7";
             return Slot(stack, sfondo, t, () => ApriAsync(sala, numero));
         }
+
+        /// <summary>Lato dei riquadri: 130 come il PC su 8", più grandi sugli schermi larghi (vedi OnSizeAllocated).</summary>
+        private static double LatoSlot = 130;
 
         /// <summary>Riquadro 130×130 angoli 12 (PC). Bordo arancio = articoli ancora da comandare.</summary>
         private static View Slot(View contenuto, string sfondo, TavoloAperto t, Func<Task> apri)
         {
             var b = new Border
             {
-                WidthRequest = 130, HeightRequest = 130, Margin = new Thickness(6),
+                WidthRequest = LatoSlot, HeightRequest = LatoSlot, Margin = new Thickness(6),
                 BackgroundColor = Ui.C(sfondo),
                 StrokeShape = new RoundRectangle { CornerRadius = 12 },
                 Stroke = new SolidColorBrush(Ui.C(t?.DaComandare == true || t?.StorniDaInviare == true ? "#FF6F00" : sfondo)),
@@ -132,7 +136,7 @@ namespace PosTouch.App.Pagine
         /// <summary>Icona tavolo disegnata come sul PC (CreaIconaTavolo): piano + 2 gambe + piedini, 40×32.</summary>
         private static View IconaTavolo(bool occupato)
         {
-            var c = Ui.C(occupato ? "#FFFFFF" : "#BDBDBD");
+            var c = Ui.C(occupato ? "#FFFFFF" : "#90A4AE");
             var a = new AbsoluteLayout { WidthRequest = 40, HeightRequest = 32, HorizontalOptions = LayoutOptions.Center };
             void R(double x, double y, double w, double h, double raggio)
             {

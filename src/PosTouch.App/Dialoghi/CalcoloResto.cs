@@ -119,17 +119,17 @@ namespace PosTouch.App.Dialoghi
 
             var tastiera = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star), new(GridLength.Star), new(new GridLength(80)) } };
             for (int i = 0; i < 4; i++) tastiera.RowDefinitions.Add(new RowDefinition(GridLength.Star));
-            string[,] tasti = { { "7", "8", "9", "C" }, { "4", "5", "6", "✕" }, { "1", "2", "3", "✓" }, { ",", "0", "00", "⌫" } };
+            string[,] tasti = { { "7", "8", "9", "C" }, { "4", "5", "6", "" }, { "1", "2", "3", "✓" }, { ",", "0", "00", "⌫" } };
             for (int r = 0; r < 4; r++)
                 for (int c = 0; c < 4; c++)
                 {
                     string t = tasti[r, c];
+                    if (t.Length == 0) continue;   // niente ✕ accanto a C (si confondeva): per uscire c'è ANNULLA
                     Button b = c < 3
                         ? Ui.Tasto(t, "#FFFFFF", "#111111", 26, 8, (s, e) => Cifra(t))
                         : t switch
                         {
                             "C" => Ui.Tasto("C", "#F44336", fontSize: 24, clic: (s, e) => Cancella()),
-                            "✕" => Ui.Tasto("✕", "#E91E63", fontSize: 24, clic: (s, e) => Chiudi(null)),
                             "✓" => Ui.Tasto("✓", "#4CAF50", fontSize: 24, clic: (s, e) => ConfermaImporto()),
                             _ => Ui.Tasto("⌫", "#FF9800", fontSize: 24, clic: (s, e) => Backspace())
                         };
@@ -165,7 +165,7 @@ namespace PosTouch.App.Dialoghi
             }, "#E8F5E9", 10, new Thickness(8, 12));
             _boxResto.Margin = new Thickness(0, 0, 0, 8);
             _boxResto.IsVisible = false;
-            var annulla = TastoGrande(null, "Annulla", "#BDBDBD", "#757575", 70, () => Chiudi(null));
+            var annulla = TastoGrande(null, "ANNULLA", "#9E9E9E", "#FFFFFF", 70, () => Chiudi(null));
 
             var destra = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) } };
             destra.Add(_btnScontrino, 0, 0);

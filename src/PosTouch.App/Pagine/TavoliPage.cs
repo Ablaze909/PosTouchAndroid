@@ -53,8 +53,9 @@ namespace PosTouch.App.Pagine
             testa.Add(esci, 0, 0);
             testa.Add(_schede, 1, 0);
 
-            var infoBar = new Grid { BackgroundColor = Ui.C("#ECEFF1"), Padding = new Thickness(12, 4) };
-            infoBar.Add(_info);
+            var infoBar = new Grid { BackgroundColor = Ui.C("#ECEFF1"), Padding = new Thickness(12, 4), ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto) }, ColumnSpacing = 12 };
+            infoBar.Add(_info, 0, 0);
+            infoBar.Add(Legenda(), 1, 0);
 
             var radice = new Grid { RowDefinitions = { new(new GridLength(48)), new(GridLength.Auto), new(GridLength.Star) } };
             radice.Add(testa, 0, 0);
@@ -104,6 +105,43 @@ namespace PosTouch.App.Pagine
                 return;
             }
             await Navigazione.TornaAllInizio(this);
+        }
+
+        /// <summary>Che cosa vogliono dire i colori dei tavoli (prima si doveva sapere).</summary>
+        private static View Legenda()
+        {
+            var l = new HorizontalStackLayout { Spacing = 10, VerticalOptions = LayoutOptions.Center };
+            void Voce(string colore, string testo, string bordo = null)
+            {
+                var quadrato = new Border
+                {
+                    WidthRequest = 16, HeightRequest = 16, BackgroundColor = Ui.C(colore), StrokeShape = new RoundRectangle { CornerRadius = 3 },
+                    Stroke = new SolidColorBrush(Ui.C(bordo ?? colore)), StrokeThickness = bordo != null ? 3 : 0, VerticalOptions = LayoutOptions.Center
+                };
+                l.Add(new HorizontalStackLayout { Spacing = 4, Children = { quadrato, new Label { Text = testo, FontSize = 12, TextColor = Ui.C("#37474F"), VerticalOptions = LayoutOptions.Center } } });
+            }
+            Voce("#43A047", "occupato");
+            Voce("#E53935", "portate in corso");
+            Voce("#FDD835", "preconto");
+            Voce("#ECEFF1", "da comandare", "#FF6F00");
+            Voce("#212121", "errore stampa");
+            return l;
+        }
+
+        /// <summary>Riquadri dei tavoli più grandi sugli schermi larghi (10"–15"), 130 su 8" come il PC.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (width <= 0) return;
+            double area = width - 20;
+            int perRiga = Math.Max(4, (int)(area / 142));
+            double lato = Math.Clamp(Math.Floor(area / perRiga) - 12, 120, 180);
+            if (Math.Abs(lato - LatoSlot) > 2)
+            {
+                LatoSlot = lato;
+                _firmaTavoli = null;   // ridisegna con la misura nuova
+                CostruisciTavoli();
+            }
         }
 
         private void Aggiorna()

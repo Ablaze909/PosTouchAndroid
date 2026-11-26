@@ -52,6 +52,25 @@ namespace PosTouch.App.Pagine
             Ricarica();
         }
 
+        private bool? _listaStretta;
+
+        /// <summary>Sotto i 1000 dp (8"): lista prodotti con meno colonne, così la descrizione si legge.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (width <= 0) return;
+            bool stretta = width < 1000;
+            if (_listaStretta == stretta) return;
+            _listaStretta = stretta;
+            IntestMargine.IsVisible = IntestRep.IsVisible = IntestIVA.IsVisible = IntestBarcode.IsVisible = !stretta;
+            IntestazioneProdotti.ColumnDefinitions = stretta
+                ? new ColumnDefinitionCollection(new(new GridLength(40)), new(new GridLength(70)), new(GridLength.Star), new(new GridLength(90)), new(new GridLength(130)))
+                : new ColumnDefinitionCollection(new(new GridLength(40)), new(new GridLength(80)), new(GridLength.Star), new(new GridLength(90)),
+                                                 new(new GridLength(90)), new(new GridLength(150)), new(new GridLength(50)), new(new GridLength(55)), new(new GridLength(140)));
+            Grid.SetColumn(IntestCategoria, stretta ? 4 : 5);
+            ListaProdotti.ItemTemplate = (DataTemplate)Resources[stretta ? "ProdottoStretto" : "ProdottoLargo"];
+        }
+
         private void Ricarica()
         {
             var cat = ContestoCassa.Catalogo;

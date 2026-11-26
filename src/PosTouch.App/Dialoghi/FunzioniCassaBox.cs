@@ -14,7 +14,8 @@ namespace PosTouch.App.Dialoghi
         {
             var lista = new VerticalStackLayout();
             lista.Add(Sezione("📊 RAPPORTI FISCALI", 0));
-            lista.Add(Tasto("✅ CHIUSURA FISCALE (Z)", "#4CAF50", async () =>
+            // Z in fondo ai rapporti e arancione: è l'unica che non si può annullare
+            var tastoZ = Tasto("🔒 CHIUSURA FISCALE (Z)", "#E65100", async () =>
             {
                 if (!await Accesso.VerificaAsync(PosTouch.Core.Modelli.Permesso.ChiusuraFiscale, "CHIUSURA FISCALE (Z)")) return;
                 if (await MessaggioBox.Conferma("CHIUSURA FISCALE", "Eseguire la chiusura fiscale giornaliera (Z)?\n\nL'operazione non può essere annullata."))
@@ -23,9 +24,11 @@ namespace PosTouch.App.Dialoghi
                         try { ContestoCassa.Tavoli.AzzeraEliminacode(); }   // come il PC: l'eliminacode riparte da 1
                         catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Warning($"Azzera eliminacode: {ex.Message}"); }
                     });
-            }));
+            });
             lista.Add(Tasto("📋 LETTURA GIORNALIERA (X)", "#2196F3", () => EseguiAsync(Funzioni.LetturaGiornalieraAsync)));
             lista.Add(Tasto("📊 RAPPORTO REPARTI (Lettura)", "#2196F3", () => EseguiAsync(Funzioni.RapportoRepartiAsync)));
+            tastoZ.Margin = new Thickness(tastoZ.Margin.Left, 14, tastoZ.Margin.Right, tastoZ.Margin.Bottom);
+            lista.Add(tastoZ);
             lista.Add(Sezione("🖨️ RISTAMPE", 20));
             lista.Add(Tasto("📄 ULTIMO SCONTRINO", "#2196F3", () => EseguiAsync(Funzioni.RistampaUltimoAsync)));
             lista.Add(Tasto("📄 PENULTIMO SCONTRINO", "#2196F3", () => EseguiAsync(Funzioni.RistampaPenultimoAsync)));
@@ -36,7 +39,7 @@ namespace PosTouch.App.Dialoghi
                     await EseguiAsync(Funzioni.SbloccaRTAsync);
             }));
 
-            var chiudi = Tasto("CHIUDI", "#607D8B", () => { Chiudi(true); return Task.CompletedTask; });
+            var chiudi = Tasto("✖ CHIUDI", "#78909C", () => { Chiudi(true); return Task.CompletedTask; });
             chiudi.Margin = new Thickness(10, 20, 10, 0);
 
             var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, Padding = new Thickness(20) };

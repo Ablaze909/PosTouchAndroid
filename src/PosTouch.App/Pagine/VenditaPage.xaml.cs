@@ -18,7 +18,8 @@ namespace PosTouch.App.Pagine
 
         private readonly Tastierino _tastierino = new Tastierino();
         private readonly IDispatcherTimer _orologio;
-        private IDispatcherTimer _timerResto;
+        /// <summary>Schermo basso (8"): la riga del posto nel totale compare solo se serve (resto o cifre battute).</summary>
+        private bool _compatto;
         private int _categoriaCorrente = IdPreferiti;
         private bool _modalitaModifica;
         private bool _scontrinoEspanso;
@@ -41,6 +42,8 @@ namespace PosTouch.App.Pagine
                 DisplayTastierino.Text = _tastierino.Display;
                 DisplayTastierino.TextColor = Ui.C(_tastierino.ColoreDisplay);
                 DisplayTastierino.IsVisible = !string.IsNullOrEmpty(_tastierino.Display);   // riquadro bianco leggibile sul totale colorato
+                if (DisplayTastierino.IsVisible) NascondiResto();   // si batte il prossimo: il resto di prima non serve più
+                AggiornaRigaPosto();
                 // il testo deve entrare tutto nella riga: più è lungo, più il carattere si rimpicciolisce (mai cifre tagliate)
                 double spazio = Math.Max(120, RiquadroTotale.Width - 110);
                 int lettere = Math.Max(1, _tastierino.Display.Length);
@@ -99,6 +102,14 @@ namespace PosTouch.App.Pagine
         /// Stesse proporzioni del PC su qualsiasi tablet (da 8" in su): colonne, tastiera e barra
         /// si ridimensionano con lo schermo; i tasti articolo si allargano per riempire la riga.
         /// </summary>
+        /// <summary>Riga alta del totale (posto / resto / cifre battute): su schermi bassi solo quando serve.</summary>
+        private void AggiornaRigaPosto()
+        {
+            bool serve = !_compatto || BarraResto.IsVisible || DisplayTastierino.IsVisible;
+            if (RigaPosto.IsVisible != serve) RigaPosto.IsVisible = serve;
+            TotalePosto.IsVisible = !BarraResto.IsVisible;
+        }
+
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
@@ -108,6 +119,15 @@ namespace PosTouch.App.Pagine
             double destra = Math.Clamp(width * 0.26, 290, 420);
             Radice.ColumnDefinitions[0].Width = new GridLength(sinistra);
             Radice.ColumnDefinitions[2].Width = new GridLength(destra);
+            // schermi da 10"–15": righe e totale più grandi (su 8" restano come prima)
+            double fontRiga = Math.Clamp(destra / 24, 13, 17);
+            Resources["FontRiga"] = fontRiga;
+            Resources["FontRigaPiccola"] = fontRiga - 1;
+            EtichettaTotale.FontSize = Math.Clamp(destra / 13, 24, 32);
+
+            // 8" (meno di ~600 dp di altezza): più righe di scontrino a video
+            _compatto = height < 600;
+            AggiornaRigaPosto();
 
             double barra = Math.Clamp(height * 0.075, 50, 72);
             Radice.RowDefinitions[2].Height = new GridLength(barra);
@@ -117,7 +137,7 @@ namespace PosTouch.App.Pagine
             foreach (var rd in TastieraNumerica.RowDefinitions) rd.Height = new GridLength(riga);
             foreach (var b in TastieraNumerica.Children.OfType<Button>())
                 b.FontSize = b.Text == "€" ? riga * 0.6 : b.Text == "," ? riga * 0.55 : riga * 0.4;
-            RigaSconti.HeightRequest = RigaQuantita.HeightRequest = Math.Clamp(riga * 0.7, 36, 52);
+            RigaSconti.HeightRequest = RigaQuantita.HeightRequest = Math.Clamp(riga * 0.7, 44, 52);   // mai sotto i 44 dp (dito)
 
             // barra inferiore: testo che entra nei tasti
             double colonna = (width - destra - 12) / 5;

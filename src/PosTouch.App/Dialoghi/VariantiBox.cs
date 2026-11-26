@@ -18,6 +18,21 @@ namespace PosTouch.App.Dialoghi
         private readonly Label _riepilogo = new Label { FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"), VerticalOptions = LayoutOptions.Center };
         private readonly Button _applica;
 
+        /// <summary>Tessere più grandi sugli schermi larghi (10"–15"); 1 sugli 8".</summary>
+        private static double Scala
+        {
+            get
+            {
+                try
+                {
+                    var d = DeviceDisplay.MainDisplayInfo;
+                    double larghezzaDp = Math.Max(d.Width, d.Height) / Math.Max(1, d.Density);
+                    return Math.Clamp(larghezzaDp / 1280, 1, 1.3);
+                }
+                catch { return 1; }
+            }
+        }
+
         private VariantiBox(IList<Variante> varianti, bool aggiunta, string prodotto)
         {
             _aggiunta = aggiunta;
@@ -78,16 +93,16 @@ namespace PosTouch.App.Dialoghi
         private View Tasto(Variante v)
         {
             int p = PrezzoDi(v);
-            var nome = new Label { Text = v.Nome, FontSize = 16, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, MaxLines = 2, LineBreakMode = LineBreakMode.WordWrap };
+            var nome = new Label { Text = v.Nome, FontSize = 16 * Scala, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, MaxLines = 2, LineBreakMode = LineBreakMode.WordWrap };
             var prezzo = new Label
             {
-                Text = p > 0 ? $"{(_aggiunta ? "+" : "-")}€ {Euro(p)}" : "gratis", FontSize = 13, FontAttributes = FontAttributes.Bold,
+                Text = p > 0 ? $"{(_aggiunta ? "+" : "-")}€ {Euro(p)}" : "gratis", FontSize = 13 * Scala, FontAttributes = FontAttributes.Bold,
                 HorizontalTextAlignment = TextAlignment.Center
             };
             var stack = new VerticalStackLayout { VerticalOptions = LayoutOptions.Center, Spacing = 2, Children = { nome, prezzo } };
             var b = new Border
             {
-                WidthRequest = 176, HeightRequest = 72, Margin = new Thickness(4), Padding = new Thickness(6, 4),
+                WidthRequest = 176 * Scala, HeightRequest = 72 * Scala, Margin = new Thickness(4), Padding = new Thickness(6, 4),
                 StrokeShape = new RoundRectangle { CornerRadius = 10 }, StrokeThickness = 2, Content = stack
             };
             void Colora()

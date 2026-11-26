@@ -336,6 +336,6 @@
         </ScrollView>
 
         <!-- FOOTER -->
-        <Button Grid.Row="3" Text="✖ CHIUDI" HeightRequest="60" FontSize="24" BackgroundColor="#E53935" CornerRadius="10" Margin="0,5,0,0" Clicked="OnChiudi" />
+        <Button Grid.Row="3" Text="✖ CHIUDI" HeightRequest="60" FontSize="24" BackgroundColor="#78909C" CornerRadius="10" Margin="0,5,0,0" Clicked="OnChiudi" />
     </Grid>
 </ctl:PaginaPos>

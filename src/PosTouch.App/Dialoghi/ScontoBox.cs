@@ -32,6 +32,7 @@ namespace PosTouch.App.Dialoghi
                 b.BorderWidth = t == "⌫" ? 0 : 1;
                 b.Margin = new Thickness(4);
                 b.HeightRequest = 56;
+                _tasti.Add(b);
                 tastiera.Add(b, i % 3, i / 3);
             }
 
@@ -39,7 +40,7 @@ namespace PosTouch.App.Dialoghi
             azioni.Add(Ui.Tasto("ANNULLA", "#9E9E9E", fontSize: 18, altezza: 55, clic: (s, e) => Chiudi(null)), 0, 0);
             azioni.Add(Ui.Tasto("APPLICA", "#4CAF50", fontSize: 18, altezza: 55, clic: (s, e) => Applica()), 1, 0);
 
-            var corpo = new VerticalStackLayout { Padding = new Thickness(25) };
+            var corpo = _corpo = new VerticalStackLayout { Padding = new Thickness(25) };
             corpo.Add(new Label
             {
                 Text = percentuale ? "SCONTO PERCENTUALE" : $"SCONTO A VALORE\n(max € {subtotale:N2})",
@@ -48,6 +49,7 @@ namespace PosTouch.App.Dialoghi
             });
             var disp = Ui.Riquadro(_display, "#ECEFF1", 8, new Thickness(15));
             disp.Margin = new Thickness(0, 0, 0, 20);
+            _disp = disp; _azioni = azioni;
             corpo.Add(disp);
             corpo.Add(tastiera);
             corpo.Add(_errore);
@@ -62,6 +64,25 @@ namespace PosTouch.App.Dialoghi
             };
             Content = riquadro;
             Dimensiona(riquadro, 400);
+        }
+
+        private readonly List<Button> _tasti = new List<Button>();
+        private VerticalStackLayout _corpo;
+        private View _disp, _azioni;
+
+        /// <summary>Schermo basso (8"): margini e tasti si stringono perché ANNULLA/APPLICA restino sempre in vista.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (height <= 0 || _corpo == null) return;
+            bool basso = height < 640;
+            _corpo.Padding = new Thickness(basso ? 16 : 25, basso ? 10 : 25);
+            _disp.Margin = new Thickness(0, 0, 0, basso ? 8 : 20);
+            _azioni.Margin = new Thickness(0, basso ? 8 : 20, 0, 0);
+            // spazio fisso: titolo, display, tasti finali, margini; il resto ai 4 righe di tasti
+            double fisso = basso ? 230 : 300;
+            double tasto = Math.Clamp((height - 24 - fisso) / 4 - 8, 44, 56);
+            foreach (var b in _tasti) b.HeightRequest = tasto;
         }
 
         private void Premi(string t)

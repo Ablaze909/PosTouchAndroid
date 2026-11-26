@@ -57,6 +57,6 @@
             </Border>
         </Grid>
 
-        <Button Grid.Row="2" Text="✖ CHIUDI" HeightRequest="60" FontSize="20" BackgroundColor="#E53935" CornerRadius="10" Clicked="OnChiudi" />
+        <Button Grid.Row="2" Text="✖ CHIUDI" HeightRequest="60" FontSize="20" BackgroundColor="#78909C" CornerRadius="10" Clicked="OnChiudi" />
     </Grid>
 </ctl:PaginaPos>

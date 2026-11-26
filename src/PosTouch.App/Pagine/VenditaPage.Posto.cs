@@ -63,6 +63,7 @@ namespace PosTouch.App.Pagine
             if (_sessione == null)
             {
                 colore = TavoliPage.ColoreBanco; titolo = "🧾 BANCO"; dettaglio = "Vendita diretta";
+                AvvisoSalvataggio.IsVisible = false;   // al banco non c'è tavolo da salvare
                 BtnEsci.Text = "🚪"; BtnEsci.FontSize = 22; BtnEsci.BackgroundColor = Color.FromArgb("#B71C1C");
             }
             else
@@ -90,11 +91,12 @@ namespace PosTouch.App.Pagine
             BandaPosto.BackgroundColor = c;
             BandaTitolo.Text = titolo;
             BandaDettaglio.Text = dettaglio;
-            RiquadroTotale.BackgroundColor = c;
+            // totale nero su chiaro (leggibile con qualsiasi colore di sala): il colore resta nella striscia a sinistra
+            StrisciaPosto.Color = c;
             TotalePosto.Text = titolo;
-            var chiaro = Color.FromArgb("#ECEFF1");
-            EtichettaTotale.TextColor = EtichettaTotaleScritta.TextColor = Colors.White;
-            EtichettaPezzi.TextColor = chiaro;
+            TotalePosto.TextColor = Color.FromArgb("#37474F");
+            EtichettaTotale.TextColor = EtichettaTotaleScritta.TextColor = Color.FromArgb("#111111");
+            EtichettaPezzi.TextColor = Color.FromArgb("#607D8B");
         }
     }
 }
