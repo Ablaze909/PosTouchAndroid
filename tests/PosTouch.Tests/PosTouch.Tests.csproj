@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     Test automatici della logica (PosTouch.Core). Girano su GitHub a ogni build PRIMA dell'APK:
-    se un test fallisce l'APK non viene prodotto. Avvio: dotnet run --project tests/PosTouch.Tests
+    se un test fallisce l'APK non viene prodotto. Avvio: dotnet run (opzione project) sulla cartella tests/PosTouch.Tests
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

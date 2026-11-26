@@ -284,10 +284,10 @@ namespace PosTouch.App.Pagine
                 var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Scegli il file pos.db" });
                 if (file == null) return;
                 using var stream = await file.OpenReadAsync();
-                int n = await Task.Run(() => ContestoCassa.Catalogo.Importa(stream));
-                InfoCatalogo.Text = $"{ContestoCassa.Catalogo.TutteCategorie.Count} categorie, {n} prodotti";
+                int n = await ManutenzioneDati.ImportaCatalogoAsync(stream);
+                MostraInfoCatalogo();
                 await MessaggioBox.Successo("CATALOGO IMPORTATO", $"Importati {n} prodotti in {ContestoCassa.Catalogo.TutteCategorie.Count} categorie.");
-                await AvvisaCentriMancantiAsync();
+                await AvvisaUsciteMancantiAsync();
             }
             catch (Exception ex)
             {
@@ -296,23 +296,11 @@ namespace PosTouch.App.Pagine
             }
         }
 
-        /// <summary>
-        /// 🧪 Dati di prova: catalogo d'esempio (pizze con combinazioni, primi, secondi, bevande con barcode,
-        /// gastronomia a peso con codice bilancia, coperti, 25 varianti in gruppi) e configurazione sale/uscite
-        /// per provare tutto. Le stampanti (IP) restano quelle impostate.
-        /// </summary>
+        /// <summary>🧪 Dati di prova (vedi <see cref="ManutenzioneDati.CaricaDatiProvaAsync"/>).</summary>
         private async void OnDatiProva(object sender, EventArgs e)
         {
-            if (ContestoCassa.Tavoli.Aperti().Any(t => t.Articoli > 0))
-            {
-                await MessaggioBox.Avviso("TAVOLI APERTI", "Ci sono tavoli o conti aperti: incassali prima di caricare i dati di prova.");
-                return;
-            }
-            if (!ContestoCassa.Carrello.Vuoto)
-            {
-                await MessaggioBox.Avviso("SCONTRINO APERTO", "Al banco c'è uno scontrino aperto: chiudilo prima di caricare i dati di prova.");
-                return;
-            }
+            var blocco = ManutenzioneDati.BloccoDatiProva();
+            if (blocco != null) { await MessaggioBox.Avviso("DATI DI PROVA", blocco); return; }
             if (!await MessaggioBox.Conferma("🧪 DATI DI PROVA",
                     "Il catalogo del tablet verrà SOSTITUITO da un catalogo di prova (10 categorie, 58 articoli, 25 varianti).\n\n" +
                     "Vengono impostate anche: 2 sale (SALA 1 e TERRAZZA) con coperto, conti clienti, portate, uscite CUCINA / BAR / PIZZERIA.\n" +
@@ -320,24 +308,14 @@ namespace PosTouch.App.Pagine
                 return;
             try
             {
-                int n;
-                using (var s = await FileSystem.OpenAppPackageFileAsync("catalogo_prova.db"))
-                using (var copia = new MemoryStream())
-                {
-                    await s.CopyToAsync(copia);
-                    copia.Position = 0;
-                    n = await Task.Run(() => ContestoCassa.Catalogo.Importa(copia));
-                }
-                var imp = ContestoCassa.Impostazioni.Copia();
-                ConfiguraProva(imp, ContestoCassa.Catalogo);
-                ContestoCassa.SalvaImpostazioni(imp);
-                InfoCatalogo.Text = $"{ContestoCassa.Catalogo.TutteCategorie.Count} categorie, {n} prodotti";
+                int n = await ManutenzioneDati.CaricaDatiProvaAsync();
+                MostraInfoCatalogo();
                 await MessaggioBox.Successo("🧪 DATI DI PROVA CARICATI",
                     $"{n} articoli in {ContestoCassa.Catalogo.TutteCategorie.Count} categorie.\n\n" +
                     "Da provare:\n• PIZZA ½ + ½ e PIZZA 3 GUSTI (combinazioni)\n• GASTRONOMIA a peso (etichetta bilancia 2 00011 …)\n" +
                     "• Barcode bevande (es. 5449000000996 = COCA COLA)\n• VAR＋/VAR﹣ su pizze, primi, secondi, bevande\n• ⬅ SALA: SALA 1 (1-10) e TERRAZZA (101-110)\n\n" +
                     "Imposta gli IP delle stampanti in 🍽️ SALE E STAMPE → OPZIONI DI STAMPA.");
-                _statoIniziale = Firma();   // le impostazioni della pagina restano quelle a video
+                _statoIniziale = Firma();
             }
             catch (Exception ex)
             {
@@ -346,42 +324,13 @@ namespace PosTouch.App.Pagine
             }
         }
 
-        /// <summary>Sale, coperti, portate e uscite adatti al catalogo di prova (le stampanti restano quelle impostate).</summary>
-        private static void ConfiguraProva(Impostazioni imp, PosTouch.Core.Dati.Catalogo cat)
-        {
-            int coperto = cat.TuttiProdotti.FirstOrDefault(p => p.Descrizione == "COPERTO")?.Id ?? 0;
-            int copertoTerrazza = cat.TuttiProdotti.FirstOrDefault(p => p.Descrizione == "COPERTO TERRAZZA")?.Id ?? coperto;
-            var s = imp.Sale;
-            s.AbilitaSale = true;
-            s.AbilitaContiClienti = true;
-            s.NumeroSlotContiClienti = 10;
-            s.AbilitaComande = true;
-            s.AbilitaPortate = true;
-            if (s.SeparatoriPortate.Count == 0) s.SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2", "SEGUE 3" };
-            s.Sale = new List<Sala>
-            {
-                new Sala { Id = 1, Nome = "SALA 1", NumeroTavoli = 10, NumeroIniziale = 1, CopertoProdottoId = coperto },
-                new Sala { Id = 2, Nome = "TERRAZZA", NumeroTavoli = 10, NumeroIniziale = 101, CopertoProdottoId = copertoTerrazza }
-            };
-            imp.PreparaStampe();
-            var st = imp.Stampe;
-            foreach (var (num, nome) in new[] { (1, "CUCINA"), (2, "BAR"), (3, "PIZZERIA") })
-            {
-                var u = st.UscitaDa(num);
-                if (u == null) st.Uscite.Add(new Uscita { Numero = num, Nome = nome }); else u.Nome = nome;
-            }
-            st.Normalizza();
-        }
+        private void MostraInfoCatalogo() =>
+            InfoCatalogo.Text = $"{ContestoCassa.Catalogo.TutteCategorie.Count} categorie, {ContestoCassa.Catalogo.TuttiProdotti.Count} prodotti";
 
-        /// <summary>Dopo l'import: centri di produzione usati dal catalogo del PC ma non impostati qui (le comande non uscirebbero).</summary>
-        private async Task AvvisaCentriMancantiAsync()
+        /// <summary>Dopo l'import: uscite usate dal catalogo del PC ma non impostate qui (le comande non uscirebbero).</summary>
+        private static async Task AvvisaUsciteMancantiAsync()
         {
-            var cfg = ContestoCassa.Impostazioni.Sale;
-            if (!cfg.AbilitaSale && ContestoCassa.Impostazioni.Stampe?.ComandeDaBanco != true) return;
-            var noti = (ContestoCassa.Impostazioni.Stampe?.Uscite ?? new()).Select(u => u.Numero).ToHashSet();
-            var usati = ContestoCassa.Catalogo.TutteCategorie.Select(c => c.CentroProduzioneId)
-                        .Concat(ContestoCassa.Catalogo.TuttiProdotti.Select(p => p.CentroProduzioneId))
-                        .Where(id => id > 0 && !noti.Contains(id)).Distinct().OrderBy(id => id).ToList();
+            var usati = ManutenzioneDati.UsciteMancanti();
             if (usati.Count > 0)
                 await MessaggioBox.Avviso("CENTRI DI PRODUZIONE", $"Il catalogo usa uscite (centri) non impostate sul tablet (n. {string.Join(", ", usati)}).\n\n" +
                                           "Aggiungi le uscite con quei numeri in 🖨️ STAMPE, altrimenti quegli articoli non vanno in comanda.");
@@ -389,16 +338,13 @@ namespace PosTouch.App.Pagine
 
         private async void OnCondividiLog(object sender, EventArgs e)
         {
-            LogManager.Svuota();   // le ultime righe in coda finiscono nel file prima di condividerlo
-            string percorso = LogManager.Percorso;
-            if (percorso == null || !File.Exists(percorso))
+            try
             {
-                await MessaggioBox.Info("LOG", "Nessun log presente.");
-                return;
+                var copia = ManutenzioneDati.CopiaLog();
+                if (copia == null) { await MessaggioBox.Info("LOG", "Nessun log presente."); return; }
+                await Share.Default.RequestAsync(new ShareFileRequest { Title = "Log POS Touch", File = new ShareFile(copia) });
             }
-            string copia = Path.Combine(FileSystem.CacheDirectory, $"postouch_log_{DateTime.Now:yyyyMMdd_HHmm}.txt");
-            File.Copy(percorso, copia, overwrite: true);
-            await Share.Default.RequestAsync(new ShareFileRequest { Title = "Log POS Touch", File = new ShareFile(copia) });
+            catch (Exception ex) { await MessaggioBox.Errore("LOG", ex.Message); }
         }
     }
 }

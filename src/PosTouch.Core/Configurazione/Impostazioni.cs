@@ -70,7 +70,15 @@ namespace PosTouch.Core.Configurazione
         {
             Sale ??= new ConfigSale();
             Sale.Normalizza();
-            Stampe ??= ConfigStampe.DaVecchia(Sale, IP_Termica, Porta_Termica, Sale.CicalinoComande > 0);
+            if (Stampe == null)
+            {
+                Stampe = ConfigStampe.DaVecchia(Sale, IP_Termica, Porta_Termica, Sale.CicalinoComande > 0);
+                // passaggio fatto: le vecchie voci non servono più (restano solo per leggere i file delle versioni vecchie)
+                Sale.Stampanti.Clear();
+                Sale.Centri.Clear();
+                Sale.StampantiSala.Clear();
+                IP_Termica = "";
+            }
             Stampe.Normalizza();
         }
         /// <summary>Mostra la riga ＋/﹣ sotto la tastiera (MostraRigaVariantiVendita del PC).</summary>

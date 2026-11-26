@@ -49,6 +49,7 @@ namespace PosTouch.Core.Configurazione
         public int NumeroSlotContiClienti { get; set; } = 10;
         public const int SalaConti = 0;
         public List<Sala> Sale { get; set; } = new List<Sala> { new Sala { Id = 1, Nome = "Sala 1" } };
+        // ── SOLO PER IL PASSAGGIO ALLE "OPZIONI DI STAMPA" (ConfigStampe): lette dai file vecchi, poi svuotate ──
         public List<StampanteRete> Stampanti { get; set; } = new List<StampanteRete>();
         public List<CentroProduzione> Centri { get; set; } = new List<CentroProduzione>
         {
@@ -56,6 +57,7 @@ namespace PosTouch.Core.Configurazione
             new CentroProduzione { Id = 2, Nome = "BAR" }
         };
         public List<StampanteSala> StampantiSala { get; set; } = new List<StampanteSala>();
+        // ── fine voci vecchie ──
 
         // ── comande (stesse opzioni del PC) ──
         public bool AbilitaComande { get; set; } = true;
