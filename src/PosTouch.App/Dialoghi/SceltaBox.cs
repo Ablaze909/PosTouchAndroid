@@ -38,7 +38,8 @@ namespace PosTouch.App.Dialoghi
                 Content = corpo
             };
             Content = riquadro;
-            Dimensiona(riquadro, Math.Min(760, 110 * colonne + 80), Math.Min(720, 170 + righe * (altezzaTasto + 8)));
+            // minimo 460 di larghezza: con 1-2 colonne il titolo andava a capo e le voci lunghe si tagliavano
+            Dimensiona(riquadro, Math.Min(760, Math.Max(460, 110 * colonne + 80)), Math.Min(720, 200 + righe * (altezzaTasto + 8)));
         }
 
         /// <summary>Tasto indietro di Android = ANNULLA (-1), non la prima voce.</summary>

@@ -79,14 +79,15 @@
 
                         <!-- ═══ TIPO ARTICOLO: peso / codice bilancia / combinazione (come il PC) ═══ -->
                         <Label Text="Tipo articolo" Style="{StaticResource Etichetta}" />
-                        <Border Style="{StaticResource Campo}" Padding="10,6">
+                        <!-- HeightRequest -1: lo stile Campo fissa 44 e tagliava tutto sotto i tasti (opzioni invisibili) -->
+                        <Border Style="{StaticResource Campo}" Padding="10,6" HeightRequest="-1">
                             <VerticalStackLayout Spacing="2">
                                 <!-- un solo tipo per articolo: tasti grandi che si accendono -->
                                 <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6" Margin="0,2,0,6">
-                                    <Button x:Name="BtnTipoStandard" Grid.Column="0" Text="📦 STANDARD" FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoStandard" />
-                                    <Button x:Name="BtnTipoCoperto" Grid.Column="1" Text="🍽️ COPERTO" FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoCoperto" />
-                                    <Button x:Name="BtnTipoPeso" Grid.Column="2" Text="⚖️ A PESO" FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoPeso" />
-                                    <Button x:Name="BtnTipoCombinazione" Grid.Column="3" Text="🍕 COMBINAZ." FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoCombinazione" />
+                                    <Button x:Name="BtnTipoStandard" Grid.Column="0" Text="📦&#10;STANDARD" FontSize="12" LineBreakMode="WordWrap" FontAttributes="Bold" HeightRequest="58" CornerRadius="6" Padding="2,0" Clicked="OnTipoStandard" />
+                                    <Button x:Name="BtnTipoCoperto" Grid.Column="1" Text="🍽️&#10;COPERTO" FontSize="12" LineBreakMode="WordWrap" FontAttributes="Bold" HeightRequest="58" CornerRadius="6" Padding="2,0" Clicked="OnTipoCoperto" />
+                                    <Button x:Name="BtnTipoPeso" Grid.Column="2" Text="⚖️&#10;A PESO" FontSize="12" LineBreakMode="WordWrap" FontAttributes="Bold" HeightRequest="58" CornerRadius="6" Padding="2,0" Clicked="OnTipoPeso" />
+                                    <Button x:Name="BtnTipoCombinazione" Grid.Column="3" Text="🍕&#10;COMBINAZ." FontSize="12" LineBreakMode="WordWrap" FontAttributes="Bold" HeightRequest="58" CornerRadius="6" Padding="2,0" Clicked="OnTipoCombinazione" />
                                 </Grid>
                                 <Label x:Name="AiutoTipo" FontSize="12" TextColor="#78909C" Margin="2,0,0,4" />
                                 <!-- opzioni del tipo (peso / combinazione): riepilogo sempre visibile + tasto che apre la scelta -->

@@ -61,7 +61,7 @@
                     </Border>
 
                     <Label Text="🍽️ Comande (uscita di stampa)" Style="{StaticResource Etichetta}" />
-                    <Border Style="{StaticResource Campo}">
+                    <Border Style="{StaticResource Campo}" HeightRequest="-1" Padding="10,10">
                         <VerticalStackLayout>
                             <ctl:CampoScelta x:Name="SceltaCentro" FontSize="15" Titolo="Uscita di stampa" Colonne="2" />
                             <HorizontalStackLayout x:Name="RigaEscludiBanco" Margin="0,6,0,0">
