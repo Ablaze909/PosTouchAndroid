@@ -34,6 +34,37 @@ namespace PosTouch.App.Controlli
             _incarto = false;
         }
 
+        private bool _spunteFatte;
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            if (_spunteFatte) return;
+            _spunteFatte = true;
+            RendiSpunteToccabili(Content);
+        }
+
+        /// <summary>
+        /// Come le CheckBox del PC (testo dentro la spunta): toccare la scritta accanto a una casella la accende/spegne.
+        /// Vale per ogni riga "casella + scritta" (HorizontalStackLayout) della pagina.
+        /// </summary>
+        internal static void RendiSpunteToccabili(IVisualTreeElement radice)
+        {
+            if (radice == null) return;
+            foreach (var riga in radice.GetVisualTreeDescendants().OfType<HorizontalStackLayout>())
+            {
+                var casella = riga.Children.OfType<CheckBox>().FirstOrDefault();
+                if (casella == null) continue;
+                foreach (var scritta in riga.Children.OfType<Label>())
+                {
+                    if (scritta.GestureRecognizers.OfType<TapGestureRecognizer>().Any()) continue;
+                    var tap = new TapGestureRecognizer();
+                    tap.Tapped += (s, e) => { if (casella.IsEnabled && casella.IsVisible) casella.IsChecked = !casella.IsChecked; };
+                    scritta.GestureRecognizers.Add(tap);
+                }
+            }
+        }
+
         internal void AggiungiLivello(View livello)
         {
             if (_ospite == null) return;

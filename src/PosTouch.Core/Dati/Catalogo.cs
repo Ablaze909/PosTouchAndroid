@@ -169,6 +169,7 @@ namespace PosTouch.Core.Dati
                         VenditaAPeso = l.Bool("VenditaAPeso"),
                         UnitaPeso = l.Testo("UnitaPeso", "Kg"),
                         IsCombinazione = l.Bool("IsCombinazione"),
+                        IsCoperto = l.Bool("IsCoperto"),
                         NumeroGusti = Math.Clamp(l.Int("NumeroGusti", 2), 2, 8),
                         PoliticaPrezzo = Math.Clamp(l.Int("PoliticaPrezzo"), 0, 2),
                         IsCodiceBilancia = l.Bool("IsCodiceBilancia"),

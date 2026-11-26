@@ -27,8 +27,10 @@ namespace PosTouch.Core.Modelli
         /// <summary>Vendita a peso (dal PC): la quantità è il peso, il prezzo è per unità di peso.</summary>
         public bool VenditaAPeso { get; set; }
         public string UnitaPeso { get; set; } = "Kg";
-        /// <summary>Articolo combinazione multi-gusto (dal PC): non ancora gestito su Android.</summary>
+        /// <summary>Articolo combinazione multi-gusto (pizza ½+½ ecc.).</summary>
         public bool IsCombinazione { get; set; }
+        /// <summary>Articolo COPERTO (colonna IsCoperto del PC): si sceglie come coperto delle sale.</summary>
+        public bool IsCoperto { get; set; }
         /// <summary>Combinazione: quanti gusti (2 = ½+½, 3, 4...).</summary>
         public int NumeroGusti { get; set; } = 2;
         /// <summary>Combinazione: 0 = prezzo del gusto più caro, 1 = media dei gusti, 2 = prezzo fisso dell'articolo.</summary>

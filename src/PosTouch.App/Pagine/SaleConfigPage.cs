@@ -115,10 +115,14 @@ namespace PosTouch.App.Pagine
                             Campo(_c.NumeroSlotContiClienti.ToString(), t => _c.NumeroSlotContiClienti = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric, 90)
                         }
                     },
-                    Ui.Testo("Il coperto (se scelto) viene chiesto all'apertura di un tavolo nuovo.", 13, "#999999")
+                    Ui.Testo("Il coperto (se scelto) viene chiesto all'apertura di un tavolo nuovo. Nell'articolo scegli il tipo 🍽️ COPERTO per vederlo qui.", 13, "#999999")
                 }
             }));
-            var prodotti = ContestoCassa.Catalogo.TuttiProdotti.ToList();
+            // come il PC: si scelgono solo gli articoli segnati 🍽️ COPERTO (più quello già assegnato, per non perderlo);
+            // se nessun articolo è segnato si mostrano tutti
+            var tutti = ContestoCassa.Catalogo.TuttiProdotti.ToList();
+            var assegnati = _c.Sale.Select(s => s.CopertoProdottoId).ToHashSet();
+            var prodotti = tutti.Any(p => p.IsCoperto) ? tutti.Where(p => p.IsCoperto || assegnati.Contains(p.Id)).ToList() : tutti;
             var vociCoperto = new[] { "Nessuno" }.Concat(prodotti.Select(p => $"{p.Descrizione} ({p.CategoriaNome})")).ToList();
 
             var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8, ColumnDefinitions = { new(GridLength.Star), new(new GridLength(110)), new(new GridLength(120)), new(GridLength.Star), new(GridLength.Auto) } };

@@ -38,6 +38,8 @@ namespace PosTouch.Core.Configurazione
         public bool UsaBarcodeBilancia { get; set; } = false;
         /// <summary>Stampa varianti e gusti sotto l'articolo sullo scontrino fiscale (VariantiSuScontrino del PC).</summary>
         public bool VariantiSuScontrino { get; set; } = false;
+        /// <summary>In vendita le varianti si mostrano divise per GRUPPO (false = tutte insieme in ordine alfabetico).</summary>
+        public bool VariantiPerGruppo { get; set; } = true;
         /// <summary>Stampa varianti e gusti sotto l'articolo su conto e preconto.</summary>
         public bool VariantiSuConto { get; set; } = false;
 

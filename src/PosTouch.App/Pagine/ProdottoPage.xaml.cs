@@ -19,11 +19,39 @@ namespace PosTouch.App.Pagine
         private static readonly int[] Gusti = { 2, 3, 4, 5, 6 };
         private static readonly List<string> Politiche = new() { "Prezzo del gusto più caro", "Media dei gusti", "Prezzo fisso dell'articolo" };
 
-        /// <summary>Mostra le opzioni del tipo scelto (unità di peso / gusti e prezzo).</summary>
-        private void OnTipoArticolo(object sender, CheckedChangedEventArgs e)
+        // ══════════════ tipo articolo (uno solo: standard / coperto / a peso / combinazione) ══════════════
+
+        private enum TipoArticolo { Standard, Coperto, Peso, Combinazione }
+        private TipoArticolo _tipo;
+
+        private void OnTipoStandard(object s, EventArgs e) => ImpostaTipo(TipoArticolo.Standard);
+        private void OnTipoCoperto(object s, EventArgs e) => ImpostaTipo(TipoArticolo.Coperto);
+        private void OnTipoPeso(object s, EventArgs e) => ImpostaTipo(TipoArticolo.Peso);
+        private void OnTipoCombinazione(object s, EventArgs e) => ImpostaTipo(TipoArticolo.Combinazione);
+
+        /// <summary>Accende il tasto del tipo scelto e mostra le sue opzioni (unità di peso / gusti e prezzo).</summary>
+        private void ImpostaTipo(TipoArticolo t)
         {
-            PannelloPeso.IsVisible = ChkPeso.IsChecked;
-            PannelloCombinazione.IsVisible = ChkCombinazione.IsChecked;
+            _tipo = t;
+            void Colora(Button b, TipoArticolo x, string colore)
+            {
+                bool on = t == x;
+                b.BackgroundColor = Color.FromArgb(on ? colore : "#ECEFF1");
+                b.TextColor = Color.FromArgb(on ? "#FFFFFF" : "#546E7A");
+            }
+            Colora(BtnTipoStandard, TipoArticolo.Standard, "#546E7A");
+            Colora(BtnTipoCoperto, TipoArticolo.Coperto, "#00897B");
+            Colora(BtnTipoPeso, TipoArticolo.Peso, "#6D4C41");
+            Colora(BtnTipoCombinazione, TipoArticolo.Combinazione, "#E65100");
+            PannelloPeso.IsVisible = t == TipoArticolo.Peso;
+            PannelloCombinazione.IsVisible = t == TipoArticolo.Combinazione;
+            AiutoTipo.Text = t switch
+            {
+                TipoArticolo.Coperto => "Si sceglie come coperto della sala (SALE E COMANDE): viene chiesto all'apertura del tavolo.",
+                TipoArticolo.Peso => "In vendita chiede il peso; il prezzo è per unità di peso.",
+                TipoArticolo.Combinazione => "In vendita si scelgono i gusti (es. pizza ½ + ½); il prezzo segue la regola scelta.",
+                _ => "Articolo normale."
+            };
         }
 
         public ProdottoPage(Prodotto esistente, int categoriaId)
@@ -42,7 +70,7 @@ namespace PosTouch.App.Pagine
                     IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo, CentroProduzioneId = esistente.CentroProduzioneId,
                     VenditaAPeso = esistente.VenditaAPeso, UnitaPeso = esistente.UnitaPeso, IsCodiceBilancia = esistente.IsCodiceBilancia,
                     IsCombinazione = esistente.IsCombinazione, NumeroGusti = esistente.NumeroGusti, PoliticaPrezzo = esistente.PoliticaPrezzo,
-                    VariantiProporzionali = esistente.VariantiProporzionali
+                    VariantiProporzionali = esistente.VariantiProporzionali, IsCoperto = esistente.IsCoperto
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
@@ -50,17 +78,15 @@ namespace PosTouch.App.Pagine
             SwAttivo.IsToggled = _p.Attivo;
 
             // tipo articolo
-            ChkPeso.IsChecked = _p.VenditaAPeso;
+            ImpostaTipo(_p.IsCombinazione ? TipoArticolo.Combinazione : _p.VenditaAPeso ? TipoArticolo.Peso : _p.IsCoperto ? TipoArticolo.Coperto : TipoArticolo.Standard);
             SceltaUnita.Voci = Unita;
             SceltaUnita.Indice = Math.Max(0, Array.IndexOf(Unita, _p.UnitaPeso));
             ChkBilancia.IsChecked = _p.IsCodiceBilancia;
-            ChkCombinazione.IsChecked = _p.IsCombinazione;
             SceltaGusti.Voci = Gusti.Select(g => $"{g} gusti").ToList();
             SceltaGusti.Indice = Math.Max(0, Array.IndexOf(Gusti, _p.NumeroGusti));
             SceltaPolitica.Voci = Politiche;
             SceltaPolitica.Indice = Math.Clamp(_p.PoliticaPrezzo, 0, 2);
             ChkProporzionali.IsChecked = _p.VariantiProporzionali;
-            OnTipoArticolo(null, null);
 
             // centro comande: come la categoria / nessuna stampa / centro specifico
             _centri = ContestoCassa.Impostazioni.Sale.Centri.ToList();
@@ -201,15 +227,11 @@ namespace PosTouch.App.Pagine
                     "Il prezzo è € 0,00.\n\nIn vendita verrà chiesto il prezzo ad ogni battitura. Continuare?"))
                 return;
 
-            if (ChkPeso.IsChecked && ChkCombinazione.IsChecked)
-            {
-                await MessaggioBox.Avviso("TIPO ARTICOLO", "Un articolo non può essere sia a peso sia a combinazione.");
-                return;
-            }
-            _p.VenditaAPeso = ChkPeso.IsChecked;
+            _p.VenditaAPeso = _tipo == TipoArticolo.Peso;
+            _p.IsCoperto = _tipo == TipoArticolo.Coperto;
             _p.UnitaPeso = Unita[Math.Max(0, SceltaUnita.Indice)];
             _p.IsCodiceBilancia = ChkBilancia.IsChecked;
-            _p.IsCombinazione = ChkCombinazione.IsChecked;
+            _p.IsCombinazione = _tipo == TipoArticolo.Combinazione;
             _p.NumeroGusti = Gusti[Math.Max(0, SceltaGusti.Indice)];
             _p.PoliticaPrezzo = Math.Max(0, SceltaPolitica.Indice);
             _p.VariantiProporzionali = ChkProporzionali.IsChecked;

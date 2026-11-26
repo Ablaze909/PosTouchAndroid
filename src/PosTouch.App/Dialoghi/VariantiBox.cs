@@ -30,15 +30,21 @@ namespace PosTouch.App.Dialoghi
 
             // ── gruppi e tasti ──
             var lista = new VerticalStackLayout { Spacing = 4, Padding = new Thickness(12, 6) };
-            foreach (var g in varianti.GroupBy(v => v.GruppoDisplay).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
+            bool perGruppo = PosTouch.App.Servizi.ContestoCassa.Impostazioni.VariantiPerGruppo;
+            var gruppi = perGruppo
+                ? varianti.GroupBy(v => v.GruppoDisplay).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+                : varianti.GroupBy(v => "");   // flag spento: un solo elenco, senza titoli
+            foreach (var g in gruppi)
             {
-                lista.Add(new Label
+                if (perGruppo) lista.Add(new Label
                 {
                     Text = g.Key.ToUpperInvariant(), FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#E65100"),
                     BackgroundColor = Ui.C("#FFF3E0"), Padding = new Thickness(10, 5), Margin = new Thickness(0, 6, 0, 2)
                 });
                 var flex = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
-                foreach (var v in g.OrderBy(v => v.Ordine).ThenBy(v => v.Nome, StringComparer.OrdinalIgnoreCase))
+                var ordinate = perGruppo ? g.OrderBy(v => v.Ordine).ThenBy(v => v.Nome, StringComparer.OrdinalIgnoreCase)
+                                         : g.OrderBy(v => v.Nome, StringComparer.OrdinalIgnoreCase);
+                foreach (var v in ordinate)
                     flex.Add(Tasto(v));
                 lista.Add(flex);
             }

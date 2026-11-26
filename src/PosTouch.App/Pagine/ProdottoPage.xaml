@@ -81,10 +81,14 @@
                         <Label Text="Tipo articolo" Style="{StaticResource Etichetta}" />
                         <Border Style="{StaticResource Campo}" Padding="10,6">
                             <VerticalStackLayout Spacing="2">
-                                <HorizontalStackLayout>
-                                    <CheckBox x:Name="ChkPeso" Color="#4CAF50" CheckedChanged="OnTipoArticolo" />
-                                    <Label Text="⚖️ Vendita a PESO" FontSize="15" VerticalOptions="Center" />
-                                </HorizontalStackLayout>
+                                <!-- un solo tipo per articolo: tasti grandi che si accendono -->
+                                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6" Margin="0,2,0,6">
+                                    <Button x:Name="BtnTipoStandard" Grid.Column="0" Text="📦 STANDARD" FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoStandard" />
+                                    <Button x:Name="BtnTipoCoperto" Grid.Column="1" Text="🍽️ COPERTO" FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoCoperto" />
+                                    <Button x:Name="BtnTipoPeso" Grid.Column="2" Text="⚖️ A PESO" FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoPeso" />
+                                    <Button x:Name="BtnTipoCombinazione" Grid.Column="3" Text="🍕 COMBINAZ." FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoCombinazione" />
+                                </Grid>
+                                <Label x:Name="AiutoTipo" FontSize="12" TextColor="#78909C" Margin="2,0,0,4" />
                                 <Grid x:Name="PannelloPeso" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="34,0,0,4" IsVisible="False">
                                     <Label Text="Prezzo al:" FontSize="14" VerticalOptions="Center" />
                                     <ctl:CampoScelta x:Name="SceltaUnita" Grid.Column="1" FontSize="15" Titolo="Unità di peso" Colonne="3" />
@@ -92,10 +96,6 @@
                                 <HorizontalStackLayout>
                                     <CheckBox x:Name="ChkBilancia" Color="#4CAF50" />
                                     <Label Text="🏷️ Codice bilancia (barcode = 5 cifre dell'etichetta)" FontSize="15" VerticalOptions="Center" />
-                                </HorizontalStackLayout>
-                                <HorizontalStackLayout>
-                                    <CheckBox x:Name="ChkCombinazione" Color="#4CAF50" CheckedChanged="OnTipoArticolo" />
-                                    <Label Text="🍕 Combinazione (multi-gusto)" FontSize="15" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
                                 <Grid x:Name="PannelloCombinazione" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6" Margin="34,0,0,4" IsVisible="False">
                                     <Label Text="Gusti:" FontSize="14" VerticalOptions="Center" />
