@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:m="clr-namespace:PosTouch.Core.Modelli;assembly=PosTouch.Core"
+             xmlns:conv="clr-namespace:PosTouch.App.Convertitori"
+             x:Class="PosTouch.App.Pagine.VenditaPage"
+             Title="POS Touch — Banco">
+
+    <ContentPage.Resources>
+        <conv:ColoreConverter x:Key="Colore" />
+    </ContentPage.Resources>
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Funzioni cassa" Clicked="OnFunzioniCassa" />
+        <ToolbarItem Text="Impostazioni" Clicked="OnImpostazioni" />
+    </ContentPage.ToolbarItems>
+
+    <Grid>
+        <Grid ColumnDefinitions="*,380" RowDefinitions="Auto,*" Padding="8" ColumnSpacing="8" RowSpacing="8">
+
+            <!-- ═══ CATEGORIE ═══ -->
+            <CollectionView x:Name="ListaCategorie" Grid.Row="0" Grid.Column="0"
+                            HeightRequest="64" SelectionMode="Single"
+                            SelectionChanged="OnCategoriaScelta">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="6" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:Categoria">
+                        <Border StrokeThickness="0" Padding="14,0" HeightRequest="58" MinimumWidthRequest="110"
+                                BackgroundColor="{Binding Colore, Converter={StaticResource Colore}, ConverterParameter='#2196F3'}">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                            <Label Text="{Binding Nome}" FontAttributes="Bold" FontSize="15"
+                                   TextColor="{Binding ColoreTesto, Converter={StaticResource Colore}, ConverterParameter='#000000'}"
+                                   VerticalOptions="Center" HorizontalOptions="Center" />
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- ═══ PRODOTTI ═══ -->
+            <CollectionView x:Name="ListaProdotti" Grid.Row="1" Grid.Column="0"
+                            SelectionMode="Single" SelectionChanged="OnProdottoScelto">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="5" HorizontalItemSpacing="6" VerticalItemSpacing="6" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <Label x:Name="MessaggioVuoto" HorizontalTextAlignment="Center" VerticalOptions="Center"
+                           TextColor="{StaticResource TestoTenue}" FontSize="16" Margin="20" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:Prodotto">
+                        <Border StrokeThickness="0" HeightRequest="92" Padding="6"
+                                BackgroundColor="{Binding Colore, Converter={StaticResource Colore}, ConverterParameter='#455A64'}">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                            <Grid RowDefinitions="*,Auto">
+                                <Label Text="{Binding Descrizione}" FontAttributes="Bold" FontSize="14" MaxLines="3"
+                                       LineBreakMode="WordWrap" HorizontalTextAlignment="Center" VerticalOptions="Center"
+                                       TextColor="{Binding ColoreTesto, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}" />
+                                <Label Grid.Row="1" Text="{Binding PrezzoEuro, StringFormat='€ {0:N2}'}" FontSize="13"
+                                       HorizontalTextAlignment="Center"
+                                       TextColor="{Binding ColoreTesto, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- ═══ SCONTRINO ═══ -->
+            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" BackgroundColor="{StaticResource Pannello}"
+                    StrokeThickness="0" Padding="8">
+                <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+
+                    <Entry x:Name="CampoBarcode" Grid.Row="0" Placeholder="Codice / barcode"
+                           Completed="OnBarcode" ReturnType="Done" />
+
+                    <CollectionView x:Name="ListaRighe" Grid.Row="1" SelectionMode="Single"
+                                    SelectionChanged="OnRigaScelta">
+                        <CollectionView.EmptyView>
+                            <Label Text="Tocca un prodotto per aggiungerlo" HorizontalTextAlignment="Center"
+                                   VerticalOptions="Center" TextColor="{StaticResource TestoTenue}" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="m:RigaScontrino">
+                                <Grid ColumnDefinitions="40,*,Auto" Padding="4,10" ColumnSpacing="6">
+                                    <Label Text="{Binding QuantitaDisplay}" FontAttributes="Bold" FontSize="16" />
+                                    <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="16" LineBreakMode="TailTruncation" />
+                                    <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="16" FontAttributes="Bold" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Padding="4,8">
+                        <Label Text="TOTALE" FontSize="22" FontAttributes="Bold" VerticalOptions="Center" />
+                        <Label x:Name="EtichettaTotale" Grid.Column="1" Text="€ 0,00" FontSize="30" FontAttributes="Bold"
+                               TextColor="{StaticResource Primario}" />
+                    </Grid>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                        <Button Text="SCONTO" Clicked="OnSconto" />
+                        <Button Grid.Column="1" Text="REPARTO" Clicked="OnReparto" />
+                        <Button Grid.Column="2" Text="SVUOTA" Clicked="OnSvuota" BackgroundColor="{StaticResource Pericolo}" />
+                    </Grid>
+
+                    <Grid Grid.Row="4" ColumnDefinitions="2*,*" ColumnSpacing="6">
+                        <Button x:Name="BtnContanti" Text="CONTANTI" FontSize="20" HeightRequest="70"
+                                BackgroundColor="{StaticResource Contanti}" Clicked="OnContanti" />
+                        <Button x:Name="BtnResto" Grid.Column="1" Text="RESTO" FontSize="16" HeightRequest="70"
+                                BackgroundColor="{StaticResource Contanti}" Clicked="OnContantiConResto" />
+                    </Grid>
+
+                    <Grid Grid.Row="5" ColumnDefinitions="2*,*" ColumnSpacing="6">
+                        <Button x:Name="BtnCarta" Text="CARTA" FontSize="20" HeightRequest="70"
+                                BackgroundColor="{StaticResource Carta}" Clicked="OnCarta" />
+                        <Button x:Name="BtnMisto" Grid.Column="1" Text="MISTO" FontSize="16" HeightRequest="70"
+                                BackgroundColor="{StaticResource Misto}" Clicked="OnMisto" />
+                    </Grid>
+
+                    <Label x:Name="EtichettaStato" Grid.Row="6" FontSize="13" TextColor="{StaticResource TestoTenue}"
+                           HorizontalTextAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═══ ATTESA durante la stampa ═══ -->
+        <Grid x:Name="Attesa" IsVisible="False" BackgroundColor="#99000000">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="12">
+                <ActivityIndicator IsRunning="True" Color="White" WidthRequest="60" HeightRequest="60" />
+                <Label x:Name="TestoAttesa" Text="Stampa in corso..." TextColor="White" FontSize="20" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

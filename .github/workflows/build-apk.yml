@@ -1,0 +1,70 @@
+# Compila l'APK Android a ogni push sul ramo main (e su richiesta dalla scheda Actions).
+# L'APK si scarica dalla pagina della build (sezione "Artifacts") e, per i tag v*, dalla pagina Releases.
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Password della chiave di firma (keystore/postouch.keystore).
+      # Repository privato: per più sicurezza spostarla in un Secret e usare ${{ secrets.POSTOUCH_KEY_PASS }}
+      POSTOUCH_KEY_PASS: E2hRPUAcKDEESZOoNNqdJnWP
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '17'
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Installa workload Android
+        run: dotnet workload install maui-android
+
+      - name: Installa componenti Android SDK
+        run: >
+          dotnet build src/PosTouch.App/PosTouch.App.csproj -t:InstallAndroidDependencies
+          -f net10.0-android
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT
+          -p:AcceptAndroidSDKLicenses=True
+
+      - name: Compila APK
+        run: >
+          dotnet publish src/PosTouch.App/PosTouch.App.csproj
+          -f net10.0-android -c Release
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT
+          -p:ApplicationVersion=${{ github.run_number }}
+          -o out
+
+      - name: Rinomina APK
+        run: |
+          APK=$(ls out/*-Signed.apk | head -n 1)
+          mkdir -p dist
+          cp "$APK" "dist/POS_Touch_Android_b${{ github.run_number }}.apk"
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: POS_Touch_Android_b${{ github.run_number }}
+          path: dist/*.apk
+
+      - name: Pubblica release (solo tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
