@@ -122,6 +122,17 @@ namespace PosTouch.Core.Dati
             }
         }
 
+        /// <summary>true se il PIN è di un operatore, anche disattivato (per non farlo coincidere con la password assistenza).</summary>
+        public bool PinUsato(string pin)
+        {
+            if (string.IsNullOrEmpty(pin)) return false;
+            lock (_lock)
+            {
+                using var c = Apri();
+                return Leggi(c).Any(x => PinUguale(pin, x.hash, x.sale));
+            }
+        }
+
         /// <summary>
         /// Crea o aggiorna un operatore. <paramref name="pinNuovo"/> null = PIN invariato (solo per un operatore esistente).
         /// Errori (ArgumentException): nome vuoto, PIN non valido o già usato, nessun amministratore attivo rimasto.

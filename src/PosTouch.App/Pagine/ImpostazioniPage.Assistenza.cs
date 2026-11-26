@@ -30,7 +30,7 @@ namespace PosTouch.App.Pagine
         private static async Task CambiaAssistenzaAsync()
         {
             var cfg = ContestoCassa.Impostazioni;
-            if (!PasswordAssistenza.Impostata(cfg) && ContestoCassa.Operatori.Archivio.CeAmministratore())
+            if (!PasswordAssistenza.Impostata(cfg) && ContestoCassa.Operatori.Abilitata && ContestoCassa.Operatori.Archivio.CeAmministratore())
             {
                 // prima impostazione con operatori già creati: solo un amministratore (altrimenti chi entra in Impostazioni
                 // con il solo permesso si darebbe da solo una password che apre tutto)
@@ -55,7 +55,7 @@ namespace PosTouch.App.Pagine
                     await MessaggioBox.Avviso("PASSWORD ASSISTENZA", $"Servono almeno {PasswordAssistenza.LunghezzaMinima} cifre.");
                     return;
                 }
-                if (await Task.Run(() => ContestoCassa.Operatori.Archivio.TrovaPerPin(nuova)) != null)
+                if (await Task.Run(() => ContestoCassa.Operatori.Archivio.PinUsato(nuova)))
                 {
                     await MessaggioBox.Avviso("PASSWORD ASSISTENZA", "Questo codice non è disponibile: scegline un altro.");
                     return;

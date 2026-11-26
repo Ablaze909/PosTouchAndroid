@@ -181,7 +181,13 @@ namespace PosTouch.Core.Vendita
                 if (x.Tipo == TipoRiga.Prodotto)
                     foreach (var f in FigliDi(x)) if (!daTogliere.Contains(f)) daTogliere.Add(f);
             }
-            foreach (var v in varianti.Where(v => !daTogliere.Contains(v))) RimuoviVariante(v);
+            string primoErrore = null;   // il primo rifiuto resta visibile anche se le varianti dopo passano
+            foreach (var v in varianti.Where(v => !daTogliere.Contains(v)))
+            {
+                UltimoErrore = null;
+                RimuoviVariante(v);
+                primoErrore ??= UltimoErrore;
+            }
             foreach (var r in daTogliere)
             {
                 if (r.Tipo is TipoRiga.Gusto or TipoRiga.Variante) { Righe.Remove(r); continue; }
@@ -193,6 +199,7 @@ namespace PosTouch.Core.Vendita
                 else togliSconto = true;
             }
             if (togliSconto || !HaArticoli) RimuoviBloccoSconto();
+            if (primoErrore != null) UltimoErrore = primoErrore;
             if (!HaArticoli) foreach (var sep in Righe.Where(x => x.Tipo == TipoRiga.Portata).ToList()) Righe.Remove(sep);
             Aggiornato();
             if (stornate.Count > 0) ComandateRimosse?.Invoke(stornate);
