@@ -89,6 +89,12 @@
                                     <Button x:Name="BtnTipoCombinazione" Grid.Column="3" Text="🍕 COMBINAZ." FontSize="12" FontAttributes="Bold" HeightRequest="46" CornerRadius="6" Padding="2,0" Clicked="OnTipoCombinazione" />
                                 </Grid>
                                 <Label x:Name="AiutoTipo" FontSize="12" TextColor="#78909C" Margin="2,0,0,4" />
+                                <!-- opzioni del tipo (peso / combinazione): riepilogo sempre visibile + tasto che apre la scelta -->
+                                <Grid x:Name="RigaOpzioniTipo" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                                    <Label x:Name="RiepilogoTipo" FontSize="15" FontAttributes="Bold" TextColor="#E65100" VerticalOptions="Center" LineBreakMode="WordWrap" />
+                                    <Button x:Name="BtnOpzioniTipo" Grid.Column="1" Text="⚙️ OPZIONI" FontSize="13" FontAttributes="Bold" BackgroundColor="#E65100" TextColor="White"
+                                            HeightRequest="44" CornerRadius="6" Padding="12,0" Clicked="OnOpzioniTipo" />
+                                </Grid>
                                 <Grid x:Name="PannelloPeso" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="34,0,0,4" IsVisible="False">
                                     <Label Text="Prezzo al:" FontSize="14" VerticalOptions="Center" />
                                     <ctl:CampoScelta x:Name="SceltaUnita" Grid.Column="1" FontSize="15" Titolo="Unità di peso" Colonne="3" />
