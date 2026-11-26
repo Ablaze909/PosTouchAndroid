@@ -89,7 +89,7 @@ namespace PosTouch.Core.Sale
                     continue;
                 }
 
-                string errore = await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15));
+                string errore = await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15), job.ControlloStato);
                 if (errore == null)
                 {
                     _archivio.EsitoJob(job.Id, true, null, false);

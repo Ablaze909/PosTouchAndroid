@@ -13,7 +13,7 @@ namespace PosTouch.App.Pagine
 
         /// <param name="esistente">null = nuovo prodotto</param>
         /// <param name="categoriaId">categoria proposta per un nuovo prodotto</param>
-        private List<PosTouch.Core.Configurazione.CentroProduzione> _centri = new();
+        private List<PosTouch.Core.Configurazione.Uscita> _centri = new();
 
         private static readonly string[] Unita = { "Kg", "Etto", "g" };
         private static readonly int[] Gusti = { 2, 3, 4, 5, 6 };
@@ -89,9 +89,9 @@ namespace PosTouch.App.Pagine
             ChkProporzionali.IsChecked = _p.VariantiProporzionali;
 
             // centro comande: come la categoria / nessuna stampa / centro specifico
-            _centri = ContestoCassa.Impostazioni.Sale.Centri.ToList();
+            _centri = CategoriaPage.UsciteConAttuale(_p.CentroProduzioneId);
             SceltaCentro.Voci = new[] { "📂 Come la categoria", "🚫 Nessuna stampa" }.Concat(_centri.Select(c => c.Nome)).ToList();
-            int ic = _centri.FindIndex(c => c.Id == _p.CentroProduzioneId);
+            int ic = _centri.FindIndex(c => c.Numero == _p.CentroProduzioneId);
             SceltaCentro.Indice = _p.CentroProduzioneId < 0 ? 1 : ic >= 0 ? ic + 2 : 0;
             SceltaCategoria.Voci = _categorie.Select(c => c.Nome).ToList();
             SceltaCategoria.Indice = _categorie.FindIndex(c => c.Id == _p.CategoriaId);
@@ -235,7 +235,7 @@ namespace PosTouch.App.Pagine
             _p.NumeroGusti = Gusti[Math.Max(0, SceltaGusti.Indice)];
             _p.PoliticaPrezzo = Math.Max(0, SceltaPolitica.Indice);
             _p.VariantiProporzionali = ChkProporzionali.IsChecked;
-            _p.CentroProduzioneId = SceltaCentro.Indice == 1 ? -1 : SceltaCentro.Indice >= 2 ? _centri[SceltaCentro.Indice - 2].Id : 0;
+            _p.CentroProduzioneId = SceltaCentro.Indice == 1 ? -1 : SceltaCentro.Indice >= 2 ? _centri[SceltaCentro.Indice - 2].Numero : 0;
             _p.Descrizione = CampoDescrizione.Text.Trim().ToUpperInvariant();
             _p.CategoriaId = cat.Id;
             _p.Barcode = (CampoBarcode.Text ?? "").Trim();

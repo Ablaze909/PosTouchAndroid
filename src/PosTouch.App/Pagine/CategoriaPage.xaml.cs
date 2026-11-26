@@ -22,7 +22,7 @@ namespace PosTouch.App.Pagine
             Riquadro.HeightRequest = Math.Min(560, height - 24);
         }
 
-        private List<PosTouch.Core.Configurazione.CentroProduzione> _centri = new();
+        private List<PosTouch.Core.Configurazione.Uscita> _centri = new();
 
         public CategoriaPage(Categoria esistente)
         {
@@ -33,7 +33,7 @@ namespace PosTouch.App.Pagine
                 {
                     Id = esistente.Id, Nome = esistente.Nome, RepartoFiscale = esistente.RepartoFiscale, AliquotaIVA = esistente.AliquotaIVA,
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, Icona = esistente.Icona, Ordine = esistente.Ordine,
-                    Attiva = esistente.Attiva, CentroProduzioneId = esistente.CentroProduzioneId
+                    Attiva = esistente.Attiva, CentroProduzioneId = esistente.CentroProduzioneId, EscludiComandaBanco = esistente.EscludiComandaBanco
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVA CATEGORIA" : "✏️ MODIFICA CATEGORIA";
@@ -42,10 +42,12 @@ namespace PosTouch.App.Pagine
             CampoNome.Text = _cat.Nome;
             _reparto = _cat.RepartoFiscale;
             // centro comande: "Nessuna stampa" + centri configurati
-            _centri = ContestoCassa.Impostazioni.Sale.Centri.ToList();
+            _centri = UsciteConAttuale(_cat.CentroProduzioneId);
             SceltaCentro.Voci = new[] { "🚫 Nessuna stampa" }.Concat(_centri.Select(c => c.Nome)).ToList();
-            int ic = _centri.FindIndex(c => c.Id == _cat.CentroProduzioneId);
+            int ic = _centri.FindIndex(c => c.Numero == _cat.CentroProduzioneId);
             SceltaCentro.Indice = ic >= 0 ? ic + 1 : 0;
+            ChkEscludiBanco.IsChecked = _cat.EscludiComandaBanco;
+            RigaEscludiBanco.IsVisible = ContestoCassa.Impostazioni.Stampe?.ComandeDaBanco == true;
             SceltaIva.Voci = Aliquote.Select(a => $"{a}%").ToList();
             int iva = Array.IndexOf(Aliquote, _cat.AliquotaIVA);
             SceltaIva.Indice = iva >= 0 ? iva : 2;
@@ -113,6 +115,19 @@ namespace PosTouch.App.Pagine
             AggiornaTutto();
         }
 
+        /// <summary>
+        /// Uscite di stampa (🖨️ STAMPE) per la scelta in categoria e articolo; se l'attuale non esiste più
+        /// (es. catalogo del PC con un centro non impostato) resta in elenco, così salvando non si perde.
+        /// </summary>
+        internal static List<PosTouch.Core.Configurazione.Uscita> UsciteConAttuale(int attuale)
+        {
+            var st = ContestoCassa.Impostazioni.Stampe ?? new PosTouch.Core.Configurazione.ConfigStampe();
+            var l = st.Uscite.Select(u => new PosTouch.Core.Configurazione.Uscita { Numero = u.Numero, Nome = $"{u.Numero} - {u.Nome}" }).ToList();
+            if (attuale > 0 && l.All(u => u.Numero != attuale))
+                l.Add(new PosTouch.Core.Configurazione.Uscita { Numero = attuale, Nome = $"{attuale} - (non impostata)" });
+            return l;
+        }
+
         private bool _salvataggio;
 
         /// <summary>SALVA protetto dal doppio tocco (un secondo INSERT creerebbe un duplicato).</summary>
@@ -139,7 +154,8 @@ namespace PosTouch.App.Pagine
             _cat.Nome = CampoNome.Text.Trim().ToUpperInvariant();
             _cat.RepartoFiscale = _reparto;
             _cat.AliquotaIVA = Aliquote[Math.Max(0, SceltaIva.Indice)];
-            _cat.CentroProduzioneId = SceltaCentro.Indice > 0 ? _centri[SceltaCentro.Indice - 1].Id : 0;
+            _cat.CentroProduzioneId = SceltaCentro.Indice > 0 ? _centri[SceltaCentro.Indice - 1].Numero : 0;
+            _cat.EscludiComandaBanco = ChkEscludiBanco.IsChecked;
             _cat.Attiva = SwAttiva.IsToggled || _cat.Id == 0;
             try
             {

@@ -54,7 +54,9 @@ namespace PosTouch.Core.Conti
 
         public bool InCorso => Volatile.Read(ref _inCorso) == 1;
 
-        public async Task<EsitoConto> StampaAsync(List<RigaScontrino> righe)
+        /// <param name="salaId">Sala del conto (Banco = <see cref="ConfigStampe.SalaBanco"/>): decide la stampante PRECONTI.</param>
+        /// <param name="eliminacode">Comanda da banco: numero stampato sul conto (0 = nessuno).</param>
+        public async Task<EsitoConto> StampaAsync(List<RigaScontrino> righe, int salaId = ConfigStampe.SalaBanco, int eliminacode = 0)
         {
             if (Interlocked.CompareExchange(ref _inCorso, 1, 0) != 0)
                 return EsitoConto.Errore("ATTENDERE", "Stampa in corso...\nAttendere il completamento.");
@@ -72,20 +74,26 @@ namespace PosTouch.Core.Conti
                 if (totale <= 0)
                     return EsitoConto.Errore("TOTALE NON VALIDO", "Non è possibile stampare un conto con totale negativo o zero!");
 
-                preso = await AccessoStampanti.PrendiAsync(cfg.IP_Termica, cfg.Porta_Termica, TimeSpan.FromSeconds(10));
-                ipPreso = cfg.IP_Termica; portaPresa = cfg.Porta_Termica;
+                var pre = cfg.StampantePreconti(salaId);
+                if (!pre.Assegnata)
+                    return EsitoConto.Errore("STAMPANTE NON IMPOSTATA", "Nessuna stampante PRECONTI impostata.\n\nImpostala in IMPOSTAZIONI → 🖨️ STAMPE.");
+                preso = await AccessoStampanti.PrendiAsync(pre.IP, pre.Porta, TimeSpan.FromSeconds(10));
+                ipPreso = pre.IP; portaPresa = pre.Porta;
                 if (!preso) return EsitoConto.Errore("STAMPANTE OCCUPATA", "La stampante sta eseguendo un'altra stampa.\nRiprovare tra qualche secondo.");
 
-                using var st = new StampanteTermica(cfg.IP_Termica, cfg.Porta_Termica);
+                using var st = new StampanteTermica(pre.IP, pre.Porta);
                 if (!await st.ConnettiAsync())
                     return EsitoConto.Errore("STAMPANTE NON RAGGIUNGIBILE",
                         $"{st.UltimoErrore}\n\nIl conto NON è stato stampato.\nLo scontrino resta a video: verifica che la stampante sia accesa e in rete, poi riprova.");
+                if (pre.ControlloStato && await st.ControllaStatoAsync() is string problema)
+                    return EsitoConto.Errore("STAMPANTE NON PRONTA", $"{problema}\n\nIl conto NON è stato stampato.\nLo scontrino resta a video: sistema la stampante e riprova.");
 
                 // Numero preso solo a stampante collegata: se non si collega il numero non va perso
                 int numero = _archivio.ProssimoNumeroConto();
                 var quando = DateTime.Now;
-                var dati = LayoutConto.Crea(righe, numero, cfg.IntestazioneConto1, cfg.IntestazioneConto2, cfg.IntestazioneConto3,
-                                            cfg.AccorpaRigheConto, quando, stampaNumero: cfg.StampaNumeroConto, varianti: cfg.VariantiSuConto);
+                var dati = Finitura.Applica(LayoutConto.Crea(righe, numero, cfg.IntestazioneConto1, cfg.IntestazioneConto2, cfg.IntestazioneConto3,
+                                            cfg.AccorpaRigheConto, quando, stampaNumero: cfg.StampaNumeroConto, varianti: cfg.VariantiSuConto, eliminacode: eliminacode),
+                                            pre, cfg.Sale.CicalinoComande);
                 try
                 {
                     await st.InviaAsync(dati);
@@ -146,9 +154,15 @@ namespace PosTouch.Core.Conti
 
         /// <summary>🖨️ Stampa di prova (impostazioni), con IP e porta indicati.</summary>
         public static async Task<(bool ok, string messaggio)> ProvaAsync(string ip, int porta, string intestazione)
+            => await ProvaAsync(new ParametriStampa { IP = ip, Porta = porta }, intestazione, 0);
+
+        /// <summary>🖨️ Stampa di prova con i parametri di una stampa (Configura): salto righe, taglio, cicalino, inversione.</summary>
+        public static async Task<(bool ok, string messaggio)> ProvaAsync(ParametriStampa p, string intestazione, int tipoCicalino)
         {
-            string errore = await AccessoStampanti.InviaAsync(ip, porta, LayoutConto.Prova(intestazione, ip, porta), TimeSpan.FromSeconds(5));
-            return errore == null ? (true, $"Stampa di prova inviata a {ip}:{porta}.") : (false, errore);
+            if (p == null || !p.Assegnata) return (false, "Nessuna stampante scelta.");
+            var dati = Finitura.Applica(LayoutConto.Prova(intestazione, p.IP, p.Porta), p, tipoCicalino);
+            string errore = await AccessoStampanti.InviaAsync(p.IP, p.Porta, dati, TimeSpan.FromSeconds(5));
+            return errore == null ? (true, $"Stampa di prova inviata a {p.Descrizione}.") : (false, errore);
         }
     }
 }

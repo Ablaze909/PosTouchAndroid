@@ -73,8 +73,6 @@ namespace PosTouch.App.Pagine
             ChkVarConto.IsChecked = i.VariantiSuConto;
             ChkVarGruppi.IsChecked = i.VariantiPerGruppo;
             ChkTermica.IsChecked = i.AbilitaStampanteTermica;
-            CampoIPTermica.Text = i.IP_Termica;
-            CampoPortaTermica.Text = i.Porta_Termica.ToString();
             CampoIntest1.Text = i.IntestazioneConto1;
             CampoIntest2.Text = i.IntestazioneConto2;
             CampoIntest3.Text = i.IntestazioneConto3;
@@ -113,14 +111,6 @@ namespace PosTouch.App.Pagine
             else if (!int.TryParse(CampoOperatore.Text, out op) || op < 1 || op > 99) errore = "Operatore RT non valido (1-99).";
             else if (!int.TryParse(CampoTimeoutConn.Text, out tc) || tc < 1000) errore = "Timeout connessione: minimo 1000 ms.";
             else if (!int.TryParse(CampoTimeoutRisp.Text, out tr) || tr < 1000) errore = "Timeout risposta: minimo 1000 ms.";
-            string ipTermica = (CampoIPTermica.Text ?? "").Trim();
-            int portaTermica = 0;
-            if (errore == null && ChkTermica.IsChecked)
-            {
-                if (!IPAddress.TryParse(ipTermica, out _)) errore = "Indirizzo IP della stampante termica non valido.";
-                else if (!int.TryParse(CampoPortaTermica.Text, out portaTermica) || portaTermica < 1 || portaTermica > 65535) errore = "Porta della stampante termica non valida.";
-            }
-            else if (!int.TryParse(CampoPortaTermica.Text, out portaTermica)) portaTermica = 9100;
             if (errore != null)
             {
                 await MessaggioBox.Avviso("VALORE NON VALIDO", errore);
@@ -147,8 +137,6 @@ namespace PosTouch.App.Pagine
             n.VariantiSuConto = ChkVarConto.IsChecked;
             n.VariantiPerGruppo = ChkVarGruppi.IsChecked;
             n.AbilitaStampanteTermica = ChkTermica.IsChecked;
-            n.IP_Termica = ipTermica;
-            n.Porta_Termica = portaTermica;
             n.IntestazioneConto1 = (CampoIntest1.Text ?? "").Trim();
             n.IntestazioneConto2 = (CampoIntest2.Text ?? "").Trim();
             n.IntestazioneConto3 = (CampoIntest3.Text ?? "").Trim();
@@ -169,7 +157,7 @@ namespace PosTouch.App.Pagine
         /// <summary>Riassunto dei campi per capire se ci sono modifiche non salvate.</summary>
         private string Firma() => string.Join("|", SceltaTipo.Indice, CampoIP.Text, CampoPorta.Text, CampoOperatore.Text, ChkCassetto.IsChecked,
             CampoNomePV.Text, CampoSottotitoloPV.Text, ChkSconti.IsChecked, ChkCambioPrezzo.IsChecked, ChkModificaVendita.IsChecked,
-            ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkRigaSingola.IsChecked, ChkBilancia.IsChecked, ChkVarScontrino.IsChecked, ChkVarConto.IsChecked, ChkVarGruppi.IsChecked, ChkRigaPiuMeno.IsChecked, ChkTermica.IsChecked, CampoIPTermica.Text, CampoPortaTermica.Text,
+            ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkRigaSingola.IsChecked, ChkBilancia.IsChecked, ChkVarScontrino.IsChecked, ChkVarConto.IsChecked, ChkVarGruppi.IsChecked, ChkRigaPiuMeno.IsChecked, ChkTermica.IsChecked,
             CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked);
@@ -236,33 +224,9 @@ namespace PosTouch.App.Pagine
 
         private async void OnConfiguraSale(object sender, EventArgs e) => await Navigazione.Apri(this, () => new SaleConfigPage());
 
-        private bool _provaTermica;
 
-        /// <summary>🖨️ Stampa di prova con IP e porta scritti nei campi (anche prima di salvare).</summary>
-        private async void OnProvaTermica(object sender, EventArgs e)
-        {
-            if (_provaTermica) return;
-            string ip = (CampoIPTermica.Text ?? "").Trim();
-            if (!IPAddress.TryParse(ip, out _) || !int.TryParse(CampoPortaTermica.Text, out int porta) || porta < 1 || porta > 65535)
-            {
-                await MessaggioBox.Avviso("VALORE NON VALIDO", "Inserire IP e porta validi della stampante termica.");
-                return;
-            }
-            _provaTermica = true;
-            BtnProvaTermica.Text = "⏳ Stampa in corso...";
-            try
-            {
-                string intestazione = CampoIntest1.Text;
-                var (ok, msg) = await Task.Run(() => PosTouch.Core.Conti.ServizioConto.ProvaAsync(ip, porta, intestazione));
-                if (ok) await MessaggioBox.Successo("STAMPANTE TERMICA", msg);
-                else await MessaggioBox.Errore("STAMPANTE TERMICA", msg);
-            }
-            finally
-            {
-                _provaTermica = false;
-                BtnProvaTermica.Text = "🖨️ STAMPA DI PROVA";
-            }
-        }
+        /// <summary>🖨️ STAMPE: pagina delle opzioni di stampa come POSBY (salva da sé).</summary>
+        private async void OnStampe(object sender, EventArgs e) => await Navigazione.Apri(this, () => new StampePage());
 
         private async void OnSalva(object sender, EventArgs e)
         {
@@ -333,14 +297,14 @@ namespace PosTouch.App.Pagine
         private async Task AvvisaCentriMancantiAsync()
         {
             var cfg = ContestoCassa.Impostazioni.Sale;
-            if (!cfg.AbilitaSale) return;
-            var noti = cfg.Centri.Select(c => c.Id).ToHashSet();
+            if (!cfg.AbilitaSale && ContestoCassa.Impostazioni.Stampe?.ComandeDaBanco != true) return;
+            var noti = (ContestoCassa.Impostazioni.Stampe?.Uscite ?? new()).Select(u => u.Numero).ToHashSet();
             var usati = ContestoCassa.Catalogo.TutteCategorie.Select(c => c.CentroProduzioneId)
                         .Concat(ContestoCassa.Catalogo.TuttiProdotti.Select(p => p.CentroProduzioneId))
                         .Where(id => id > 0 && !noti.Contains(id)).Distinct().OrderBy(id => id).ToList();
             if (usati.Count > 0)
-                await MessaggioBox.Avviso("CENTRI DI PRODUZIONE", $"Il catalogo usa centri non impostati sul tablet (n. {string.Join(", ", usati)}).\n\n" +
-                                          "Crea i centri in 🍽️ SALE E COMANDE, altrimenti quegli articoli non vanno in comanda.");
+                await MessaggioBox.Avviso("CENTRI DI PRODUZIONE", $"Il catalogo usa uscite (centri) non impostate sul tablet (n. {string.Join(", ", usati)}).\n\n" +
+                                          "Aggiungi le uscite con quei numeri in 🖨️ STAMPE, altrimenti quegli articoli non vanno in comanda.");
         }
 
         private async void OnCondividiLog(object sender, EventArgs e)

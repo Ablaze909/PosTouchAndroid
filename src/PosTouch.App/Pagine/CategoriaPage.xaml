@@ -60,9 +60,15 @@
                         <ctl:CampoScelta x:Name="SceltaIva" FontSize="15" Titolo="Aliquota IVA" Colonne="4" />
                     </Border>
 
-                    <Label Text="🍽️ Comande (centro di produzione)" Style="{StaticResource Etichetta}" />
+                    <Label Text="🍽️ Comande (uscita di stampa)" Style="{StaticResource Etichetta}" />
                     <Border Style="{StaticResource Campo}">
-                        <ctl:CampoScelta x:Name="SceltaCentro" FontSize="15" Titolo="Centro di produzione" Colonne="2" />
+                        <VerticalStackLayout>
+                            <ctl:CampoScelta x:Name="SceltaCentro" FontSize="15" Titolo="Uscita di stampa" Colonne="2" />
+                            <HorizontalStackLayout x:Name="RigaEscludiBanco" Margin="0,6,0,0">
+                                <CheckBox x:Name="ChkEscludiBanco" Color="#4CAF50" />
+                                <Label Text="Non stampare in comanda da banco" FontSize="14" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 

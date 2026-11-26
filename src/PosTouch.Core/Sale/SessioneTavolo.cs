@@ -53,6 +53,8 @@ namespace PosTouch.Core.Sale
         public bool HaStorniPendenti => _storniPendenti.Count > 0;
 
         private ConfigSale Cfg => _impostazioni().Sale;
+        /// <summary>Opzioni di stampa (uscite e stampanti per sala, come POSBY).</summary>
+        private ConfigStampe Stampe => _impostazioni().Stampe ?? new ConfigStampe();
 
         public SessioneTavolo(ArchivioTavoli archivio, SpoolerComande spooler, Func<Impostazioni> impostazioni, int salaId, int numero, string nomeCliente = null)
         {
@@ -139,7 +141,7 @@ namespace PosTouch.Core.Sale
             var esito = new EsitoTavolo();
             Carrello.RiordinaPortate();   // prima della comanda: la cucina riceve le portate in ordine (SEGUE prima di SEGUE 2)
             var stampe = new List<JobStampa>();
-            if (Cfg.AbilitaComande && Cfg.Centri.Count > 0)
+            if (Cfg.AbilitaComande && Stampe.Uscite.Count > 0)
                 stampe.AddRange(PreparaComande(stampaComande, esito));
             else
                 foreach (var r in Carrello.Righe.Where(r => r.Tipo == TipoRiga.Prodotto)) r.Comandata = true;
@@ -179,9 +181,8 @@ namespace PosTouch.Core.Sale
 
             foreach (var g in gruppi)
             {
-                var centro = Cfg.CentroDa(g.Key);
-                var st = InstradamentoStampa.Risolvi(Cfg, Tavolo.SalaId, g.Key);
-                string nomeCentro = centro?.Nome ?? $"Centro {g.Key}";
+                var st = InstradamentoStampa.Risolvi(Stampe, Tavolo.SalaId, g.Key);
+                string nomeCentro = Stampe.NomeUscita(g.Key);
                 if (st == null)
                 {
                     // righe lasciate "da comandare": partiranno quando la stampante sarà impostata
@@ -196,7 +197,7 @@ namespace PosTouch.Core.Sale
                 Dictionary<string, List<RigaScontrino>> altri = null;
                 if (Cfg.StampaRiepilogoAltriCentri && !Cfg.AbilitaPortate)
                     altri = gruppi.Where(x => x.Key != g.Key)
-                                  .ToDictionary(x => Cfg.CentroDa(x.Key)?.Nome ?? $"Centro {x.Key}", x => x.ToList());
+                                  .ToDictionary(x => Stampe.NomeUscita(x.Key), x => x.ToList());
 
                 var dati = new DatiComanda
                 {
@@ -208,8 +209,9 @@ namespace PosTouch.Core.Sale
                 {
                     Tipo = TipoJob.Comanda,
                     Descrizione = $"{(riordino ? "RIORDINO" : "COMANDA")} {Titolo} → {nomeCentro}",
-                    Stampante = st.Nome, IP = st.IP, Porta = st.Porta,
-                    Dati = LayoutComanda.Comanda(dati, Cfg.StileComandaProdotto, Cfg.StileComandaSeparatore, Cfg.CicalinoComande, Cfg.AccorpaStampaComanda, Cfg.StileComandaVariante)
+                    Stampante = nomeCentro, IP = st.IP, Porta = st.Porta, ControlloStato = st.ControlloStato,
+                    Dati = Finitura.Applica(LayoutComanda.Comanda(dati, Cfg.StileComandaProdotto, Cfg.StileComandaSeparatore, 0, Cfg.AccorpaStampaComanda, Cfg.StileComandaVariante),
+                                            st, Cfg.CicalinoComande)
                 });
             }
 
@@ -258,9 +260,8 @@ namespace PosTouch.Core.Sale
 
             foreach (var g in _storniPendenti.Where(r => r.Tipo == TipoRiga.Prodotto).GroupBy(r => r.CentroProduzioneId))
             {
-                var centro = Cfg.CentroDa(g.Key);
-                string nomeCentro = centro?.Nome ?? (g.Key > 0 ? $"Centro {g.Key}" : "N/A");
-                var st = g.Key > 0 ? InstradamentoStampa.Risolvi(Cfg, Tavolo.SalaId, g.Key) : null;
+                string nomeCentro = g.Key > 0 ? Stampe.NomeUscita(g.Key) : "N/A";
+                var st = g.Key > 0 ? InstradamentoStampa.Risolvi(Stampe, Tavolo.SalaId, g.Key) : null;
                 bool stampato = stampaStorni && st != null;
                 if (stampato)
                 {
@@ -268,8 +269,8 @@ namespace PosTouch.Core.Sale
                     stampe.Add(new JobStampa
                     {
                         Tipo = TipoJob.Storno, Descrizione = $"STORNO {Titolo} → {nomeCentro}",
-                        Stampante = st.Nome, IP = st.IP, Porta = st.Porta,
-                        Dati = LayoutComanda.Storno(dati, Cfg.StileComandaProdotto, Cfg.StileComandaVariante)
+                        Stampante = nomeCentro, IP = st.IP, Porta = st.Porta, ControlloStato = st.ControlloStato,
+                        Dati = Finitura.Applica(LayoutComanda.Storno(dati, Cfg.StileComandaProdotto, Cfg.StileComandaVariante), st, Cfg.CicalinoComande)
                     });
                 }
                 else if (stampaStorni && g.Key > 0)
@@ -336,12 +337,11 @@ namespace PosTouch.Core.Sale
                                   .GroupBy(r => r.CentroProduzioneId).ToList();
                 foreach (var g in gruppi)
                 {
-                    var centro = Cfg.CentroDa(g.Key);
-                    string nomeCentro = centro?.Nome ?? $"Centro {g.Key}";
-                    var st = InstradamentoStampa.Risolvi(Cfg, Tavolo.SalaId, g.Key);
+                    string nomeCentro = Stampe.NomeUscita(g.Key);
+                    var st = InstradamentoStampa.Risolvi(Stampe, Tavolo.SalaId, g.Key);
                     if (st == null) { esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, VAI NON stampato."); continue; }
                     Dictionary<string, List<RigaScontrino>> altri = Cfg.StampaRiepilogoAltriCentri
-                        ? gruppi.Where(x => x.Key != g.Key).ToDictionary(x => Cfg.CentroDa(x.Key)?.Nome ?? $"Centro {x.Key}", x => x.ToList())
+                        ? gruppi.Where(x => x.Key != g.Key).ToDictionary(x => Stampe.NomeUscita(x.Key), x => x.ToList())
                         : null;
                     var dati = new DatiComanda
                     {
@@ -351,8 +351,8 @@ namespace PosTouch.Core.Sale
                     stampe.Add(new JobStampa
                     {
                         Tipo = TipoJob.Vai, Descrizione = $"VAI {a.NomeSeparatore} {Titolo} → {nomeCentro}",
-                        Stampante = st.Nome, IP = st.IP, Porta = st.Porta,
-                        Dati = LayoutComanda.Vai(dati, Cfg.StileComandaProdotto, Cfg.CicalinoComande, Cfg.StileComandaVariante)
+                        Stampante = nomeCentro, IP = st.IP, Porta = st.Porta, ControlloStato = st.ControlloStato,
+                        Dati = Finitura.Applica(LayoutComanda.Vai(dati, Cfg.StileComandaProdotto, 0, Cfg.StileComandaVariante), st, Cfg.CicalinoComande)
                     });
                 }
             }
@@ -398,9 +398,12 @@ namespace PosTouch.Core.Sale
             var righe = Carrello.Fotografia();
             if (!righe.Any(r => r.Tipo == TipoRiga.Prodotto)) return "Non ci sono articoli.";
             if (righe.Where(r => r.ContaNelTotale).Sum(r => r.ImportoCentesimi) <= 0) return "Totale non valido.";
-            var dati = LayoutConto.Crea(righe, 0, imp.IntestazioneConto1, imp.IntestazioneConto2, imp.IntestazioneConto3, imp.AccorpaRigheConto, DateTime.Now, varianti: imp.VariantiSuConto);
-            string errore = await AccessoStampanti.InviaAsync(imp.IP_Termica, imp.Porta_Termica, dati, TimeSpan.FromSeconds(10));
-            if (errore != null) return $"Impossibile stampare su {imp.IP_Termica}:{imp.Porta_Termica}.\n{errore}\n\nPreconto NON stampato.";
+            var pre = imp.StampantePreconti(Tavolo.SalaId);
+            if (!pre.Assegnata) return "Nessuna stampante PRECONTI impostata.\n\nImpostala in IMPOSTAZIONI → 🖨️ STAMPE.";
+            var dati = Finitura.Applica(LayoutConto.Crea(righe, 0, imp.IntestazioneConto1, imp.IntestazioneConto2, imp.IntestazioneConto3, imp.AccorpaRigheConto, DateTime.Now, varianti: imp.VariantiSuConto),
+                                        pre, imp.Sale.CicalinoComande);
+            string errore = await AccessoStampanti.InviaAsync(pre.IP, pre.Porta, dati, TimeSpan.FromSeconds(10), pre.ControlloStato);
+            if (errore != null) return $"Impossibile stampare su {pre.Descrizione}.\n{errore}\n\nPreconto NON stampato.";
             Tavolo.Preconto = true;
             _firmaPreconto = FirmaConto();
             SalvaBozza();

@@ -47,6 +47,8 @@ namespace PosTouch.Core.Sale
         /// <summary>Tavolo da cui viene la stampa (per segnare il tavolo NERO "ERRORE STAMPA" come sul PC).</summary>
         public int SalaId { get; set; }
         public int NumeroTavolo { get; set; }
+        /// <summary>Controllo di stato della stampante prima di stampare (parametro dell'uscita).</summary>
+        public bool ControlloStato { get; set; }
     }
 
     /// <summary>Deviazione forzata (DeviazioniAttive del PC): tutto ciò che va alla stampante Origine esce sulla Destinazione.</summary>
@@ -164,6 +166,13 @@ namespace PosTouch.Core.Sale
                         Data TEXT NOT NULL DEFAULT ''
                     );
                     INSERT OR IGNORE INTO ProgressivoComanda (Id, Numero, Data) VALUES (1, 0, '');
+                    -- Eliminacode della comanda da banco (come il PC): si azzera alla chiusura fiscale e a ogni nuovo giorno
+                    CREATE TABLE IF NOT EXISTS EliminacodeProgressivo (
+                        Id INTEGER PRIMARY KEY CHECK (Id = 1),
+                        Numero INTEGER NOT NULL DEFAULT 0,
+                        Data TEXT NOT NULL DEFAULT ''
+                    );
+                    INSERT OR IGNORE INTO EliminacodeProgressivo (Id, Numero, Data) VALUES (1, 0, '');
                     CREATE TABLE IF NOT EXISTS Storni (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         DataOra TEXT NOT NULL,
@@ -180,6 +189,7 @@ namespace PosTouch.Core.Sale
                 AggiungiColonna(c, "RigheTavolo", "InStorno", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "CodaStampa", "SalaId", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "CodaStampa", "NumeroTavolo", "INTEGER NOT NULL DEFAULT 0");
+                AggiungiColonna(c, "CodaStampa", "ControlloStato", "INTEGER NOT NULL DEFAULT 0");
                 Esegui(c, null, @"CREATE TABLE IF NOT EXISTS DeviazioniStampa (
                                     IPOrigine TEXT NOT NULL, PortaOrigine INTEGER NOT NULL, NomeOrigine TEXT NOT NULL,
                                     IPDestinazione TEXT NOT NULL, PortaDestinazione INTEGER NOT NULL, NomeDestinazione TEXT NOT NULL,
@@ -387,6 +397,42 @@ namespace PosTouch.Core.Sale
             }
         }
 
+        /// <summary>Prossimo numero eliminacode della comanda da banco (1, 2, 3…; ricomincia ogni giorno o dopo la chiusura fiscale).</summary>
+        public int ProssimoEliminacode()
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = @"UPDATE EliminacodeProgressivo SET Numero = CASE WHEN Data = $oggi THEN Numero + 1 ELSE 1 END, Data = $oggi WHERE Id = 1;
+                                    SELECT Numero FROM EliminacodeProgressivo WHERE Id = 1;";
+                cmd.Parameters.AddWithValue("$oggi", DateTime.Now.ToString("yyyy-MM-dd"));
+                return Convert.ToInt32(cmd.ExecuteScalar());
+            }
+        }
+
+        /// <summary>Chiusura fiscale: l'eliminacode riparte da 1 (ResetEliminacode del PC).</summary>
+        public void AzzeraEliminacode()
+        {
+            lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE EliminacodeProgressivo SET Numero = 0 WHERE Id = 1"); }
+        }
+
+        /// <summary>Accoda stampe che non appartengono a un tavolo (comanda da banco), tutte insieme.</summary>
+        public void AccodaStampe(IEnumerable<JobStampa> stampe)
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var tx = c.BeginTransaction();
+                try
+                {
+                    foreach (var j in stampe) Accoda(c, tx, j);
+                    tx.Commit();
+                }
+                catch { tx.Rollback(); throw; }
+            }
+        }
+
         // ══════════════ SPOSTA / UNISCI (come il PC) ══════════════
 
         /// <summary>
@@ -532,7 +578,7 @@ namespace PosTouch.Core.Sale
             {
                 using var c = Apri();
                 using var cmd = c.CreateCommand();
-                cmd.CommandText = $@"SELECT Id, DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, Stato, Tentativi, UltimoErrore
+                cmd.CommandText = $@"SELECT Id, DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, Stato, Tentativi, UltimoErrore, ControlloStato
                                      FROM CodaStampa WHERE Stato = 0 {(ancheInErrore ? "OR Stato = 1" : "")} ORDER BY Id";
                 var lista = new List<JobStampa>();
                 using var r = cmd.ExecuteReader();
@@ -544,7 +590,8 @@ namespace PosTouch.Core.Sale
                         Tipo = (TipoJob)r.GetInt32(2), Descrizione = r.GetString(3), Stampante = r.GetString(4),
                         IP = r.GetString(5), Porta = r.GetInt32(6), Dati = (byte[])r.GetValue(7),
                         Stato = (StatoJob)r.GetInt32(8), Tentativi = r.GetInt32(9),
-                        UltimoErrore = r.IsDBNull(10) ? null : r.GetString(10)
+                        UltimoErrore = r.IsDBNull(10) ? null : r.GetString(10),
+                        ControlloStato = !r.IsDBNull(11) && r.GetInt32(11) != 0
                     });
                 return lista;
             }
@@ -619,8 +666,9 @@ namespace PosTouch.Core.Sale
             }
             using var cmd = c.CreateCommand();
             cmd.Transaction = tx;
-            cmd.CommandText = @"INSERT INTO CodaStampa (DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, SalaId, NumeroTavolo)
-                                VALUES ($d, $t, $desc, $st, $ip, $porta, $dati, $sala, $num)";
+            cmd.CommandText = @"INSERT INTO CodaStampa (DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, SalaId, NumeroTavolo, ControlloStato)
+                                VALUES ($d, $t, $desc, $st, $ip, $porta, $dati, $sala, $num, $stato)";
+            cmd.Parameters.AddWithValue("$stato", j.ControlloStato ? 1 : 0);
             cmd.Parameters.AddWithValue("$sala", j.SalaId);
             cmd.Parameters.AddWithValue("$num", j.NumeroTavolo);
             cmd.Parameters.AddWithValue("$d", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));

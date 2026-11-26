@@ -132,7 +132,8 @@ namespace PosTouch.Core.Dati
                         Icona = l.Testo("Icona", ""),
                         Ordine = l.Int("Ordine"),
                         Attiva = l.Bool("Attiva", true),
-                        CentroProduzioneId = l.Int("CentroProduzioneId")
+                        CentroProduzioneId = l.Int("CentroProduzioneId"),
+                        EscludiComandaBanco = l.Bool("EscludiComandaBanco")
                     });
                 }
             }

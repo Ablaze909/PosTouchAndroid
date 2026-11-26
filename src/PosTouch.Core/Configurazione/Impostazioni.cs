@@ -45,7 +45,8 @@ namespace PosTouch.Core.Configurazione
 
         // ── Stampante termica (CONTO non fiscale), come sul PC ──
         public bool AbilitaStampanteTermica { get; set; } = true;
-        public string IP_Termica { get; set; } = "192.168.1.200";
+        /// <summary>Vecchia stampante dei conti: usata solo per passare alle nuove <see cref="Stampe"/> (ora è la stampa PRECONTI).</summary>
+        public string IP_Termica { get; set; } = "";
         public int Porta_Termica { get; set; } = 9100;
         public string IntestazioneConto1 { get; set; } = "RISTORANTE";
         public string IntestazioneConto2 { get; set; } = "";
@@ -56,6 +57,20 @@ namespace PosTouch.Core.Configurazione
 
         /// <summary>Sale, tavoli, centri di produzione, stampanti comande e portate.</summary>
         public ConfigSale Sale { get; set; } = new ConfigSale();
+        /// <summary>Opzioni di stampa come POSBY (stampanti, uscite, preconti, per sala, comande da banco). null = da creare dalle vecchie.</summary>
+        public ConfigStampe Stampe { get; set; }
+
+        /// <summary>Stampante di preconti e conti per una sala (Banco = <see cref="ConfigStampe.SalaBanco"/>).</summary>
+        public ParametriStampa StampantePreconti(int salaId) => (Stampe ?? new ConfigStampe()).Di(salaId).Preconto;
+
+        /// <summary>Crea le opzioni di stampa la prima volta (dai vecchi centri e dalla vecchia termica) e le rende sempre valide.</summary>
+        public void PreparaStampe()
+        {
+            Sale ??= new ConfigSale();
+            Sale.Normalizza();
+            Stampe ??= ConfigStampe.DaVecchia(Sale, IP_Termica, Porta_Termica, Sale.CicalinoComande > 0);
+            Stampe.Normalizza();
+        }
         /// <summary>Mostra la riga ＋/﹣ sotto la tastiera (MostraRigaVariantiVendita del PC).</summary>
         public bool MostraRigaPiuMeno { get; set; } = true;
         /// <summary>Accorpa righe uguali a video (2× caffè → una riga).</summary>
@@ -95,6 +110,7 @@ namespace PosTouch.Core.Configurazione
         {
             var c = (Impostazioni)MemberwiseClone();
             c.Sale = (Sale ?? new ConfigSale()).Copia();
+            c.Stampe = Stampe?.Copia();
             return c;
         }
     }
@@ -121,8 +137,7 @@ namespace PosTouch.Core.Configurazione
                     if (!File.Exists(file)) continue;
                     var imp = JsonSerializer.Deserialize(File.ReadAllText(file), JsonContesto.Default.Impostazioni);
                     if (imp == null) continue;
-                    imp.Sale ??= new ConfigSale();
-                    imp.Sale.Normalizza();
+                    imp.PreparaStampe();
                     if (file != _percorso) LogManager.Warning("Impostazioni ripristinate dalla copia di sicurezza (.bak)");
                     return imp;
                 }
@@ -131,7 +146,9 @@ namespace PosTouch.Core.Configurazione
                     LogManager.Error($"Impostazioni non leggibili ({Path.GetFileName(file)}): {ex.Message}");
                 }
             }
-            return new Impostazioni();
+            var nuove = new Impostazioni();
+            nuove.PreparaStampe();
+            return nuove;
         }
 
         /// <summary>Scrittura sicura: file temporaneo scritto su disco e riletto, copia .bak della versione precedente, poi sostituzione.</summary>

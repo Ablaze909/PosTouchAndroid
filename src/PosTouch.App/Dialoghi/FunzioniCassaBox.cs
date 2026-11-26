@@ -17,7 +17,11 @@ namespace PosTouch.App.Dialoghi
             lista.Add(Tasto("✅ CHIUSURA FISCALE (Z)", "#4CAF50", async () =>
             {
                 if (await MessaggioBox.Conferma("CHIUSURA FISCALE", "Eseguire la chiusura fiscale giornaliera (Z)?\n\nL'operazione non può essere annullata."))
-                    await EseguiAsync(Funzioni.ChiusuraFiscaleAsync);
+                    await EseguiAsync(Funzioni.ChiusuraFiscaleAsync, dopoOk: () =>
+                    {
+                        try { ContestoCassa.Tavoli.AzzeraEliminacode(); }   // come il PC: l'eliminacode riparte da 1
+                        catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Warning($"Azzera eliminacode: {ex.Message}"); }
+                    });
             }));
             lista.Add(Tasto("📋 LETTURA GIORNALIERA (X)", "#2196F3", () => EseguiAsync(Funzioni.LetturaGiornalieraAsync)));
             lista.Add(Tasto("📊 RAPPORTO REPARTI (Lettura)", "#2196F3", () => EseguiAsync(Funzioni.RapportoRepartiAsync)));
@@ -84,7 +88,7 @@ namespace PosTouch.App.Dialoghi
             if (!_attesa.IsVisible) Chiudi(true);
         }
 
-        private async Task EseguiAsync(Func<Task<EsitoOperazione>> operazione)
+        private async Task EseguiAsync(Func<Task<EsitoOperazione>> operazione, Action dopoOk = null)
         {
             if (_attesa.IsVisible) return; // un'operazione alla volta
             _attesa.IsVisible = true;
@@ -97,6 +101,7 @@ namespace PosTouch.App.Dialoghi
             {
                 _attesa.IsVisible = false;
             }
+            if (esito.Ok) dopoOk?.Invoke();
             if (esito.Ok) await MessaggioBox.Successo("OPERAZIONE COMPLETATA", esito.Messaggio);
             else await MessaggioBox.Errore("ERRORE REGISTRATORE", esito.Messaggio);
         }

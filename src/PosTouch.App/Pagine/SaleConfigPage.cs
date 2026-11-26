@@ -17,7 +17,7 @@ namespace PosTouch.App.Pagine
         private readonly ContentView _contenuto = new ContentView();
         private readonly HorizontalStackLayout _schede = new HorizontalStackLayout { Spacing = 2 };
         private int _scheda;
-        private static readonly string[] NomiSchede = { "🍽️ SALE", "🖨️ STAMPANTI", "👨‍🍳 CENTRI", "🔀 STAMPANTI PER SALA", "⚙️ OPZIONI" };
+        private static readonly string[] NomiSchede = { "🍽️ SALE", "⚙️ OPZIONI", "🖨️ STAMPE" };
         private static readonly string[] Stili = { "1 Normale", "2 Grassetto", "3 Doppia altezza", "4 Doppia altezza + grassetto", "5 Doppia larghezza",
             "6 Doppia larghezza + grassetto", "7 Doppia (2×2)", "8 Doppia (2×2) + grassetto", "9 Tripla (3×3)", "10 Tripla + grassetto", "11 Tripla altezza", "12 Tripla larghezza" };
         private static readonly string[] Cicalini = { "Spento", "BEL (3 bip)", "Epson ESC(A", "ESC B", "DLE DC4" };
@@ -53,7 +53,8 @@ namespace PosTouch.App.Pagine
                 b.Padding = new Thickness(16, 0);
                 _schede.Add(b);
             }
-            _contenuto.Content = n switch { 0 => SchedaSale(), 1 => SchedaStampanti(), 2 => SchedaCentri(), 3 => SchedaPerSala(), _ => SchedaOpzioni() };
+            if (n == 2) { _ = Navigazione.Apri(this, () => new StampePage()); n = _scheda = 0; }   // stampanti e uscite: pagina STAMPE (come POSBY)
+            _contenuto.Content = n == 1 ? SchedaOpzioni() : SchedaSale();
         }
 
         // ══════════════ helper UI ══════════════
@@ -143,7 +144,6 @@ namespace PosTouch.App.Pagine
                     { await MessaggioBox.Avviso("SALA CON TAVOLI APERTI", "Chiudi prima i tavoli aperti di questa sala."); return; }
                     if (!await MessaggioBox.Conferma("ELIMINA SALA", $"Eliminare la sala {sala.Nome}?")) return;
                     _c.Sale.Remove(sala);
-                    _c.StampantiSala.RemoveAll(x => x.SalaId == sala.Id);
                     Mostra(_scheda);
                 }), 4, riga);
                 riga++;
@@ -161,138 +161,6 @@ namespace PosTouch.App.Pagine
         }
 
         // ══════════════ STAMPANTI ══════════════
-
-        private View SchedaStampanti()
-        {
-            var v = new VerticalStackLayout { Spacing = 10 };
-            v.Add(Card(Ui.Testo("Stampanti ESC/POS in rete (porta 9100) usate per comande, storni e VAI.\nPoi assegnale ai centri di produzione.", 14, "#607D8B")));
-            var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8, ColumnDefinitions = { new(GridLength.Star), new(new GridLength(200)), new(new GridLength(100)), new(GridLength.Auto), new(GridLength.Auto) } };
-            griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            griglia.Add(Intestazione("NOME"), 0, 0); griglia.Add(Intestazione("INDIRIZZO IP"), 1, 0); griglia.Add(Intestazione("PORTA"), 2, 0);
-            int riga = 1;
-            foreach (var st in _c.Stampanti.ToList())
-            {
-                griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-                griglia.Add(Campo(st.Nome, t => st.Nome = t.Trim(), segnaposto: "es. Cucina"), 0, riga);
-                griglia.Add(Campo(st.IP, t => st.IP = t.Trim(), Keyboard.Url, segnaposto: "192.168.1.50"), 1, riga);
-                griglia.Add(Campo(st.Porta.ToString(), t => st.Porta = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric), 2, riga);
-                var prova = Ui.Tasto("🖨️ PROVA", "#9C27B0", fontSize: 14, altezza: 46);
-                prova.Padding = new Thickness(12, 0);
-                prova.Clicked += async (s, e) =>
-                {
-                    if (!IPAddress.TryParse(st.IP, out _) || st.Porta < 1 || st.Porta > 65535) { await MessaggioBox.Avviso("STAMPANTE", "IP o porta non validi."); return; }
-                    prova.IsEnabled = false;
-                    string ip = st.IP, nome = st.Nome; int porta = st.Porta;
-                    var (ok, msg) = await Task.Run(() => PosTouch.Core.Conti.ServizioConto.ProvaAsync(ip, porta, nome));
-                    prova.IsEnabled = true;
-                    if (ok) await MessaggioBox.Successo("STAMPANTE", msg); else await MessaggioBox.Errore("STAMPANTE", msg);
-                };
-                griglia.Add(prova, 3, riga);
-                griglia.Add(TastoElimina(async () =>
-                {
-                    if (!await MessaggioBox.Conferma("ELIMINA STAMPANTE", $"Eliminare la stampante {st.Nome}?\nI centri e le sale che la usano resteranno senza stampante.")) return;
-                    _c.Stampanti.Remove(st);
-                    foreach (var c in _c.Centri.Where(x => x.StampanteId == st.Id)) c.StampanteId = 0;
-                    _c.StampantiSala.RemoveAll(x => x.StampanteId == st.Id);
-                    Mostra(_scheda);
-                }), 4, riga);
-                riga++;
-            }
-            v.Add(Card(griglia));
-            v.Add(Ui.Tasto("➕ AGGIUNGI STAMPANTE", "#00897B", altezza: 52, clic: (s, e) =>
-            {
-                int id = _c.Stampanti.Count == 0 ? 1 : _c.Stampanti.Max(x => x.Id) + 1;
-                _c.Stampanti.Add(new StampanteRete { Id = id, Nome = $"Stampante {id}", IP = "192.168.1.", Porta = 9100 });
-                Mostra(_scheda);
-            }));
-            return v;
-        }
-
-        // ══════════════ CENTRI ══════════════
-
-        private List<string> VociStampanti(string prima) => new[] { prima }.Concat(_c.Stampanti.Select(s => $"{s.Nome} ({s.IP})")).ToList();
-
-        private View SchedaCentri()
-        {
-            var v = new VerticalStackLayout { Spacing = 10 };
-            v.Add(Card(Ui.Testo("Il centro si assegna alla CATEGORIA (Back office); il singolo articolo può avere un centro diverso.\n" +
-                                "Gli articoli senza centro non vengono stampati in comanda.", 14, "#607D8B")));
-            var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8, ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star), new(GridLength.Auto) } };
-            griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            griglia.Add(Intestazione("CENTRO DI PRODUZIONE"), 0, 0); griglia.Add(Intestazione("STAMPANTE PREDEFINITA"), 1, 0);
-            var voci = VociStampanti("Nessuna (non stampa)");
-            int riga = 1;
-            foreach (var c in _c.Centri.ToList())
-            {
-                griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-                griglia.Add(Campo(c.Nome, t => c.Nome = t.Trim().ToUpperInvariant(), segnaposto: "es. CUCINA"), 0, riga);
-                int i = _c.Stampanti.FindIndex(s => s.Id == c.StampanteId);
-                griglia.Add(InBox(Scelta("Stampante del centro", voci, i >= 0 ? i + 1 : 0, k => c.StampanteId = k > 0 ? _c.Stampanti[k - 1].Id : 0)), 1, riga);
-                griglia.Add(TastoElimina(async () =>
-                {
-                    int usi = ContestoCassa.Catalogo.TutteCategorie.Count(x => x.CentroProduzioneId == c.Id) +
-                              ContestoCassa.Catalogo.TuttiProdotti.Count(x => x.CentroProduzioneId == c.Id);
-                    if (!await MessaggioBox.Conferma("ELIMINA CENTRO", $"Eliminare il centro {c.Nome}?" +
-                        (usi > 0 ? $"\n\n⚠️ È usato da {usi} categorie/articoli: non stamperanno più in comanda." : ""))) return;
-                    _c.Centri.Remove(c);
-                    _c.StampantiSala.RemoveAll(x => x.CentroId == c.Id);
-                    Mostra(_scheda);
-                }), 2, riga);
-                riga++;
-            }
-            v.Add(Card(griglia));
-            v.Add(Ui.Tasto("➕ AGGIUNGI CENTRO", "#00897B", altezza: 52, clic: (s, e) =>
-            {
-                int id = _c.Centri.Count == 0 ? 1 : _c.Centri.Max(x => x.Id) + 1;
-                _c.Centri.Add(new CentroProduzione { Id = id, Nome = $"CENTRO {id}" });
-                Mostra(_scheda);
-            }));
-            return v;
-        }
-
-        // ══════════════ STAMPANTI PER SALA (come POSBY) ══════════════
-
-        private View SchedaPerSala()
-        {
-            var v = new VerticalStackLayout { Spacing = 10 };
-            v.Add(Card(Ui.Testo("Facoltativo: in una sala un centro può stampare su un'altra stampante\n" +
-                                "(es. in Terrazza il BAR esce sulla stampante del bar esterno). \"Predefinita\" = stampante del centro.", 14, "#607D8B")));
-            if (_c.Sale.Count == 0 || _c.Centri.Count == 0)
-            {
-                v.Add(Card(Ui.Testo("Configura prima almeno una sala e un centro.", 15, "#C62828")));
-                return v;
-            }
-            var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
-            griglia.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(160)));
-            foreach (var _ in _c.Centri) griglia.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            for (int k = 0; k < _c.Centri.Count; k++) griglia.Add(Intestazione(_c.Centri[k].Nome), k + 1, 0);
-            int riga = 1;
-            foreach (var sala in _c.Sale)
-            {
-                griglia.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-                griglia.Add(new Label { Text = sala.Nome, FontSize = 16, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }, 0, riga);
-                for (int k = 0; k < _c.Centri.Count; k++)
-                {
-                    var centro = _c.Centri[k];
-                    string predef = _c.StampanteDa(centro.StampanteId)?.Nome;
-                    var voci = VociStampanti(predef == null ? "Predefinita (nessuna)" : $"Predefinita ({predef})");
-                    var ecc = _c.StampantiSala.FirstOrDefault(x => x.SalaId == sala.Id && x.CentroId == centro.Id);
-                    int i = ecc == null ? -1 : _c.Stampanti.FindIndex(s => s.Id == ecc.StampanteId);
-                    int salaId = sala.Id, centroId = centro.Id;
-                    griglia.Add(InBox(Scelta($"{sala.Nome} — {centro.Nome}", voci, i >= 0 ? i + 1 : 0, sel =>
-                    {
-                        _c.StampantiSala.RemoveAll(x => x.SalaId == salaId && x.CentroId == centroId);
-                        if (sel > 0) _c.StampantiSala.Add(new StampanteSala { SalaId = salaId, CentroId = centroId, StampanteId = _c.Stampanti[sel - 1].Id });
-                    })), k + 1, riga);
-                }
-                riga++;
-            }
-            v.Add(Card(griglia));
-            return v;
-        }
-
-        // ══════════════ OPZIONI ══════════════
 
         private View SchedaOpzioni()
         {
@@ -362,11 +230,6 @@ namespace PosTouch.App.Pagine
                 { errore = $"Sala \"{s.Nome}\": nome obbligatorio, tavoli da 1 a 500, primo numero valido."; break; }
             if (errore == null && _c.Sale.GroupBy(s => s.Nome.ToUpperInvariant()).Any(g => g.Count() > 1)) errore = "Due sale hanno lo stesso nome.";
             if (errore == null && (_c.NumeroSlotContiClienti < 1 || _c.NumeroSlotContiClienti > 200)) errore = "Numero conti clienti: da 1 a 200.";
-            if (errore == null)
-                foreach (var st in _c.Stampanti)
-                    if (string.IsNullOrWhiteSpace(st.Nome) || !IPAddress.TryParse(st.IP, out _) || st.Porta < 1 || st.Porta > 65535)
-                    { errore = $"Stampante \"{st.Nome}\": nome, IP e porta devono essere validi."; break; }
-            if (errore == null && _c.Centri.Any(c => string.IsNullOrWhiteSpace(c.Nome))) errore = "Ogni centro deve avere un nome.";
             if (errore == null && _c.AbilitaPortate && _c.SeparatoriPortate.Count == 0) errore = "Con le portate abilitate serve almeno un separatore.";
             if (errore != null) { await MessaggioBox.Avviso("VALORE NON VALIDO", errore); return; }
 

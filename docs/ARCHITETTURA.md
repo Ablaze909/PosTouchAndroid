@@ -42,3 +42,7 @@ Ogni file ha una responsabilità sola; i commenti in testa a ogni classe dicono 
 11. Le stampe di una stampante escono in ordine: una stampa in errore blocca le successive della stessa stampante.
 12. Un centro senza stampante non segna gli articoli come comandati: restano da comandare.
 13. I messaggi (MessaggioBox) non vengono mai scartati; le domande fiscali non si chiudono con il tasto indietro.
+14. Stampe come POSBY (`ConfigStampe`): elenco IP, uscite 1-8 (= centro di produzione di categorie e articoli),
+    PRECONTI / RIEPILOGHI / uscite con i loro parametri; con "impostazioni per sala" ogni sala (Banco = -1) ha la sua pagina.
+    I layout producono solo il contenuto: salto righe, cicalino, taglio e inversione li aggiunge `Finitura`.
+15. Comanda da banco (`ComandaBanco`): eliminacode preso PRIMA di emettere, comanda accodata solo a documento uscito.

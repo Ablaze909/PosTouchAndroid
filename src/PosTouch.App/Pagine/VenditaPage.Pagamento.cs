@@ -39,9 +39,11 @@ namespace PosTouch.App.Pagine
             try
             {
                 var righe = Carrello.Fotografia();
+                int salaId = _sessione?.Tavolo.SalaId ?? ConfigStampe.SalaBanco;
+                int eliminacode = _sessione == null ? ContestoCassa.ComandaBanco.Prepara(righe) : 0;   // comanda da banco
                 MostraAttesa(true, "⏳ Stampa conto in corso...");
                 PosTouch.Core.Conti.EsitoConto esito;
-                try { esito = await Task.Run(() => ContestoCassa.ServizioConto.StampaAsync(righe)); }
+                try { esito = await Task.Run(() => ContestoCassa.ServizioConto.StampaAsync(righe, salaId, eliminacode)); }
                 finally { MostraAttesa(false); }
 
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.NonStampato)
@@ -62,6 +64,7 @@ namespace PosTouch.App.Pagine
 
                 // Conto stampato: come sul PC si svuota senza messaggi
                 SvuotaScontrino();
+                await InviaComandaBancoAsync(righe, eliminacode);
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.StampatoSenzaArchivio)
                     await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
                 await DopoPagamentoAsync();
@@ -140,12 +143,15 @@ namespace PosTouch.App.Pagine
         private async Task EseguiVenditaInternaAsync(Pagamento pagamento, int restoCent)
         {
             var righe = Carrello.Fotografia();
+            // comanda da banco: numero eliminacode in appendice allo scontrino (o su ticket della termica)
+            int eliminacode = _sessione == null ? ContestoCassa.ComandaBanco.Prepara(righe) : 0;
+            int appendice = ContestoCassa.ComandaBanco.InAppendice ? eliminacode : 0;
             MostraAttesa(true, "⏳ Vendita in corso...");
             EsitoVendita esito;
             try
             {
                 // Fuori dal thread grafico: la comunicazione col registratore non deve bloccare lo schermo
-                esito = await Task.Run(() => ContestoCassa.ServizioVendita.EmettiAsync(righe, pagamento));
+                esito = await Task.Run(() => ContestoCassa.ServizioVendita.EmettiAsync(righe, pagamento, appendice));
             }
             finally
             {
@@ -172,9 +178,19 @@ namespace PosTouch.App.Pagine
 
             SvuotaScontrino();
             if (restoCent > 0) MostraRestoConTimer(restoCent);
+            await InviaComandaBancoAsync(righe, eliminacode);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
             await DopoPagamentoAsync(restoCent);
+        }
+
+        /// <summary>Documento al banco uscito: accoda la comanda con l'eliminacode (avvisa se un'uscita non ha stampante).</summary>
+        private static async Task InviaComandaBancoAsync(List<RigaScontrino> righe, int eliminacode)
+        {
+            if (eliminacode <= 0) return;
+            var avvisi = await Task.Run(() => ContestoCassa.ComandaBanco.Invia(righe, eliminacode));
+            if (avvisi.Count > 0)
+                await MessaggioBox.Avviso("⚠️ COMANDA BANCO", string.Join("\n\n", avvisi) + "\n\nImposta le stampanti in IMPOSTAZIONI → 🖨️ STAMPE.");
         }
 
         /// <summary>Barra RESTO arancione per 3 secondi (MostraRestoConTimer del PC).</summary>

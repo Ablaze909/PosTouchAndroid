@@ -130,9 +130,20 @@ namespace PosTouch.Core.Stampa
 
             p.Normale().Testo(Trattini);
             p.Grassetto(true).Testo($"Pezzi: {Pezzi(d.Righe)}").Grassetto(false);
-            p.Vuota().Vuota();
-            if (cicalino > 0) p.Cicalino(cicalino);
-            return p.Taglio().Byte();
+            return p.Byte();   // salto righe, cicalino e taglio: Finitura (parametri dell'uscita)
+        }
+
+        // ══════════════ TICKET ELIMINACODE (comanda da banco) ══════════════
+
+        /// <summary>StampaTicketEliminacodeAsync del PC: numero grande da consegnare al cliente.</summary>
+        public static byte[] TicketEliminacode(int numero, string intestazione, DateTime quando)
+        {
+            var p = new EscPos();
+            if (!string.IsNullOrWhiteSpace(intestazione)) p.Centrato(intestazione, true, false);
+            p.Centro().Grassetto(true).Testo("IL TUO NUMERO").Grassetto(false);
+            p.Centro().Stile(9).Testo(numero.ToString("D3")).ResetStile();
+            p.Centro().Testo(quando.ToString("dd/MM/yyyy HH:mm", It)).Sinistra();
+            return p.Byte();
         }
 
         // ══════════════ STORNO ══════════════
@@ -169,7 +180,7 @@ namespace PosTouch.Core.Stampa
              .Testo("***           FINE STORNO" + new string(' ', L - 28) + "***")
              .Testo(new string('*', L))
              .Grassetto(false);
-            return p.Vuota().Vuota().Taglio().Byte();
+            return p.Byte();
         }
 
         // ══════════════ VAI PORTATA ══════════════
@@ -205,9 +216,8 @@ namespace PosTouch.Core.Stampa
             p.Testo(Trattini);
             p.Centro().Grassetto(true).Inverso(true).Testo($"  MARCIA: {Pezzi(d.Righe)} pezzi  ").Inverso(false).Grassetto(false);
             p.Grassetto(true).Testo(new string('=', L)).Grassetto(false);
-            p.Sinistra().Vuota().Vuota();
-            if (cicalino > 0) p.Cicalino(cicalino);
-            return p.Taglio().Byte();
+            p.Sinistra();
+            return p.Byte();
         }
 
         // ══════════════ accorpa / esplodi (come il PC) ══════════════

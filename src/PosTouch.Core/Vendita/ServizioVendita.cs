@@ -82,7 +82,8 @@ namespace PosTouch.Core.Vendita
 
         public bool InCorso => Volatile.Read(ref _inCorso) == 1;
 
-        public async Task<EsitoVendita> EmettiAsync(List<RigaScontrino> righe, Pagamento pagamento)
+        /// <param name="eliminacode">Comanda da banco: numero stampato in appendice allo scontrino (0 = nessuno).</param>
+        public async Task<EsitoVendita> EmettiAsync(List<RigaScontrino> righe, Pagamento pagamento, int eliminacode = 0)
         {
             if (Interlocked.CompareExchange(ref _inCorso, 1, 0) != 0)
                 return EsitoVendita.Errore("ATTENDERE", "Vendita in corso, attendere il completamento.");
@@ -91,7 +92,7 @@ namespace PosTouch.Core.Vendita
             {
                 rtPreso = await AccessoRT.PrendiAsync(TimeSpan.FromSeconds(10));
                 if (!rtPreso) return EsitoVendita.Errore("REGISTRATORE OCCUPATO", AccessoRT.MessaggioOccupato);
-                return await EmettiInternoAsync(righe, pagamento);
+                return await EmettiInternoAsync(righe, pagamento, eliminacode);
             }
             catch (Exception ex)
             {
@@ -129,7 +130,7 @@ namespace PosTouch.Core.Vendita
         private VenditaRegistrata _ultimoDaRegistrare;
         private int _ultimoResto;
 
-        private async Task<EsitoVendita> EmettiInternoAsync(List<RigaScontrino> righe, Pagamento pag)
+        private async Task<EsitoVendita> EmettiInternoAsync(List<RigaScontrino> righe, Pagamento pag, int eliminacode)
         {
             _fase = 0;
             _ultimoDaRegistrare = null;
@@ -273,6 +274,13 @@ namespace PosTouch.Core.Vendita
                     return await AnnullaEdEsci(rt, "ERRORE SCONTI", "Il registratore ha rifiutato lo sconto.");
             }
 
+            // ── APPENDICE ELIMINACODE (comanda da banco), come il PC: annunciata prima della chiusura ──
+            if (eliminacode > 0)
+            {
+                try { if (!await rt.PreannunciaAppendiceAsync(eliminacode)) LogManager.Warning("Appendice eliminacode non accettata"); }
+                catch (Exception ex) { LogManager.Warning($"Appendice eliminacode (non critico): {ex.Message}"); }
+            }
+
             // ── CHIUSURA ──
             // Importo esatto e parte carta del misto: chiusura "a saldo" calcolata dall'RT,
             // così un centesimo di arrotondamento sugli sconti % non lascia lo scontrino aperto.
@@ -312,6 +320,12 @@ namespace PosTouch.Core.Vendita
                 LogManager.Info($"✅ SCONTRINO CONFERMATO: Doc={footer.NumeroDocumento}, Azz={footer.NumeroAzzeramento}");
             else
                 LogManager.Warning($"⚠️ TX_FOOTER non confermato: {footer.Errore ?? "risposta assente"}");
+
+            if (eliminacode > 0)
+            {
+                try { await rt.StampaAppendiceAsync(eliminacode); }
+                catch (Exception ex) { LogManager.Warning($"Stampa appendice eliminacode (non critico): {ex.Message}"); }
+            }
 
             if (cfg.ApriCassetto)
                 await rt.ApriCassettoAsync();

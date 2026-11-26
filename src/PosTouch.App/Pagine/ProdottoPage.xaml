@@ -118,9 +118,9 @@
                             <ctl:CampoScelta x:Name="SceltaCategoria" FontSize="16" Titolo="Categoria" />
                         </Border>
 
-                        <Label Text="🍽️ Comande (centro di produzione)" Style="{StaticResource Etichetta}" />
+                        <Label Text="🍽️ Comande (uscita di stampa)" Style="{StaticResource Etichetta}" />
                         <Border Style="{StaticResource Campo}">
-                            <ctl:CampoScelta x:Name="SceltaCentro" FontSize="16" Titolo="Centro di produzione" Colonne="2" />
+                            <ctl:CampoScelta x:Name="SceltaCentro" FontSize="16" Titolo="Uscita di stampa" Colonne="2" />
                         </Border>
 
                         <Label Text="Colore bottone" Style="{StaticResource Etichetta}" />

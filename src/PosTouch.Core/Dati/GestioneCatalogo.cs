@@ -51,14 +51,14 @@ namespace PosTouch.Core.Dati
                 {
                     // Id esplicito sotto 8000: nel pos.db del PC 8000-8999 sono Gratta e Vinci e 9000+ tabacchi;
                     // l'autoincremento darebbe Id riservati (categoria nuova invisibile nella vendita)
-                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva, CentroProduzioneId)
+                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva, CentroProduzioneId, EscludiComandaBanco)
                                         VALUES ((SELECT IFNULL(MAX(Id),0)+1 FROM Categorie WHERE Id < 8000), $n, $rep, $iva, $col, $colT, $ico,
-                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 8000), $att, $centro)";
+                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 8000), $att, $centro, $escBanco)";
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Categorie SET Nome=$n, RepartoFiscale=$rep, AliquotaIVA=$iva, Colore=$col,
-                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att, CentroProduzioneId=$centro WHERE Id=$id";
+                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att, CentroProduzioneId=$centro, EscludiComandaBanco=$escBanco WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", c.Id);
                 }
                 cmd.Parameters.AddWithValue("$n", c.Nome.Trim());
@@ -69,6 +69,7 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$ico", c.Icona ?? "");
                 cmd.Parameters.AddWithValue("$att", c.Attiva ? 1 : 0);
                 cmd.Parameters.AddWithValue("$centro", c.CentroProduzioneId);
+                cmd.Parameters.AddWithValue("$escBanco", c.EscludiComandaBanco ? 1 : 0);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Categoria salvata: {c.Nome} (reparto {c.RepartoFiscale}, IVA {c.AliquotaIVA}%)");
@@ -399,6 +400,7 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Prodotti", "DimensioneFontTasto", "INTEGER DEFAULT 12");
             AggiungiColonna(conn, "Categorie", "Icona", "TEXT DEFAULT ''");
             AggiungiColonna(conn, "Categorie", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Categorie", "EscludiComandaBanco", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "VenditaAPeso", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "UnitaPeso", "TEXT DEFAULT 'Kg'");

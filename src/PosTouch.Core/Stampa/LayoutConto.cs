@@ -17,7 +17,7 @@ namespace PosTouch.Core.Stampa
 
         public static byte[] Crea(IList<RigaScontrino> righe, int numero, string intestazione1, string intestazione2,
                                   string intestazione3, bool accorpa, DateTime quando, decimal versato = 0, decimal resto = 0,
-                                  bool stampaNumero = false, bool varianti = false)
+                                  bool stampaNumero = false, bool varianti = false, int eliminacode = 0)
         {
             const int L = EscPos.Colonne;
             var p = new EscPos();
@@ -70,9 +70,13 @@ namespace PosTouch.Core.Stampa
 
             p.Vuota().Linea().Vuota();
             if (stampaNumero) p.Centrato($"Conto N. {numero}", true, false);
+            if (eliminacode > 0)   // comanda da banco: numero da consegnare al cliente
+            {
+                p.Centrato("*** BANCO - ELIMINACODE ***", true, false);
+                p.Centro().Stile(8).Testo($"N. {eliminacode:D3}").ResetStile().Sinistra();
+            }
             p.Centrato(quando.ToString("dd/MM/yyyy - HH:mm:ss", It), false, false);
-            p.Vuota().Vuota().Vuota().Taglio();
-            return p.Byte();
+            return p.Byte();   // salto righe e taglio: Finitura (parametri preconti)
         }
 
         /// <summary>Stampa di prova dalle impostazioni.</summary>
@@ -85,7 +89,6 @@ namespace PosTouch.Core.Stampa
             p.Testo(EscPos.DueColonne("Accentate", "à è é ì ò ù"));
             p.Testo(EscPos.DueColonne("Allineamento", "1234,56"));
             p.Vuota().Centrato(DateTime.Now.ToString("dd/MM/yyyy - HH:mm:ss", It), false, false);
-            p.Vuota().Vuota().Vuota().Taglio();
             return p.Byte();
         }
 

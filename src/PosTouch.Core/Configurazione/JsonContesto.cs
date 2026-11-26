@@ -8,6 +8,7 @@ namespace PosTouch.Core.Configurazione
     /// </summary>
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(Impostazioni))]
+    [JsonSerializable(typeof(ConfigStampe))]
     internal partial class JsonContesto : JsonSerializerContext
     {
     }

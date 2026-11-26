@@ -18,13 +18,14 @@ namespace PosTouch.Core.Stampa
         public static void Rilascia(string ip, int porta) => Blocco(ip, porta).Release();
 
         /// <summary>Collega, invia e chiude, con il blocco della stampante. Restituisce null se ok, altrimenti l'errore.</summary>
-        public static async Task<string> InviaAsync(string ip, int porta, byte[] dati, TimeSpan attesa)
+        public static async Task<string> InviaAsync(string ip, int porta, byte[] dati, TimeSpan attesa, bool controlloStato = false)
         {
             if (!await PrendiAsync(ip, porta, attesa)) return "Stampante occupata da un'altra stampa.";
             try
             {
                 using var st = new StampanteTermica(ip, porta);
                 if (!await st.ConnettiAsync()) return st.UltimoErrore;
+                if (controlloStato && await st.ControllaStatoAsync() is string problema) return problema;
                 await st.InviaAsync(dati);
                 return null;
             }

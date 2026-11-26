@@ -26,6 +26,8 @@ namespace PosTouch.App.Servizi
         public static Carrello Carrello { get; } = new Carrello();
         public static ArchivioTavoli Tavoli { get; private set; }
         public static SpoolerComande Spooler { get; private set; }
+        /// <summary>Comanda da banco con eliminacode (scontrino e conto al banco).</summary>
+        public static ComandaBanco ComandaBanco { get; private set; }
 
         /// <summary>Apre un tavolo (lo crea se libero) con le impostazioni correnti.</summary>
         public static SessioneTavolo ApriTavolo(int salaId, int numero, string nomeCliente = null)
@@ -69,6 +71,7 @@ namespace PosTouch.App.Servizi
                     $"{job.Descrizione}\n\nStampante {job.Stampante} ({job.IP}:{job.Porta}) non raggiungibile:\n{job.UltimoErrore}\n\n" +
                     "La stampa resta in CODA e viene ritentata ogni 30 secondi.\nControlla la stampante o apri 🖨️ CODA."));
             Spooler.Avvia();
+            ComandaBanco = new ComandaBanco(Tavoli, Spooler, () => Impostazioni, () => Catalogo);
         }
 
         public static void SalvaImpostazioni(Impostazioni nuove)

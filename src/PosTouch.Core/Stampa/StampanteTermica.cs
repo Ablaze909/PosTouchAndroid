@@ -55,6 +55,36 @@ namespace PosTouch.Core.Stampa
             await _stream.FlushAsync(cts.Token);
         }
 
+        /// <summary>
+        /// Controllo di stato (DLE EOT): chiede alla stampante carta e coperchio prima di stampare.
+        /// Restituisce null se pronta, altrimenti il motivo. Se la stampante non risponde allo stato si stampa lo stesso.
+        /// </summary>
+        public async Task<string> ControllaStatoAsync()
+        {
+            try
+            {
+                // n=2: stato offline (bit 2 = coperchio aperto, bit 5 = carta finita che ferma la stampa)
+                var off = await ChiediStatoAsync(2);
+                if (off.HasValue && (off.Value & 0x04) != 0) return "Coperchio della stampante aperto.";
+                if (off.HasValue && (off.Value & 0x20) != 0) return "Carta finita.";
+                // n=4: sensore carta (bit 5-6 = carta esaurita)
+                var carta = await ChiediStatoAsync(4);
+                if (carta.HasValue && (carta.Value & 0x60) == 0x60) return "Carta finita.";
+            }
+            catch (Exception ex) { LogManager.Debug($"Controllo stato {_ip}: {ex.Message}"); }
+            return null;
+        }
+
+        private async Task<byte?> ChiediStatoAsync(byte n)
+        {
+            await _stream.WriteAsync(new byte[] { 0x10, 0x04, n }, 0, 3);
+            await _stream.FlushAsync();
+            var buf = new byte[1];
+            using var cts = new CancellationTokenSource(800);
+            try { int letti = await _stream.ReadAsync(buf, 0, 1, cts.Token); return letti == 1 ? buf[0] : null; }
+            catch (OperationCanceledException) { return null; }
+        }
+
         private void Chiudi()
         {
             try { _stream?.Dispose(); } catch { }

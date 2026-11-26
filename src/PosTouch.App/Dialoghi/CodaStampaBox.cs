@@ -97,9 +97,9 @@ namespace PosTouch.App.Dialoghi
 
         private static async Task<PosTouch.Core.Configurazione.StampanteRete> ScegliStampanteAsync(string titolo)
         {
-            var stampanti = ContestoCassa.Impostazioni.Sale.Stampanti;
-            if (stampanti.Count == 0) { await MessaggioBox.Avviso("STAMPANTI", "Nessuna stampante configurata in IMPOSTAZIONI → SALE."); return null; }
-            int i = await SceltaBox.Testi(titolo, stampanti.Select(s => $"{s.Nome} ({s.IP})").ToList(), 2);
+            var stampanti = (ContestoCassa.Impostazioni.Stampe ?? new PosTouch.Core.Configurazione.ConfigStampe()).StampantiConNome();
+            if (stampanti.Count == 0) { await MessaggioBox.Avviso("STAMPANTI", "Nessuna stampante nell'elenco IP di IMPOSTAZIONI → 🖨️ STAMPE."); return null; }
+            int i = await SceltaBox.Testi(titolo, stampanti.Select(s => s.Nome).ToList(), 2);
             return i < 0 ? null : stampanti[i];
         }
 
