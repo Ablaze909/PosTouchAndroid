@@ -30,6 +30,12 @@ namespace PosTouch.Core.Modelli
         /// <summary>Unità di peso ("Kg", "g"...) per gli articoli venduti a peso; null = articolo a pezzi.</summary>
         public string UnitaPeso { get; set; }
         public bool IsAPeso => !string.IsNullOrEmpty(UnitaPeso);
+        /// <summary>
+        /// Varianti con prezzo su un articolo a peso: importo fisso NON moltiplicato per il peso
+        /// (sull'RT esce come riga a parte "VARIANTI", o come sconto sulla riga se negativo).
+        /// </summary>
+        public int SovrapprezzoCent { get => _sovrapprezzo; set { if (_sovrapprezzo != value) { _sovrapprezzo = value; Notifica(); } } }
+        private int _sovrapprezzo;
 
         // ── Tavoli e comande ──
         /// <summary>Centro di produzione (CUCINA, BAR...) dove va la comanda; 0 = nessuna stampa.</summary>
@@ -95,8 +101,8 @@ namespace PosTouch.Core.Modelli
         /// <summary>Conta nel totale (articoli e sconti; subtotale e separatori no).</summary>
         public bool ContaNelTotale => Tipo == TipoRiga.Prodotto || Tipo == TipoRiga.Sconto;
 
-        public decimal ImportoEuro => PrezzoCentesimi * Quantita / 100m;
-        public int ImportoCentesimi => (int)System.Math.Round(PrezzoCentesimi * Quantita, System.MidpointRounding.AwayFromZero);
+        public decimal ImportoEuro => ImportoCentesimi / 100m;
+        public int ImportoCentesimi => (int)System.Math.Round(PrezzoCentesimi * Quantita, System.MidpointRounding.AwayFromZero) + SovrapprezzoCent;
         public decimal PrezzoEuro => PrezzoCentesimi / 100m;
 
         public string QuantitaDisplay => Tipo != TipoRiga.Prodotto ? "" :

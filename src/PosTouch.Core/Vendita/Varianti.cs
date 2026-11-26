@@ -43,8 +43,6 @@ namespace PosTouch.Core.Vendita
                 if (target == null) { errore = "Nessun prodotto a cui applicare la variante."; return null; }
             }
             var articolo = target.Tipo == TipoRiga.Prodotto ? target : c.PadreDi(target);
-            if (articolo?.IsAPeso == true)
-            { errore = "Le varianti non si applicano agli articoli a peso\n(il prezzo della variante verrebbe moltiplicato per il peso)."; return null; }
             if (articolo?.Comandata == true)
             { errore = "Articolo già inviato in comanda: le varianti non si possono più cambiare.\n\nEliminalo (verrà stornato) e battilo di nuovo."; return null; }
             return target;
@@ -60,7 +58,15 @@ namespace PosTouch.Core.Vendita
             string testoComanda = $"{segno}{v.Nome}";
             string descrizione = preparazione ? v.Nome : $"{segno} {v.Nome}";
 
-            if (target.Tipo == TipoRiga.Prodotto)
+            if (target.Tipo == TipoRiga.Prodotto && target.IsAPeso)
+            {
+                // a peso: la variante è un importo fisso, non va moltiplicata per i Kg
+                if (target.ImportoCentesimi + conSegno <= 0)
+                    return "Con questa variante l'importo dell'articolo non sarebbe valido.";
+                target.SovrapprezzoCent += conSegno;
+                target.VariantiTesto = string.IsNullOrEmpty(target.VariantiTesto) ? testoComanda : target.VariantiTesto + "|" + testoComanda;
+            }
+            else if (target.Tipo == TipoRiga.Prodotto)
             {
                 if (!c.RigaAmmessa(target.PrezzoCentesimi + conSegno, target.Quantita))
                     return $"Con questa variante il prezzo dell'articolo non sarebbe valido.\n{c.UltimoErrore}";
@@ -80,14 +86,14 @@ namespace PosTouch.Core.Vendita
                     return "L'articolo combinazione non è più nel catalogo: la variante non si può ricalcolare.";
                 int prima = padre.PrezzoCentesimi;
                 string testoPrima = padre.VariantiTesto;
-                c.InserisciVariante(target, riga);
-                Combinazioni.Ricalcola(c, padre);
+                // si somma solo la differenza: un prezzo cambiato a mano resta (non si ricalcola da zero)
+                Combinazioni.Aggiorna(c, padre, () => c.InserisciVariante(target, riga));
                 if (!c.RigaAmmessa(padre.PrezzoCentesimi, padre.Quantita))
                 {
                     string motivo = c.UltimoErrore;
                     c.Righe.Remove(riga);
-                    Combinazioni.Ricalcola(c, padre);
-                    if (padre.PrezzoCentesimi != prima) { padre.PrezzoCentesimi = prima; padre.VariantiTesto = testoPrima; }
+                    Combinazioni.Calcola(c, padre);   // riallinea i prezzi delle varianti rimaste
+                    padre.PrezzoCentesimi = prima; padre.VariantiTesto = testoPrima;
                     return $"Con questa variante il prezzo della combinazione non sarebbe valido.\n{motivo}";
                 }
                 c.Notifica();

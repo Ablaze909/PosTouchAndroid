@@ -120,6 +120,7 @@ namespace PosTouch.Core.Sale
                 AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
                 AggiungiColonna(c, "RigheTavolo", "InStorno", "INTEGER NOT NULL DEFAULT 0");
+                AggiungiColonna(c, "RigheTavolo", "SovrapprezzoCent", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "CodaStampa", "SalaId", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "CodaStampa", "NumeroTavolo", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "CodaStampa", "ControlloStato", "INTEGER NOT NULL DEFAULT 0");
@@ -140,7 +141,7 @@ namespace PosTouch.Core.Sale
                 using var cmd = c.CreateCommand();
                 cmd.CommandText = @"
                     SELECT t.Id, t.SalaId, t.Numero, t.DataApertura, t.Preconto, t.PortataCorrente,
-                           IFNULL((SELECT SUM(CAST(ROUND(r.Quantita * r.PrezzoCentesimi) AS INTEGER)) FROM RigheTavolo r
+                           IFNULL((SELECT SUM(CAST(ROUND(r.Quantita * r.PrezzoCentesimi) AS INTEGER) + r.SovrapprezzoCent) FROM RigheTavolo r
                                    WHERE r.TavoloId = t.Id AND r.Tipo IN (0, 1) AND r.InStorno = 0), 0),
                            (SELECT COUNT(*) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.InStorno = 0),
                            EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.Comandata = 0 AND r.CentroProduzioneId > 0 AND r.InStorno = 0),
@@ -210,7 +211,7 @@ namespace PosTouch.Core.Sale
                 using var cmd = c.CreateCommand();
                 cmd.CommandText = @"SELECT Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi, PrezzoOriginaleCentesimi,
                                            RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso, ScontoPercentualeCent,
-                                           CentroProduzioneId, Portata, Comandata, VariantiTesto
+                                           CentroProduzioneId, Portata, Comandata, VariantiTesto, SovrapprezzoCent
                                     FROM RigheTavolo WHERE TavoloId=$t AND InStorno=$s ORDER BY Ordine";
                 cmd.Parameters.AddWithValue("$t", tavoloId);
                 cmd.Parameters.AddWithValue("$s", inStorno ? 1 : 0);
@@ -235,7 +236,8 @@ namespace PosTouch.Core.Sale
                         CentroProduzioneId = r.GetInt32(13),
                         Portata = r.GetInt32(14),
                         Comandata = r.GetInt32(15) == 1,
-                        VariantiTesto = r.IsDBNull(16) ? null : r.GetString(16)
+                        VariantiTesto = r.IsDBNull(16) ? null : r.GetString(16),
+                        SovrapprezzoCent = r.IsDBNull(17) ? 0 : r.GetInt32(17)
                     });
                 return lista;
             }
@@ -280,8 +282,9 @@ namespace PosTouch.Core.Sale
                             cmd.Transaction = tx;
                             cmd.CommandText = @"INSERT INTO RigheTavolo (TavoloId, Ordine, Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi,
                                                     PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso,
-                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno)
-                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins)";
+                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno, SovrapprezzoCent)
+                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins, $sovr)";
+                            cmd.Parameters.AddWithValue("$sovr", r.SovrapprezzoCent);
                             cmd.Parameters.AddWithValue("$t", t.Id);
                             cmd.Parameters.AddWithValue("$o", ordine++);
                             cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);

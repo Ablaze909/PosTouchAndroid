@@ -142,12 +142,6 @@ namespace PosTouch.Core.Vendita
         public bool CambiaPrezzo(RigaScontrino riga, int prezzoCent)
         {
             if (riga == null || riga.Tipo != TipoRiga.Prodotto || !RigaAmmessa(prezzoCent, riga.Quantita)) return false;
-            if (FigliDi(riga).Any(f => f.Tipo == TipoRiga.Gusto))
-            {
-                // il prezzo di una combinazione si ricalcola dai gusti: cambiato a mano sparirebbe alla prossima variante
-                UltimoErrore = "Il prezzo di una combinazione si calcola dai gusti e non si cambia a mano.";
-                return false;
-            }
             riga.PrezzoCentesimi = prezzoCent;
             Aggiornato();
             return true;

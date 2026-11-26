@@ -168,6 +168,14 @@ namespace PosTouch.Core.Vendita
                         "Il registratore ha rifiutato un articolo.\n\n" +
                         "Verificare coperchio, carta e reparti/aliquote configurati sull'RT.");
                 }
+                // varianti con prezzo su un articolo a peso: importo fisso, riga a parte (o sconto sulla riga se in meno)
+                if (riga.SovrapprezzoCent > 0
+                        ? !await rt.VendiRepartoAsync(riga.RepartoFiscale, "VARIANTI", riga.SovrapprezzoCent, 1)
+                        : riga.SovrapprezzoCent < 0 && !await rt.ScontoValoreRigaAsync(-riga.SovrapprezzoCent))
+                {
+                    LogManager.Error($"RT ha RIFIUTATO le varianti di: {riga.Descrizione}");
+                    return await AnnullaEdEsci(rt, "ERRORE REGISTRATORE", "Il registratore ha rifiutato le varianti di un articolo a peso.");
+                }
                 // Varianti su scontrino fiscale (se configurato), come il PC: righe di messaggio sotto l'articolo
                 if (cfg.VariantiSuScontrino && !string.IsNullOrEmpty(riga.VariantiTesto))
                     foreach (var vt in riga.VariantiTesto.Split('|'))

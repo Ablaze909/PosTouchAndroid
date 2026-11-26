@@ -76,3 +76,7 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
   fare guasti — coperchio aperto, carta finita in chiusura, riga o pagamento rifiutati, footer perso, rete che cade,
   RT senza TX_FOOTER. Regola verificata: **mai uno scontrino perso dato per emesso, mai un doppio scontrino**.
   Per un bug nuovo sul registratore: aggiungere il guasto al finto e il caso al test, poi correggere.
+
+## Varianti a peso e combinazioni a mano
+- Variante con prezzo su un articolo a peso: importo fisso in `RigaScontrino.SovrapprezzoCent` (non moltiplicato per i Kg). Sull'RT esce come riga "VARIANTI" (o sconto sulla riga se negativo). Salvato in RigheTavolo, RigheVendita, ContiRighe.
+- Combinazione già chiusa: varianti aggiunte/tolte cambiano il prezzo solo della differenza (`Combinazioni.Aggiorna`), così un prezzo cambiato a mano resta.

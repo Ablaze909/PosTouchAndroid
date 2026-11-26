@@ -135,6 +135,8 @@ namespace PosTouch.Core.Dati
                 AggiungiColonna(c, "ContiRighe", "UnitaPesoRiga", "TEXT");
                 AggiungiColonna(c, "RigheVendita", "VariantiTesto", "TEXT");   // "+MOZZARELLA|-CIPOLLA": storico completo (regola 5)
                 AggiungiColonna(c, "ContiRighe", "VariantiTesto", "TEXT");
+                AggiungiColonna(c, "RigheVendita", "SovrapprezzoCent", "INTEGER NOT NULL DEFAULT 0");   // varianti a importo fisso sugli articoli a peso
+                AggiungiColonna(c, "ContiRighe", "SovrapprezzoCent", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "Vendite", "OperatoreNome", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "Conti", "OperatoreNome", "TEXT DEFAULT ''");
             }
@@ -193,8 +195,9 @@ namespace PosTouch.Core.Dati
                         cmd.CommandText = @"
                             INSERT INTO RigheVendita (VenditaId, ProdottoId, CodiceArticolo, Descrizione, Quantita,
                                                       PrezzoCentesimi, PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId,
-                                                      CategoriaNome, AliquotaIVA, Tipo, IsAPeso, UnitaPesoRiga, VariantiTesto)
-                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita, $vt)";
+                                                      CategoriaNome, AliquotaIVA, Tipo, IsAPeso, UnitaPesoRiga, VariantiTesto, SovrapprezzoCent)
+                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita, $vt, $sovr)";
+                        cmd.Parameters.AddWithValue("$sovr", r.SovrapprezzoCent);
                         cmd.Parameters.AddWithValue("$v", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");

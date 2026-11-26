@@ -26,6 +26,27 @@ namespace PosTouch.Core.Vendita
         /// <summary>Ricalcola prezzo e testo comanda del padre dai suoi figli. Restituisce il prezzo (0 = base sconosciuta).</summary>
         public static int Ricalcola(Carrello carrello, RigaScontrino padre, Prodotto prodBase = null)
         {
+            padre.PrezzoCentesimi = Calcola(carrello, padre, prodBase);
+            carrello.Notifica();
+            return padre.PrezzoCentesimi;
+        }
+
+        /// <summary>
+        /// Modifica dei figli di una combinazione già chiusa (variante aggiunta o tolta): al prezzo attuale si somma
+        /// solo la differenza del calcolo, così un prezzo cambiato a mano non si perde.
+        /// </summary>
+        public static void Aggiorna(Carrello carrello, RigaScontrino padre, Action modifica)
+        {
+            int prima = Calcola(carrello, padre);
+            modifica();
+            int dopo = Calcola(carrello, padre);
+            padre.PrezzoCentesimi += dopo - prima;
+            carrello.Notifica();
+        }
+
+        /// <summary>Prezzo calcolato dai figli (aggiorna anche testo comanda e prezzi delle varianti), senza assegnarlo al padre.</summary>
+        public static int Calcola(Carrello carrello, RigaScontrino padre, Prodotto prodBase = null)
+        {
             prodBase ??= padre.ProdottoId.HasValue ? Carrello.RisolviProdotto?.Invoke(padre.ProdottoId.Value) : null;
             if (prodBase == null) return padre.PrezzoCentesimi;
             int n = Math.Clamp(prodBase.NumeroGusti, 2, 8);
@@ -39,10 +60,8 @@ namespace PosTouch.Core.Vendita
                     : v.PrezzoOriginaleCentesimi;
                 varianti += v.PrezzoCentesimi;
             }
-            padre.PrezzoCentesimi = PrezzoBase(prodBase, prezziGusti, carrello.Listino) + varianti;
             padre.VariantiTesto = string.Join("|", figli.Select(f => f.Descrizione.Trim()));
-            carrello.Notifica();
-            return padre.PrezzoCentesimi;
+            return PrezzoBase(prodBase, prezziGusti, carrello.Listino) + varianti;
         }
     }
 }

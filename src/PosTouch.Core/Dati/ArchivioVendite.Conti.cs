@@ -59,8 +59,9 @@ namespace PosTouch.Core.Dati
                         cmd.Transaction = tx;
                         cmd.CommandText = @"INSERT INTO ContiRighe (ContoId, ProdottoId, CodiceArticolo, Descrizione, Quantita, PrezzoCentesimi,
                                                 PrezzoOriginaleCentesimi, ImportoCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA,
-                                                Tipo, IsAPeso, UnitaPesoRiga, VariantiTesto)
-                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita, $vt)";
+                                                Tipo, IsAPeso, UnitaPesoRiga, VariantiTesto, SovrapprezzoCent)
+                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita, $vt, $sovr)";
+                        cmd.Parameters.AddWithValue("$sovr", r.SovrapprezzoCent);
                         cmd.Parameters.AddWithValue("$c", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");

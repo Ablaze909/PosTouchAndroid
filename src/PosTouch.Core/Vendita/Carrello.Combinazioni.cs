@@ -118,9 +118,23 @@ namespace PosTouch.Core.Vendita
             var proprietario = ProprietarioDi(v);
             var padre = PadreDi(v);
             if (padre?.Comandata == true) { UltimoErrore = "Articolo già inviato in comanda: le varianti non si possono togliere."; return; }
+            if (proprietario?.Tipo == TipoRiga.Prodotto && proprietario.IsAPeso)
+            {
+                if (proprietario.ImportoCentesimi - v.PrezzoOriginaleCentesimi <= 0)
+                { UltimoErrore = $"Togliendo la variante l'importo di {proprietario.Descrizione.Trim()} non sarebbe valido."; return; }
+                Righe.Remove(v);
+                proprietario.SovrapprezzoCent -= v.PrezzoOriginaleCentesimi;
+                proprietario.VariantiTesto = Varianti.TogliTesto(proprietario.VariantiTesto, v.Descrizione);
+                return;
+            }
             if (proprietario?.Tipo == TipoRiga.Prodotto && !RigaAmmessa(proprietario.PrezzoCentesimi - v.PrezzoOriginaleCentesimi, proprietario.Quantita))
             {
                 UltimoErrore = $"Togliendo la variante il prezzo di {proprietario.Descrizione.Trim()} non sarebbe valido.\n{UltimoErrore}\n\nCorreggi prima il prezzo dell'articolo.";
+                return;
+            }
+            if (proprietario?.Tipo == TipoRiga.Gusto && padre != null && Combinazioni.Chiusa(padre))
+            {
+                Combinazioni.Aggiorna(this, padre, () => Righe.Remove(v));   // il prezzo a mano resta, si toglie solo la variante
                 return;
             }
             Righe.Remove(v);
@@ -129,8 +143,6 @@ namespace PosTouch.Core.Vendita
                 proprietario.PrezzoCentesimi -= v.PrezzoOriginaleCentesimi;
                 proprietario.VariantiTesto = Varianti.TogliTesto(proprietario.VariantiTesto, v.Descrizione);
             }
-            else if (proprietario?.Tipo == TipoRiga.Gusto && padre != null && Combinazioni.Chiusa(padre))
-                Combinazioni.Ricalcola(this, padre);
         }
 
         /// <summary>Ricalcola totali e lista dopo una modifica fatta da fuori (es. chiusura combinazione).</summary>
