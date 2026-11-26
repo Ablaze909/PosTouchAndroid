@@ -46,16 +46,18 @@ namespace PosTouch.Core.Dati
                 {
                     p.Codice = ProssimoCodice(conn);
                     cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo, CentroProduzioneId,
-                                                              VenditaAPeso, UnitaPeso, IsCodiceBilancia, IsCombinazione, NumeroGusti, PoliticaPrezzo, VariantiProporzionali, IsCoperto)
+                                                              VenditaAPeso, UnitaPeso, IsCodiceBilancia, IsCombinazione, NumeroGusti, PoliticaPrezzo, VariantiProporzionali, IsCoperto,
+                                                              Prezzo2Centesimi, Prezzo3Centesimi, Prezzo4Centesimi)
                                         VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att, $centro,
-                                                $peso, $unita, $bil, $comb, $gusti, $pol, $prop, $coperto)";
+                                                $peso, $unita, $bil, $comb, $gusti, $pol, $prop, $coperto, $p2, $p3, $p4)";
                     cmd.Parameters.AddWithValue("$cod", p.Codice);
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Prodotti SET Barcode=$b, Descrizione=$d, PrezzoCentesimi=$pr, CostoCentesimi=$costo, CategoriaId=$cat,
                                         Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att, CentroProduzioneId=$centro,
-                                        VenditaAPeso=$peso, UnitaPeso=$unita, IsCodiceBilancia=$bil, IsCombinazione=$comb, NumeroGusti=$gusti, PoliticaPrezzo=$pol, VariantiProporzionali=$prop, IsCoperto=$coperto WHERE Id=$id";
+                                        VenditaAPeso=$peso, UnitaPeso=$unita, IsCodiceBilancia=$bil, IsCombinazione=$comb, NumeroGusti=$gusti, PoliticaPrezzo=$pol, VariantiProporzionali=$prop, IsCoperto=$coperto,
+                                        Prezzo2Centesimi=$p2, Prezzo3Centesimi=$p3, Prezzo4Centesimi=$p4 WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", p.Id);
                 }
                 cmd.Parameters.AddWithValue("$b", barcode.Length == 0 ? DBNull.Value : barcode);   // NULL come il PC
@@ -77,6 +79,9 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$pol", Math.Clamp(p.PoliticaPrezzo, 0, 2));
                 cmd.Parameters.AddWithValue("$prop", p.VariantiProporzionali ? 1 : 0);
                 cmd.Parameters.AddWithValue("$coperto", p.IsCoperto ? 1 : 0);
+                cmd.Parameters.AddWithValue("$p2", Math.Max(0, p.Prezzo2Centesimi));   // 0 = come il listino 1
+                cmd.Parameters.AddWithValue("$p3", Math.Max(0, p.Prezzo3Centesimi));
+                cmd.Parameters.AddWithValue("$p4", Math.Max(0, p.Prezzo4Centesimi));
                 cmd.ExecuteNonQuery();
                 if (p.Id == 0)
                 {

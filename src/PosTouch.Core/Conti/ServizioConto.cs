@@ -92,7 +92,8 @@ namespace PosTouch.Core.Conti
                 int numero = _archivio.ProssimoNumeroConto();
                 var quando = DateTime.Now;
                 var dati = Finitura.Applica(LayoutConto.Crea(righe, numero, cfg.IntestazioneConto1, cfg.IntestazioneConto2, cfg.IntestazioneConto3,
-                                            cfg.AccorpaRigheConto, quando, stampaNumero: cfg.StampaNumeroConto, varianti: cfg.VariantiSuConto, eliminacode: eliminacode),
+                                            cfg.AccorpaRigheConto, quando, stampaNumero: cfg.StampaNumeroConto, varianti: cfg.VariantiSuConto, eliminacode: eliminacode,
+                                            coperti: cfg.StampaMediaPerCoperto ? Coperti(righe, cfg.Sale?.SalaDa(salaId)?.CopertoProdottoId ?? 0) : 0),
                                             pre, cfg.Sale.CicalinoComande);
                 try
                 {
@@ -164,5 +165,9 @@ namespace PosTouch.Core.Conti
             string errore = await AccessoStampanti.InviaAsync(p.IP, p.Porta, dati, TimeSpan.FromSeconds(5));
             return errore == null ? (true, $"Stampa di prova inviata a {p.Descrizione}.") : (false, errore);
         }
+
+        /// <summary>Coperti = quantità della riga dell'articolo coperto della sala (0 = nessuno).</summary>
+        private static int Coperti(IEnumerable<RigaScontrino> righe, int copertoId) =>
+            copertoId <= 0 ? 0 : (int)righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.ProdottoId == copertoId).Sum(r => r.Quantita);
     }
 }

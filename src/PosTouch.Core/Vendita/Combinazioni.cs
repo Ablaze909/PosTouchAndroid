@@ -16,11 +16,11 @@ namespace PosTouch.Core.Vendita
         /// <summary>Combinazione già chiusa (prezzo calcolato), non quella in corso.</summary>
         public static bool Chiusa(RigaScontrino padre) => !string.IsNullOrEmpty(padre.VariantiTesto) || padre.PrezzoCentesimi > 0;
 
-        public static int PrezzoBase(Prodotto prodBase, IList<int> prezziGusti) => (PoliticaPrezzoCombinazione)prodBase.PoliticaPrezzo switch
+        public static int PrezzoBase(Prodotto prodBase, IList<int> prezziGusti, int listino = 1) => (PoliticaPrezzoCombinazione)prodBase.PoliticaPrezzo switch
         {
             PoliticaPrezzoCombinazione.PiuCaro => prezziGusti.Count > 0 ? prezziGusti.Max() : 0,
             PoliticaPrezzoCombinazione.Media => prezziGusti.Count > 0 ? (int)Math.Round(prezziGusti.Average(), MidpointRounding.AwayFromZero) : 0,
-            _ => prodBase.PrezzoCentesimi
+            _ => prodBase.PrezzoListino(listino)
         };
 
         /// <summary>Ricalcola prezzo e testo comanda del padre dai suoi figli. Restituisce il prezzo (0 = base sconosciuta).</summary>
@@ -39,7 +39,7 @@ namespace PosTouch.Core.Vendita
                     : v.PrezzoOriginaleCentesimi;
                 varianti += v.PrezzoCentesimi;
             }
-            padre.PrezzoCentesimi = PrezzoBase(prodBase, prezziGusti) + varianti;
+            padre.PrezzoCentesimi = PrezzoBase(prodBase, prezziGusti, carrello.Listino) + varianti;
             padre.VariantiTesto = string.Join("|", figli.Select(f => f.Descrizione.Trim()));
             carrello.Notifica();
             return padre.PrezzoCentesimi;

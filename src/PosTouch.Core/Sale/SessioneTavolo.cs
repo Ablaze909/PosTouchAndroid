@@ -44,6 +44,8 @@ namespace PosTouch.Core.Sale
             Sala = Cfg.SalaDa(salaId);
             Tavolo = _archivio.ApriTavolo(salaId, numero, nomeCliente);
             Carrello.SeparatoriPortate = Cfg.SeparatoriPortate;
+            // listino della sala (o dei conti clienti): vale per gli articoli che si battono da ora; le righe salvate restano
+            Carrello.Listino = IsContoCliente ? Cfg.ListinoContiClienti : Sala?.Listino ?? 1;
             Carrello.Carica(_archivio.Righe(Tavolo.Id));
             _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));   // storni rimasti da una sessione interrotta
             Carrello.ComandateRimosse += r => _storniPendenti.AddRange(r.Select(x => x.Copia()));

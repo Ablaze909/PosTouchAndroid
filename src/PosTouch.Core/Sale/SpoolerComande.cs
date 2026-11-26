@@ -45,6 +45,12 @@ namespace PosTouch.Core.Sale
             Sveglia();
         }
 
+        public void RiprovaJob(long id)
+        {
+            _archivio.RiprovaJob(id);
+            Sveglia();
+        }
+
         public int InErrore => _archivio.ContaInErrore();
 
         public List<DeviazioneStampa> Deviazioni() => _archivio.Deviazioni();

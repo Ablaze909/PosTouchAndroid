@@ -73,10 +73,14 @@ namespace PosTouch.Core.Vendita
 
         /// <param name="prezzoCent">prezzo battuto (tasto €), null = prezzo di listino</param>
         /// <param name="accorpa">true = se c'è già lo stesso articolo allo stesso prezzo aumenta la quantità</param>
+        private int _listino = 1;
+        /// <summary>Listino dei prezzi (1-4): al tavolo quello della sala, al banco 1. Le righe già battute non cambiano.</summary>
+        public int Listino { get => _listino; set => _listino = Math.Clamp(value, 1, 4); }
+
         public RigaScontrino Aggiungi(Prodotto p, decimal quantita, int? prezzoCent, bool accorpa)
         {
             if (p == null) return null;
-            int prezzo = prezzoCent ?? p.PrezzoCentesimi;
+            int prezzo = prezzoCent ?? p.PrezzoListino(Listino);
             if (!RigaAmmessa(prezzo, quantita)) return null;
 
             if (accorpa)
@@ -112,7 +116,7 @@ namespace PosTouch.Core.Vendita
                 AliquotaIVA = p.AliquotaIVA,
                 UnitaPeso = p.VenditaAPeso ? (string.IsNullOrWhiteSpace(p.UnitaPeso) ? "Kg" : p.UnitaPeso) : null,
                 PrezzoCentesimi = prezzo,
-                PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
+                PrezzoOriginaleCentesimi = p.PrezzoListino(Listino),
                 Quantita = quantita,
                 CentroProduzioneId = p.CentroStampa
             };

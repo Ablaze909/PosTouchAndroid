@@ -161,6 +161,10 @@
                             <CheckBox x:Name="ChkNumeroConto" Color="#4CAF50" />
                             <Label Text="🔢 Stampa il numero del conto" Style="{StaticResource Spunta}" />
                         </HorizontalStackLayout>
+                        <HorizontalStackLayout>
+                            <CheckBox x:Name="ChkMediaCoperto" Color="#4CAF50" />
+                            <Label Text="👥 Totale a persona su conto e preconto (con i coperti)" Style="{StaticResource Spunta}" />
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 

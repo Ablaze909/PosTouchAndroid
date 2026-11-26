@@ -69,6 +69,23 @@
                         </Grid>
                         <Label x:Name="TestoMargine" Text="💎 Margine: -- €" FontSize="14" FontAttributes="Bold" TextColor="#2E7D32" Margin="0,0,0,12" />
 
+                        <!-- listini 2-4 (come il PC): vuoto = stesso prezzo del listino 1; ogni sala sceglie il suo listino -->
+                        <Label Text="Prezzi listini 2 · 3 · 4 (vuoto = come il listino 1)" Style="{StaticResource Etichetta}" />
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" Margin="0,0,0,12">
+                            <Border Style="{StaticResource Campo}">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnListino2" /></Border.GestureRecognizers>
+                                <Label x:Name="TestoListino2" FontSize="15" VerticalOptions="Center" />
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource Campo}">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnListino3" /></Border.GestureRecognizers>
+                                <Label x:Name="TestoListino3" FontSize="15" VerticalOptions="Center" />
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Campo}">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnListino4" /></Border.GestureRecognizers>
+                                <Label x:Name="TestoListino4" FontSize="15" VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
+
                         <Label Text="Barcode / EAN (opzionale)" Style="{StaticResource Etichetta}" />
                         <Grid ColumnDefinitions="*,6,50">
                             <Border Style="{StaticResource Campo}">

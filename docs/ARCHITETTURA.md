@@ -50,6 +50,7 @@ I tipi di supporto (esiti, risposte, modelli) stanno in `Modelli*.cs` accanto al
 
 ## Regole che non vanno rotte (dai bug del PC)
 - **Operatori**: con la gestione accesa non si vende senza turno aperto; il turno di un altro rimasto aperto blocca la cassa finché non viene chiuso; deve restare sempre un amministratore attivo; le autorizzazioni con PIN valgono per una sola operazione.
+- **Listini**: il prezzo di un articolo si prende SEMPRE con `Prodotto.PrezzoListino(Carrello.Listino)` (mai `PrezzoCentesimi` diretto in vendita); il listino lo imposta `SessioneTavolo` dalla sala, il banco resta 1; le righe già battute non si ricalcolano.
 - **Esclusioni uscite** (`Uscita.EscludiAltre/EscludiInAltre`): si applicano solo con `ConfigStampe.AltriPer` / `FlussoPer`, mai filtrando a mano nelle singole comande.
 1. Righe "comandate" segnate **solo nella stessa transazione** in cui la stampa entra in coda (`ArchivioTavoli.Salva`).
 2. Portate per **numero logico** del separatore (`Portate.NumeroLogico`), mai contando le posizioni.

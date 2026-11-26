@@ -24,6 +24,19 @@ namespace PosTouch.Core.Modelli
         public int CentroProduzioneId { get; set; }
         /// <summary>Centro effettivo per le comande (articolo, altrimenti categoria); 0 = nessuna stampa.</summary>
         public int CentroStampa { get; set; }
+        /// <summary>Prezzi dei listini 2, 3 e 4 (colonne Prezzo2/3/4Centesimi del PC). 0 = come il listino 1.</summary>
+        public int Prezzo2Centesimi { get; set; }
+        public int Prezzo3Centesimi { get; set; }
+        public int Prezzo4Centesimi { get; set; }
+
+        /// <summary>GetPrezzoCentesimi del PC: prezzo del listino 1-4, con ripiego sul listino 1 se vuoto.</summary>
+        public int PrezzoListino(int listino)
+        {
+            int p = listino switch { 2 => Prezzo2Centesimi, 3 => Prezzo3Centesimi, 4 => Prezzo4Centesimi, _ => PrezzoCentesimi };
+            return p > 0 ? p : PrezzoCentesimi;
+        }
+
+        public string PrezzoDisplayListino(int listino) => $"€ {PrezzoListino(listino) / 100m:F2}".Replace('.', ',');
         /// <summary>⚡ SUBITO automatico ereditato dalla categoria (calcolato dal catalogo).</summary>
         public bool Subito { get; set; }
         /// <summary>Vendita a peso (dal PC): la quantità è il peso, il prezzo è per unità di peso.</summary>

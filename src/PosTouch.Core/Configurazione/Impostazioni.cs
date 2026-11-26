@@ -98,6 +98,8 @@ namespace PosTouch.Core.Configurazione
         public string PinImpostazioni { get; set; } = "";
         /// <summary>Gestione operatori e turni (PIN all'apertura del turno, permessi). Spenta = come prima, password amministratore.</summary>
         public bool AbilitaGestioneOperatori { get; set; }
+        /// <summary>Conto e preconto: "Coperti N  Totale/Persona" sotto il totale, se ci sono coperti (StampaMediaPerCoperto del PC).</summary>
+        public bool StampaMediaPerCoperto { get; set; }
         /// <summary>Fondo cassa chiesto all'apertura del turno (proposto quello del turno precedente).</summary>
         public bool ChiediFondoCassa { get; set; }
         /// <summary>Prelievi e versamenti di contanti durante il turno (menu 👤).</summary>

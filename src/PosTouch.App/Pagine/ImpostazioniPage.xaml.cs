@@ -80,6 +80,7 @@ namespace PosTouch.App.Pagine
             CampoIntest3.Text = i.IntestazioneConto3;
             ChkAccorpaConto.IsChecked = i.AccorpaRigheConto;
             ChkNumeroConto.IsChecked = i.StampaNumeroConto;
+            ChkMediaCoperto.IsChecked = i.StampaMediaPerCoperto;
             ChkRigaPiuMeno.IsChecked = i.MostraRigaPiuMeno;
             ChkAccorpaVideo.IsChecked = i.AccorpaRigheVideo;
             ChkAccorpaScontrino.IsChecked = i.AccorpaRigheScontrino;
@@ -150,6 +151,7 @@ namespace PosTouch.App.Pagine
             n.IntestazioneConto3 = (CampoIntest3.Text ?? "").Trim();
             n.AccorpaRigheConto = ChkAccorpaConto.IsChecked;
             n.StampaNumeroConto = ChkNumeroConto.IsChecked;
+            n.StampaMediaPerCoperto = ChkMediaCoperto.IsChecked;
             n.MostraRigaPiuMeno = ChkRigaPiuMeno.IsChecked;
             n.AccorpaRigheVideo = ChkAccorpaVideo.IsChecked;
             n.AccorpaRigheScontrino = ChkAccorpaScontrino.IsChecked;
@@ -173,7 +175,7 @@ namespace PosTouch.App.Pagine
             CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked,
-            ChkFondoCassa.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked, ChkConteggioObbligatorio.IsChecked);
+            ChkFondoCassa.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked, ChkConteggioObbligatorio.IsChecked, ChkMediaCoperto.IsChecked);
 
     }
 }

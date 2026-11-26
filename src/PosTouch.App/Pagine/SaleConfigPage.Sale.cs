@@ -9,6 +9,8 @@ namespace PosTouch.App.Pagine
 {
     public partial class SaleConfigPage
     {
+        private static readonly string[] Listini = { "Listino 1", "Listino 2", "Listino 3", "Listino 4" };
+
         // ══════════════ SALE ══════════════
 
         private View SchedaSale()
@@ -26,7 +28,9 @@ namespace PosTouch.App.Pagine
                         Children =
                         {
                             new Label { Text = "Numero conti clienti:", FontSize = 15, VerticalOptions = LayoutOptions.Center },
-                            Campo(_c.NumeroSlotContiClienti.ToString(), t => _c.NumeroSlotContiClienti = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric, 90)
+                            Campo(_c.NumeroSlotContiClienti.ToString(), t => _c.NumeroSlotContiClienti = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric, 90),
+                            new Label { Text = "   Listino conti clienti:", FontSize = 15, VerticalOptions = LayoutOptions.Center },
+                            InBox(Scelta("Listino conti clienti", Listini, _c.ListinoContiClienti - 1, i => _c.ListinoContiClienti = i + 1, 4))
                         }
                     },
                     Ui.Testo("Il coperto (se scelto) viene chiesto all'apertura di un tavolo nuovo. Qui compaiono solo gli articoli di tipo 🍽️ COPERTO (scheda articolo → Tipo articolo).", 13, "#999999")
@@ -38,9 +42,9 @@ namespace PosTouch.App.Pagine
             var prodotti = tutti.Where(p => p.IsCoperto || assegnati.Contains(p.Id)).ToList();   // solo i COPERTI, come il PC
             var vociCoperto = new[] { "Nessuno" }.Concat(prodotti.Select(p => $"{p.Descrizione} ({p.CategoriaNome})")).ToList();
 
-            var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8, ColumnDefinitions = { new(GridLength.Star), new(new GridLength(110)), new(new GridLength(120)), new(GridLength.Star), new(GridLength.Auto) } };
+            var griglia = new Grid { ColumnSpacing = 8, RowSpacing = 8, ColumnDefinitions = { new(GridLength.Star), new(new GridLength(110)), new(new GridLength(120)), new(GridLength.Star), new(new GridLength(130)), new(GridLength.Auto) } };
             griglia.Add(Intestazione("NOME SALA"), 0, 0); griglia.Add(Intestazione("N. TAVOLI"), 1, 0);
-            griglia.Add(Intestazione("PRIMO N."), 2, 0); griglia.Add(Intestazione("COPERTO"), 3, 0);
+            griglia.Add(Intestazione("PRIMO N."), 2, 0); griglia.Add(Intestazione("COPERTO"), 3, 0); griglia.Add(Intestazione("LISTINO"), 4, 0);
             int riga = 1;
             foreach (var sala in _c.Sale.ToList())
             {
@@ -50,6 +54,8 @@ namespace PosTouch.App.Pagine
                 griglia.Add(Campo(sala.NumeroIniziale.ToString(), t => sala.NumeroIniziale = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric), 2, riga);
                 int ic = prodotti.FindIndex(p => p.Id == sala.CopertoProdottoId);
                 griglia.Add(InBox(Scelta("Articolo coperto", vociCoperto, ic >= 0 ? ic + 1 : 0, i => sala.CopertoProdottoId = i > 0 ? prodotti[i - 1].Id : 0, 3)), 3, riga);
+                // listino dei prezzi della sala (articoli, coperto, gusti): vale per quello che si batte da ora
+                griglia.Add(InBox(Scelta($"Listino {sala.Nome}", Listini, Math.Clamp(sala.Listino, 1, 4) - 1, i => sala.Listino = i + 1, 4)), 4, riga);
                 griglia.Add(TastoElimina(async () =>
                 {
                     if (ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Occupato))
@@ -57,7 +63,7 @@ namespace PosTouch.App.Pagine
                     if (!await MessaggioBox.Conferma("ELIMINA SALA", $"Eliminare la sala {sala.Nome}?")) return;
                     _c.Sale.Remove(sala);
                     Mostra(_scheda);
-                }), 4, riga);
+                }), 5, riga);
                 riga++;
             }
             griglia.RowDefinitions.Insert(0, new RowDefinition(GridLength.Auto));

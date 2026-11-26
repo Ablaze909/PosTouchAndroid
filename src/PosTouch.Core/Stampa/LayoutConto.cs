@@ -17,7 +17,7 @@ namespace PosTouch.Core.Stampa
 
         public static byte[] Crea(IList<RigaScontrino> righe, int numero, string intestazione1, string intestazione2,
                                   string intestazione3, bool accorpa, DateTime quando, decimal versato = 0, decimal resto = 0,
-                                  bool stampaNumero = false, bool varianti = false, int eliminacode = 0)
+                                  bool stampaNumero = false, bool varianti = false, int eliminacode = 0, int coperti = 0)
         {
             const int L = EscPos.Colonne;
             var p = new EscPos();
@@ -60,6 +60,13 @@ namespace PosTouch.Core.Stampa
             p.DoppiaAltezza().Grassetto(true)
              .Testo(EscPos.DueColonne("TOTALE EURO", E(totale), 24))
              .Grassetto(false).Normale();
+
+            // MEDIA PER COPERTO (opzione "Totale a persona", come il PC): solo con i coperti
+            if (coperti > 0)
+            {
+                decimal media = Math.Round(totale / coperti, 2, MidpointRounding.AwayFromZero);
+                p.Vuota().Testo(EscPos.DueColonne($"Coperti {coperti}  Totale/Persona:", E(media)));
+            }
 
             if (versato > 0 && resto >= 0)
             {

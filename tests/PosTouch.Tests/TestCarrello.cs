@@ -57,6 +57,20 @@ namespace PosTouch.Tests
             Ok(c.Righe.IndexOf(c.Righe.First(Portate.IsSubito)) < c.Righe.IndexOf(c.Righe.First(Portate.IsSeparatoreReale)), "SUBITO prima del SEGUE");
             c.Aggiungi(bibita, 1, null, true);
             Uguale(1, c.Righe.Count(Portate.IsSubito), "un solo separatore SUBITO");
+
+            // ── listini 1-4 (come il PC) ──
+            var vino = new Prodotto { Id = 20, Descrizione = "VINO", PrezzoCentesimi = 1000, Prezzo2Centesimi = 1200, Prezzo4Centesimi = 0, RepartoFiscale = 1, CategoriaId = 3 };
+            Uguale(1200, vino.PrezzoListino(2), "listino 2");
+            Uguale(1000, vino.PrezzoListino(4), "listino vuoto: prezzo del listino 1");
+            Uguale(1000, vino.PrezzoListino(9), "listino fuori range: listino 1");
+            var cl = new Carrello { Listino = 2 };
+            var rv = cl.Aggiungi(vino, 2, null, true);
+            Ok(rv.PrezzoCentesimi == 1200 && rv.PrezzoOriginaleCentesimi == 1200 && cl.TotaleCent == 2400, "al tavolo con listino 2 il vino costa 12,00");
+            cl.Listino = 1;
+            var rv1 = cl.Aggiungi(vino, 1, null, true);
+            Ok(rv1 != rv && rv1.PrezzoCentesimi == 1000 && rv.PrezzoCentesimi == 1200, "cambiando listino le righe già battute restano");
+            cl.Listino = 7;
+            Uguale(4, cl.Listino, "listino limitato a 1-4");
             Uguale(2, b1.Quantita, "le bibite SUBITO si accorpano tra loro");
         }
     }

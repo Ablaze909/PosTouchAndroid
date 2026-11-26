@@ -54,6 +54,21 @@ namespace PosTouch.Tests
             var copiaU = e.Copia();
             Ok(copiaU.UscitaDa(2).EscludiAltre && copiaU.UscitaDa(2).EscludiInAltre, "le esclusioni si copiano con le opzioni");
             Ok(e.Firma().Contains("EscludiInAltre"), "le esclusioni si salvano nelle impostazioni");
+
+            // ── listino per sala: si copia e si normalizza ──
+            var cs = new ConfigSale();
+            cs.Sale.Add(new Sala { Id = 101, Nome = "TERRAZZA", Listino = 3 });
+            cs.Sale.Add(new Sala { Id = 102, Nome = "X", Listino = 9 });
+            cs.ListinoContiClienti = 0;
+            var cs2 = cs.Copia();
+            Ok(cs2.SalaDa(101).Listino == 3 && cs2.SalaDa(102).Listino == 4 && cs2.ListinoContiClienti == 1, "listino della sala copiato e limitato a 1-4");
+
+            // ── totale a persona sul conto ──
+            var righeConto = new List<RigaScontrino> { new RigaScontrino { Tipo = TipoRiga.Prodotto, Descrizione = "MENU", Quantita = 3, PrezzoCentesimi = 1000 } };
+            string conto = System.Text.Encoding.Latin1.GetString(LayoutConto.Crea(righeConto, 1, "PROVA", "", "", true, System.DateTime.Now, coperti: 3));
+            Ok(conto.Contains("Totale/Persona") && conto.Contains("10,00"), "conto con coperti: totale a persona 10,00");
+            string senza = System.Text.Encoding.Latin1.GetString(LayoutConto.Crea(righeConto, 1, "PROVA", "", "", true, System.DateTime.Now));
+            Ok(!senza.Contains("Totale/Persona"), "senza coperti nessun totale a persona");
             Ok(c.Firma().Length > 10, "impronta JSON");
 
             var corpo = new EscPos().Testo("CIAO").Byte();

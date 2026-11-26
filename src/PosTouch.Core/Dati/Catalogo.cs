@@ -210,6 +210,9 @@ namespace PosTouch.Core.Dati
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
                         CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId),
                         Subito = c.Subito,
+                        Prezzo2Centesimi = Math.Max(0, l.Int("Prezzo2Centesimi")),
+                        Prezzo3Centesimi = Math.Max(0, l.Int("Prezzo3Centesimi")),
+                        Prezzo4Centesimi = Math.Max(0, l.Int("Prezzo4Centesimi")),
                         Ordine = l.Int("Ordine")
                     });
                 }

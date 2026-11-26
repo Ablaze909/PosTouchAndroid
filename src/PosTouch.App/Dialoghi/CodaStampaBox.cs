@@ -87,10 +87,14 @@ namespace PosTouch.App.Dialoghi
                     ContestoCassa.Spooler.DeviaJob(id, $"{st.Nome} (deviata)", st.IP, st.Porta);
                     Carica();
                 };
-                var riga = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto) }, ColumnSpacing = 10 };
+                var riprova = Ui.Tasto("🔁", "#1976D2", fontSize: 18, altezza: 48);
+                riprova.WidthRequest = 56;
+                riprova.Clicked += (s, e) => { ContestoCassa.Spooler.RiprovaJob(id); Carica(); };   // solo questa stampa, subito
+                var riga = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto) }, ColumnSpacing = 10 };
                 riga.Add(testo, 0, 0);
-                riga.Add(devia, 1, 0);
-                riga.Add(elimina, 2, 0);
+                riga.Add(riprova, 1, 0);
+                riga.Add(devia, 2, 0);
+                riga.Add(elimina, 3, 0);
                 _lista.Add(Ui.Riquadro(riga, errore ? "#FFEBEE" : "#FFFFFF", 8, new Thickness(12, 8)));
             }
         }

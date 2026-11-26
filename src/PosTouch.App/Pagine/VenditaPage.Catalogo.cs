@@ -111,7 +111,7 @@ namespace PosTouch.App.Pagine
             // tasti già pronti per questa categoria (prestazioni): si ricreano solo se cambiano catalogo,
             // impostazioni o misura dei tasti; durante la combinazione i gusti si creano al momento
             List<View> tasti;
-            var chiave = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni, _latoTasto);
+            var chiave = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni, _latoTasto, Carrello.Listino);   // prezzi sui tasti del listino del conto
             if (chiave != _chiaveCacheTasti) { _cacheTasti.Clear(); _chiaveCacheTasti = chiave; }
             if (_combinazione != null) tasti = articoli.Select(CreaTastoArticolo).ToList();
             else if (!_cacheTasti.TryGetValue(_categoriaCorrente, out tasti))
@@ -133,7 +133,7 @@ namespace PosTouch.App.Pagine
         }
 
         private readonly Dictionary<int, List<View>> _cacheTasti = new();
-        private (int, int, double) _chiaveCacheTasti = (-1, -1, -1);
+        private (int, int, double, int) _chiaveCacheTasti = (-1, -1, -1, -1);
 
         private View CreaTastoArticolo(Prodotto p)
         {
@@ -153,7 +153,7 @@ namespace PosTouch.App.Pagine
             }, 0, 0);
             griglia.Add(new Label   // prezzo su fascia scura: una sola scritta invece di griglia + scritta
             {
-                Text = p.PrezzoDisplay, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = testo,
+                Text = p.PrezzoDisplayListino(Carrello.Listino), FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = testo,
                 HorizontalTextAlignment = TextAlignment.Center, BackgroundColor = Ui.C("#40000000"), Padding = new Thickness(4, 2)
             }, 0, 1);
 
@@ -218,7 +218,7 @@ namespace PosTouch.App.Pagine
                 }
             }
             if (p.VenditaAPeso) { await AggiungiAPesoAsync(p, prezzoCent); return; }
-            int prezzo = prezzoCent ?? p.PrezzoCentesimi;
+            int prezzo = prezzoCent ?? p.PrezzoListino(Carrello.Listino);
 
             if (prezzo == 0)
             {
@@ -249,7 +249,7 @@ namespace PosTouch.App.Pagine
         private async Task AggiungiAPesoAsync(Prodotto p, int? prezzoBattuto)
         {
             string unita = string.IsNullOrWhiteSpace(p.UnitaPeso) ? "Kg" : p.UnitaPeso;
-            int prezzo = prezzoBattuto ?? p.PrezzoCentesimi;
+            int prezzo = prezzoBattuto ?? p.PrezzoListino(Carrello.Listino);
             if (prezzo <= 0)
             {
                 var v = await TastierinoPrezzo.ChiediEuro($"💶 PREZZO AL {unita.ToUpperInvariant()} — {p.Descrizione}");

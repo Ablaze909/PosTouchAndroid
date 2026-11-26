@@ -19,7 +19,7 @@ namespace PosTouch.Core.Vendita
                 Tipo = TipoRiga.Prodotto, ProdottoId = p.Id, Descrizione = descrizione,
                 Barcode = string.IsNullOrEmpty(p.Barcode) ? p.Codice : p.Barcode,
                 RepartoFiscale = p.RepartoFiscale, CategoriaId = p.CategoriaId, CategoriaNome = p.CategoriaNome ?? "",
-                AliquotaIVA = p.AliquotaIVA, PrezzoCentesimi = 0, PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
+                AliquotaIVA = p.AliquotaIVA, PrezzoCentesimi = 0, PrezzoOriginaleCentesimi = p.PrezzoListino(Listino),
                 Quantita = 1, CentroProduzioneId = p.CentroStampa
             };
             InserisciArticolo(riga);

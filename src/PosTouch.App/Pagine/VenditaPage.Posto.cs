@@ -80,6 +80,7 @@ namespace PosTouch.App.Pagine
                 parti.Add($"dalle {t.Apertura:HH:mm}");
                 if (Cfg.Sale.AbilitaPortate && t.PortataCorrente > 0) parti.Add($"portata {t.PortataCorrente}");
                 if (t.Preconto) parti.Add("PRECONTO");
+                if (Carrello.Listino > 1) parti.Add($"LISTINO {Carrello.Listino}");   // come il PC: "[Listino 2]"
                 dettaglio = string.Join(" · ", parti);
                 BtnEsci.Text = _sessione.IsContoCliente ? "⬅ CONTI" : "⬅ SALA";
                 BtnEsci.FontSize = 15;

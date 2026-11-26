@@ -35,7 +35,8 @@ namespace PosTouch.App.Pagine
                     IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo, CentroProduzioneId = esistente.CentroProduzioneId,
                     VenditaAPeso = esistente.VenditaAPeso, UnitaPeso = esistente.UnitaPeso, IsCodiceBilancia = esistente.IsCodiceBilancia,
                     IsCombinazione = esistente.IsCombinazione, NumeroGusti = esistente.NumeroGusti, PoliticaPrezzo = esistente.PoliticaPrezzo,
-                    VariantiProporzionali = esistente.VariantiProporzionali, IsCoperto = esistente.IsCoperto
+                    VariantiProporzionali = esistente.VariantiProporzionali, IsCoperto = esistente.IsCoperto,
+                    Prezzo2Centesimi = esistente.Prezzo2Centesimi, Prezzo3Centesimi = esistente.Prezzo3Centesimi, Prezzo4Centesimi = esistente.Prezzo4Centesimi
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
@@ -77,6 +78,7 @@ namespace PosTouch.App.Pagine
 
         private void Aggiorna()
         {
+            AggiornaListini();
             bool haPrezzo = _p.PrezzoCentesimi > 0 || _p.Id > 0;
             TestoPrezzo.Text = haPrezzo ? $"{_p.PrezzoEuro:N2}" : "Tocca per digitare";
             TestoPrezzo.TextColor = Ui.C(haPrezzo ? "#111111" : "#BDBDBD");

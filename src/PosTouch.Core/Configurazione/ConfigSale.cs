@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -30,6 +31,8 @@ namespace PosTouch.Core.Configurazione
         public int NumeroIniziale { get; set; } = 1;
         /// <summary>Articolo "coperto" chiesto all'apertura del tavolo (0 = nessuno).</summary>
         public int CopertoProdottoId { get; set; }
+        /// <summary>Listino dei prezzi della sala (1-4), come ListinoSala del PC.</summary>
+        public int Listino { get; set; } = 1;
     }
 
     /// <summary>Eccezione come POSBY: in questa sala il centro stampa su un'altra stampante.</summary>
@@ -47,6 +50,8 @@ namespace PosTouch.Core.Configurazione
         /// <summary>Conti clienti sospesi (scheda 👤 CONTI): conti con il nome del cliente, sala 0.</summary>
         public bool AbilitaContiClienti { get; set; } = false;
         public int NumeroSlotContiClienti { get; set; } = 10;
+        /// <summary>Listino dei conti clienti (1-4), come ListinoContiClienti del PC.</summary>
+        public int ListinoContiClienti { get; set; } = 1;
         public const int SalaConti = 0;
         public List<Sala> Sale { get; set; } = new List<Sala> { new Sala { Id = 1, Nome = "Sala 1" } };
         // ── SOLO PER IL PASSAGGIO ALLE "OPZIONI DI STAMPA" (ConfigStampe): lette dai file vecchi, poi svuotate ──
@@ -89,6 +94,8 @@ namespace PosTouch.Core.Configurazione
             Centri ??= new List<CentroProduzione>();
             StampantiSala ??= new List<StampanteSala>();
             SeparatoriPortate ??= new List<string>();
+            foreach (var s in Sale) s.Listino = Math.Clamp(s.Listino, 1, 4);   // listini 1-4 come il PC
+            ListinoContiClienti = Math.Clamp(ListinoContiClienti, 1, 4);
         }
 
         /// <summary>Impronta del contenuto: la pagina confronta apertura e chiusura per chiedere se salvare.</summary>
@@ -98,7 +105,7 @@ namespace PosTouch.Core.Configurazione
         {
             Normalizza();
             var c = (ConfigSale)MemberwiseClone();
-            c.Sale = Sale.Select(s => new Sala { Id = s.Id, Nome = s.Nome, NumeroTavoli = s.NumeroTavoli, NumeroIniziale = s.NumeroIniziale, CopertoProdottoId = s.CopertoProdottoId }).ToList();
+            c.Sale = Sale.Select(s => new Sala { Id = s.Id, Nome = s.Nome, NumeroTavoli = s.NumeroTavoli, NumeroIniziale = s.NumeroIniziale, CopertoProdottoId = s.CopertoProdottoId, Listino = s.Listino }).ToList();
             c.Stampanti = Stampanti.Select(s => new StampanteRete { Id = s.Id, Nome = s.Nome, IP = s.IP, Porta = s.Porta }).ToList();
             c.Centri = Centri.Select(x => new CentroProduzione { Id = x.Id, Nome = x.Nome, StampanteId = x.StampanteId }).ToList();
             c.StampantiSala = StampantiSala.Select(x => new StampanteSala { SalaId = x.SalaId, CentroId = x.CentroId, StampanteId = x.StampanteId }).ToList();

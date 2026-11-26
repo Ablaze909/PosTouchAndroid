@@ -131,6 +131,12 @@ namespace PosTouch.Core.Sale
             lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE CodaStampa SET Stato = 0 WHERE Stato = 1"); }
         }
 
+        /// <summary>Rimette in attesa una sola stampa (RIPROVA del singolo lavoro, come il PC).</summary>
+        public void RiprovaJob(long id)
+        {
+            lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE CodaStampa SET Stato = 0 WHERE Id=$id", ("$id", id)); }
+        }
+
         public void EliminaJob(long id)
         {
             lock (_lock) { using var c = Apri(); Esegui(c, null, "DELETE FROM CodaStampa WHERE Id=$id", ("$id", id)); }

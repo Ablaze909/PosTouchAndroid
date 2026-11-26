@@ -91,6 +91,9 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Categorie", "Attiva", "INTEGER DEFAULT 1");
             AggiungiColonna(conn, "Categorie", "ColoreTestoCategoria", "TEXT DEFAULT '#000000'");
             AggiungiColonna(conn, "Prodotti", "Barcode", "TEXT");
+            AggiungiColonna(conn, "Prodotti", "Prezzo2Centesimi", "INTEGER NOT NULL DEFAULT 0");   // listini come il PC (v12)
+            AggiungiColonna(conn, "Prodotti", "Prezzo3Centesimi", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "Prezzo4Centesimi", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "ColoreTestoTasto", "TEXT DEFAULT '#FFFFFF'");
             AggiungiColonna(conn, "Prodotti", "Attivo", "INTEGER DEFAULT 1");
             AggiungiColonna(conn, "Prodotti", "CostoCentesimi", "INTEGER DEFAULT 0");

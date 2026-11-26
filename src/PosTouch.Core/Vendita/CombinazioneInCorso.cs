@@ -66,7 +66,7 @@ namespace PosTouch.Core.Vendita
             _carrello.AggiungiFiglio(Padre, new RigaScontrino
             {
                 Tipo = TipoRiga.Gusto, Descrizione = $"  {Frazione(Totali)} {gusto.Descrizione}", Quantita = 1,
-                PrezzoCentesimi = 0, PrezzoOriginaleCentesimi = gusto.PrezzoCentesimi,   // prezzo del gusto per i ricalcoli
+                PrezzoCentesimi = 0, PrezzoOriginaleCentesimi = gusto.PrezzoListino(_carrello.Listino),   // prezzo del gusto (listino del conto) per i ricalcoli
                 CategoriaId = Base.CategoriaId, ProdottoId = gusto.Id
             });
             _scelti.Add(gusto);
