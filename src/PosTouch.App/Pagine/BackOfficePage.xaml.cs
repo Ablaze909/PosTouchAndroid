@@ -70,6 +70,8 @@ namespace PosTouch.App.Pagine
 
         // ══════════════ schede ══════════════
 
+        private async void OnSchedaVarianti(object sender, TappedEventArgs e) => await Navigazione.Apri(this, () => new VariantiPage());
+
         private void OnSchedaProdotti(object sender, TappedEventArgs e) => MostraScheda(true);
         private void OnSchedaCategorie(object sender, TappedEventArgs e) => MostraScheda(false);
 

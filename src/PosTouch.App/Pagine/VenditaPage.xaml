@@ -143,6 +143,11 @@
                                 <!-- separatore -->
                                 <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="10" TextColor="#BDBDBD"
                                        HorizontalTextAlignment="Center" VerticalOptions="Center" LineBreakMode="NoWrap" IsVisible="{Binding IsSeparatore}" />
+                                <!-- variante (sotto articolo o gusto) -->
+                                <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="12" FontAttributes="Italic" TextColor="#6D4C41"
+                                       Margin="14,0,3,0" VerticalOptions="Center" IsVisible="{Binding IsVariante}" />
+                                <Label Grid.Column="2" Text="{Binding VarianteDisplay}" FontSize="12" TextColor="#6D4C41"
+                                       HorizontalTextAlignment="End" VerticalOptions="Center" IsVisible="{Binding IsVariante}" />
                                 <!-- gusto di una combinazione -->
                                 <Label Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Descrizione}" FontSize="12" TextColor="#E65100"
                                        Margin="4,0,3,0" VerticalOptions="Center" IsVisible="{Binding IsGusto}" />
@@ -213,9 +218,14 @@
                     <Button x:Name="BtnAnnulla" Grid.Column="2" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
                 </Grid>
 
-                <Grid x:Name="RigaQuantita" Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*" ColumnSpacing="4">
+                <!-- ＋ ﹣ VAR＋ VAR﹣ (gridRigaVarianti del PC) e, al tavolo, 🔀 SPOSTA 🔗 UNISCI -->
+                <Grid x:Name="RigaQuantita" Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,*,*,Auto,Auto" ColumnSpacing="4">
                     <Button Text="＋" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnPiu" />
                     <Button Grid.Column="1" Text="﹣" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
+                    <Button Grid.Column="2" Text="VAR ＋" FontSize="12" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Clicked="OnVariantePiu" />
+                    <Button Grid.Column="3" Text="VAR ﹣" FontSize="12" BackgroundColor="#BF360C" Style="{StaticResource TastoScuro}" Clicked="OnVarianteMeno" />
+                    <Button x:Name="BtnSposta" Grid.Column="4" Text="🔀" FontSize="16" WidthRequest="44" BackgroundColor="#5E35B1" Style="{StaticResource TastoScuro}" Clicked="OnSposta" IsVisible="False" />
+                    <Button x:Name="BtnUnisci" Grid.Column="5" Text="🔗" FontSize="16" WidthRequest="44" BackgroundColor="#00838F" Style="{StaticResource TastoScuro}" Clicked="OnUnisci" IsVisible="False" />
                 </Grid>
 
                 <!-- Lista espansa: la tastiera (con C) è nascosta, quindi qui c'è il tasto per cancellare le righe selezionate -->

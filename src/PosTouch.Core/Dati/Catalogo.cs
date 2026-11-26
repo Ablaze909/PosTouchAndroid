@@ -21,6 +21,17 @@ namespace PosTouch.Core.Dati
         private readonly string _percorso;
         private List<Categoria> _categorie = new List<Categoria>();
         private List<Prodotto> _prodotti = new List<Prodotto>();
+        private List<Variante> _varianti = new List<Variante>();
+
+        /// <summary>Tutte le varianti (anche non attive), per il Back office.</summary>
+        public IReadOnlyList<Variante> TutteVarianti => _varianti;
+
+        /// <summary>Varianti attive di una categoria, per gruppo e ordine (GetVariantiPerCategoria del PC).</summary>
+        public List<Variante> VariantiDi(int categoriaId) => _varianti
+            .Where(v => v.Attiva && v.Categorie.Contains(categoriaId))
+            .OrderBy(v => v.Gruppo).ThenBy(v => v.Ordine).ThenBy(v => v.Nome).ToList();
+
+        public Prodotto ProdottoDa(int id) => _prodotti.FirstOrDefault(p => p.Id == id);
 
         public Catalogo(string cartellaDati)
         {
@@ -126,20 +137,63 @@ namespace PosTouch.Core.Dati
                         NumeroGusti = Math.Clamp(l.Int("NumeroGusti", 2), 2, 8),
                         PoliticaPrezzo = Math.Clamp(l.Int("PoliticaPrezzo"), 0, 2),
                         IsCodiceBilancia = l.Bool("IsCodiceBilancia"),
+                        VariantiProporzionali = l.Bool("VariantiProporzionali"),
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
                         CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId)
                     });
                 }
             }
             prodotti = prodotti.OrderBy(p => p.Descrizione).ToList();
+            var varianti = CaricaVarianti(conn);
             foreach (var c in categorie)
                 c.NumeroProdotti = prodotti.Count(p => p.CategoriaId == c.Id && p.Attivo);
 
             _categorie = categorie;
             _prodotti = prodotti;
+            _varianti = varianti;
             Versione++;
             LogManager.Info($"Catalogo caricato: {categorie.Count} categorie, {prodotti.Count} prodotti");
             return prodotti.Count;
+        }
+
+        /// <summary>Varianti e categorie collegate; un pos.db senza tabelle varianti dà una lista vuota.</summary>
+        private static List<Variante> CaricaVarianti(SqliteConnection conn)
+        {
+            var lista = new List<Variante>();
+            try
+            {
+                var perId = new Dictionary<int, Variante>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT * FROM Varianti";
+                    using var r = cmd.ExecuteReader();
+                    var l = new LettoreRiga(r);
+                    while (l.Prossima())
+                    {
+                        var v = new Variante
+                        {
+                            Id = l.Int("Id"), Nome = l.Testo("Nome"), Gruppo = l.Testo("Gruppo", ""),
+                            Tipo = (TipoVariante)Math.Clamp(l.Int("Tipo"), 0, 1),
+                            PrezzoAggiuntaCent = l.Int("PrezzoAggiuntaCent"), PrezzoRimozioneCent = l.Int("PrezzoRimozioneCent"),
+                            Ordine = l.Int("Ordine"), Attiva = l.Bool("Attiva", true)
+                        };
+                        perId[v.Id] = v;
+                        lista.Add(v);
+                    }
+                }
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT CategoriaId, VarianteId FROM CategorieVarianti";
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                        if (perId.TryGetValue(r.GetInt32(1), out var v)) v.Categorie.Add(r.GetInt32(0));
+                }
+            }
+            catch (SqliteException)
+            {
+                // tabelle assenti (pos.db vecchio o catalogo nuovo): nessuna variante
+            }
+            return lista.OrderBy(v => v.Gruppo).ThenBy(v => v.Ordine).ThenBy(v => v.Nome).ToList();
         }
 
         /// <summary>Articolo: &gt;0 il suo centro, -1 nessuna stampa, 0 quello della categoria.</summary>

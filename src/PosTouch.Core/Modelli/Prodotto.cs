@@ -31,6 +31,8 @@ namespace PosTouch.Core.Modelli
         public int NumeroGusti { get; set; } = 2;
         /// <summary>Combinazione: 0 = prezzo del gusto più caro, 1 = media dei gusti, 2 = prezzo fisso dell'articolo.</summary>
         public int PoliticaPrezzo { get; set; }
+        /// <summary>Combinazione: il prezzo delle varianti si divide per il numero di gusti.</summary>
+        public bool VariantiProporzionali { get; set; }
         /// <summary>Codice bilancia: il barcode (5 cifre) viene cercato nelle etichette EAN-13 della bilancia.</summary>
         public bool IsCodiceBilancia { get; set; }
         /// <summary>Visibile nel POS (false = nascosto).</summary>

@@ -45,6 +45,18 @@ namespace PosTouch.Core.Sale
         public string UltimoErrore { get; set; }
     }
 
+    /// <summary>Deviazione forzata (DeviazioniAttive del PC): tutto ciò che va alla stampante Origine esce sulla Destinazione.</summary>
+    public class DeviazioneStampa
+    {
+        public string NomeOrigine { get; set; } = "";
+        public string IPOrigine { get; set; } = "";
+        public int PortaOrigine { get; set; }
+        public string NomeDestinazione { get; set; } = "";
+        public string IPDestinazione { get; set; } = "";
+        public int PortaDestinazione { get; set; }
+        public DateTime Attivata { get; set; }
+    }
+
     /// <summary>Registro storni (per le statistiche), come StornoComande del PC.</summary>
     public class StornoRegistrato
     {
@@ -161,6 +173,10 @@ namespace PosTouch.Core.Sale
                 // colonne aggiunte nelle versioni successive (archivi già esistenti)
                 AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
+                Esegui(c, null, @"CREATE TABLE IF NOT EXISTS DeviazioniStampa (
+                                    IPOrigine TEXT NOT NULL, PortaOrigine INTEGER NOT NULL, NomeOrigine TEXT NOT NULL,
+                                    IPDestinazione TEXT NOT NULL, PortaDestinazione INTEGER NOT NULL, NomeDestinazione TEXT NOT NULL,
+                                    Attivata TEXT NOT NULL, PRIMARY KEY (IPOrigine, PortaOrigine))");
             }
         }
 
@@ -346,6 +362,142 @@ namespace PosTouch.Core.Sale
             }
         }
 
+        // ══════════════ SPOSTA / UNISCI (come il PC) ══════════════
+
+        /// <summary>
+        /// 🔀 SPOSTA: il tavolo va sul tavolo di destinazione; se è occupato i due tavoli si SCAMBIANO.
+        /// Restituisce true se è stato uno scambio.
+        /// </summary>
+        public bool SpostaTavolo(long tavoloId, int salaDest, int numeroDest)
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var tx = c.BeginTransaction();
+                try
+                {
+                    long? altro = null;
+                    int salaOrig = 0, numOrig = 0;
+                    using (var cmd = c.CreateCommand())
+                    {
+                        cmd.Transaction = tx;
+                        cmd.CommandText = "SELECT SalaId, Numero FROM TavoliAperti WHERE Id=$id";
+                        cmd.Parameters.AddWithValue("$id", tavoloId);
+                        using var r = cmd.ExecuteReader();
+                        if (!r.Read()) throw new InvalidOperationException("Tavolo non trovato.");
+                        salaOrig = r.GetInt32(0); numOrig = r.GetInt32(1);
+                    }
+                    using (var cmd = c.CreateCommand())
+                    {
+                        cmd.Transaction = tx;
+                        cmd.CommandText = "SELECT Id FROM TavoliAperti WHERE SalaId=$s AND Numero=$n";
+                        cmd.Parameters.AddWithValue("$s", salaDest);
+                        cmd.Parameters.AddWithValue("$n", numeroDest);
+                        if (cmd.ExecuteScalar() is long id) altro = id;
+                    }
+                    if (altro.HasValue)
+                    {
+                        // scambio: il tavolo di destinazione passa per un numero provvisorio per rispettare UNIQUE(SalaId, Numero)
+                        Esegui(c, tx, "UPDATE TavoliAperti SET SalaId=-999, Numero=-999 WHERE Id=$id", ("$id", altro.Value));
+                        Esegui(c, tx, "UPDATE TavoliAperti SET SalaId=$s, Numero=$n WHERE Id=$id", ("$s", salaDest), ("$n", numeroDest), ("$id", tavoloId));
+                        Esegui(c, tx, "UPDATE TavoliAperti SET SalaId=$s, Numero=$n WHERE Id=$id", ("$s", salaOrig), ("$n", numOrig), ("$id", altro.Value));
+                    }
+                    else
+                        Esegui(c, tx, "UPDATE TavoliAperti SET SalaId=$s, Numero=$n WHERE Id=$id", ("$s", salaDest), ("$n", numeroDest), ("$id", tavoloId));
+                    tx.Commit();
+                    LogManager.Info($"SPOSTA tavolo {salaOrig}/{numOrig} → {salaDest}/{numeroDest}{(altro.HasValue ? " (scambio)" : "")}");
+                    return altro.HasValue;
+                }
+                catch { tx.Rollback(); throw; }
+            }
+        }
+
+        /// <summary>🔗 UNISCI: le righe dei tavoli sorgente vanno in fondo al tavolo di destinazione; i sorgenti si liberano.</summary>
+        public void UnisciTavoli(long destinazioneId, IEnumerable<long> sorgenti)
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var tx = c.BeginTransaction();
+                try
+                {
+                    foreach (long id in sorgenti)
+                    {
+                        if (id == destinazioneId) continue;
+                        long max;
+                        using (var cmd = c.CreateCommand())
+                        {
+                            cmd.Transaction = tx;
+                            cmd.CommandText = "SELECT IFNULL(MAX(Ordine), -1) + 1 FROM RigheTavolo WHERE TavoloId=$d";
+                            cmd.Parameters.AddWithValue("$d", destinazioneId);
+                            max = Convert.ToInt64(cmd.ExecuteScalar());   // vero MAX ogni volta (FIX BUG-I2 del PC)
+                        }
+                        Esegui(c, tx, "UPDATE RigheTavolo SET TavoloId=$d, Ordine = Ordine + $o WHERE TavoloId=$s", ("$d", destinazioneId), ("$o", max), ("$s", id));
+                        Esegui(c, tx, "DELETE FROM TavoliAperti WHERE Id=$s", ("$s", id));
+                    }
+                    tx.Commit();
+                }
+                catch { tx.Rollback(); throw; }
+            }
+        }
+
+        // ══════════════ DEVIAZIONI STAMPANTI ══════════════
+
+        public List<DeviazioneStampa> Deviazioni()
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = "SELECT NomeOrigine, IPOrigine, PortaOrigine, NomeDestinazione, IPDestinazione, PortaDestinazione, Attivata FROM DeviazioniStampa";
+                var l = new List<DeviazioneStampa>();
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    l.Add(new DeviazioneStampa
+                    {
+                        NomeOrigine = r.GetString(0), IPOrigine = r.GetString(1), PortaOrigine = r.GetInt32(2),
+                        NomeDestinazione = r.GetString(3), IPDestinazione = r.GetString(4), PortaDestinazione = r.GetInt32(5),
+                        Attivata = DateTime.TryParse(r.GetString(6), out var d) ? d : DateTime.Now
+                    });
+                return l;
+            }
+        }
+
+        /// <summary>🔀 FORZA DEVIAZIONE: vale per le stampe nuove e sposta subito quelle in coda (resta attiva anche dopo il riavvio).</summary>
+        public void AttivaDeviazione(DeviazioneStampa d)
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var tx = c.BeginTransaction();
+                Esegui(c, tx, @"INSERT OR REPLACE INTO DeviazioniStampa VALUES ($ip, $p, $n, $ipd, $pd, $nd, $data)",
+                       ("$ip", d.IPOrigine), ("$p", d.PortaOrigine), ("$n", d.NomeOrigine),
+                       ("$ipd", d.IPDestinazione), ("$pd", d.PortaDestinazione), ("$nd", d.NomeDestinazione), ("$data", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
+                Esegui(c, tx, "UPDATE CodaStampa SET IP=$ipd, Porta=$pd, Stampante=$nd, Stato=0 WHERE IP=$ip AND Porta=$p AND Stato IN (0, 1)",
+                       ("$ipd", d.IPDestinazione), ("$pd", d.PortaDestinazione), ("$nd", $"{d.NomeDestinazione} (deviata da {d.NomeOrigine})"),
+                       ("$ip", d.IPOrigine), ("$p", d.PortaOrigine));
+                tx.Commit();
+                LogManager.Warning($"DEVIAZIONE attivata: {d.NomeOrigine} ({d.IPOrigine}) → {d.NomeDestinazione} ({d.IPDestinazione})");
+            }
+        }
+
+        public void RimuoviDeviazioni()
+        {
+            lock (_lock) { using var c = Apri(); Esegui(c, null, "DELETE FROM DeviazioniStampa"); }
+            LogManager.Info("DEVIAZIONI rimosse");
+        }
+
+        /// <summary>Devia una singola stampa in coda (anche in errore) su un'altra stampante.</summary>
+        public void DeviaJob(long id, string nome, string ip, int porta)
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                Esegui(c, null, "UPDATE CodaStampa SET IP=$ip, Porta=$p, Stampante=$n, Stato=0 WHERE Id=$id",
+                       ("$ip", ip), ("$p", porta), ("$n", nome), ("$id", id));
+            }
+        }
+
         // ══════════════ CODA DI STAMPA ══════════════
 
         /// <summary>Stampe in attesa o in errore, dalla più vecchia.</summary>
@@ -410,6 +562,21 @@ namespace PosTouch.Core.Sale
 
         private static void Accoda(SqliteConnection c, SqliteTransaction tx, JobStampa j)
         {
+            // deviazione forzata attiva per questa stampante?
+            using (var dev = c.CreateCommand())
+            {
+                dev.Transaction = tx;
+                dev.CommandText = "SELECT IPDestinazione, PortaDestinazione, NomeDestinazione FROM DeviazioniStampa WHERE IPOrigine=$ip AND PortaOrigine=$p";
+                dev.Parameters.AddWithValue("$ip", j.IP ?? "");
+                dev.Parameters.AddWithValue("$p", j.Porta);
+                using var r = dev.ExecuteReader();
+                if (r.Read())
+                {
+                    j.Stampante = $"{r.GetString(2)} (deviata da {j.Stampante})";
+                    j.IP = r.GetString(0);
+                    j.Porta = r.GetInt32(1);
+                }
+            }
             using var cmd = c.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = @"INSERT INTO CodaStampa (DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati)

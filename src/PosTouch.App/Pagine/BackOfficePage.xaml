@@ -46,6 +46,10 @@
                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSchedaCategorie" /></Border.GestureRecognizers>
                 <Label x:Name="TestoSchedaCategorie" Text="🏷️ CATEGORIE" FontSize="16" FontAttributes="Bold" />
             </Border>
+            <Border StrokeThickness="0" StrokeShape="RoundRectangle 8,8,0,0" Padding="25,15" Margin="5,0" BackgroundColor="#FFE0B2">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSchedaVarianti" /></Border.GestureRecognizers>
+                <Label Text="🧩 VARIANTI" FontSize="16" FontAttributes="Bold" TextColor="#E65100" />
+            </Border>
         </HorizontalStackLayout>
 
         <!-- ═══ PRODOTTI ═══ -->

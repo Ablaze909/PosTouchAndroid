@@ -70,6 +70,8 @@ namespace PosTouch.Core.Configurazione
 
         // ── portate ──
         public bool AbilitaPortate { get; set; } = false;
+        public bool AbilitaSpostaTavolo { get; set; } = true;
+        public bool AbilitaUnisciConti { get; set; } = true;
         public List<string> SeparatoriPortate { get; set; } = new List<string> { "SEGUE", "SEGUE 2", "SEGUE 3" };
 
         public Sala SalaDa(int id) => Sale.FirstOrDefault(s => s.Id == id);

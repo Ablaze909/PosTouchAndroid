@@ -327,6 +327,29 @@ namespace PosTouch.Core.Sale
             return esito;
         }
 
+        // ══════════════ 🔀 SPOSTA / 🔗 UNISCI ══════════════
+
+        /// <summary>
+        /// 🔀 SPOSTA: salva il tavolo (storni compresi, le righe nuove restano da comandare) e lo sposta;
+        /// se la destinazione è occupata i tavoli si scambiano. Dopo si torna alla sala.
+        /// </summary>
+        public string Sposta(int salaDest, int numeroDest, string nomeDestinazione)
+        {
+            string da = Titolo;
+            EsciSenzaInvio();
+            bool scambio = _archivio.SpostaTavolo(Tavolo.Id, salaDest, numeroDest);
+            return scambio ? $"{da} ↔ {nomeDestinazione}" : $"Spostato da {da} a {nomeDestinazione}.";
+        }
+
+        /// <summary>🔗 UNISCI: le righe dei tavoli scelti vengono aggiunte a questo tavolo (comande già fatte restano comandate).</summary>
+        public void Unisci(IEnumerable<long> tavoliId)
+        {
+            SalvaBozza();
+            _archivio.UnisciTavoli(Tavolo.Id, tavoliId);
+            Carrello.Carica(_archivio.Righe(Tavolo.Id));
+            LogManager.Info($"UNISCI in {Titolo}: {Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto)} articoli");
+        }
+
         // ══════════════ 📋 PRECONTO ══════════════
 
         /// <summary>Preconto sulla termica (non salvato come conto); il tavolo diventa giallo. Restituisce null se ok.</summary>

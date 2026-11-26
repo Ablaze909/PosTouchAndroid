@@ -55,6 +55,7 @@ namespace PosTouch.App.Servizi
             catch (Exception ex) { LogManager.Error($"Catalogo non caricato: {ex.Message}"); }
 
             GestioneCatalogo = new GestioneCatalogo(Catalogo);
+            Carrello.RisolviProdotto = id => Catalogo.ProdottoDa(id);   // ricalcolo combinazioni
 
             Vendite = new ArchivioVendite(cartellaDati);
             ServizioVendita = new ServizioVendita(() => Impostazioni, Vendite);

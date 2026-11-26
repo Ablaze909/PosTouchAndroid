@@ -66,7 +66,8 @@ namespace PosTouch.Core.Vendita
             _carrello.AggiungiFiglio(Padre, new RigaScontrino
             {
                 Tipo = TipoRiga.Gusto, Descrizione = $"  {Frazione(Totali)} {gusto.Descrizione}", Quantita = 1,
-                PrezzoCentesimi = 0, CategoriaId = Base.CategoriaId, ProdottoId = gusto.Id
+                PrezzoCentesimi = 0, PrezzoOriginaleCentesimi = gusto.PrezzoCentesimi,   // prezzo del gusto per i ricalcoli
+                CategoriaId = Base.CategoriaId, ProdottoId = gusto.Id
             });
             _scelti.Add(gusto);
             Mancanti--;
@@ -87,11 +88,12 @@ namespace PosTouch.Core.Vendita
         {
             if (Mancanti > 0)
                 return $"Hai selezionato {Totali - Mancanti} di {Totali} gusti.\n\nSeleziona i gusti mancanti prima di chiudere.";
-            int prezzo = Prezzo(Base, _scelti.Select(g => g.PrezzoCentesimi).ToList());
-            if (prezzo <= 0) return "Il prezzo della combinazione è € 0,00: controlla i prezzi dei gusti o dell'articolo.";
-            Padre.PrezzoCentesimi = prezzo;
-            Padre.VariantiTesto = string.Join("|", _carrello.FigliDi(Padre).Select(r => r.Descrizione.Trim()));
-            _carrello.Notifica();
+            int prezzo = Combinazioni.Ricalcola(_carrello, Padre, Base);
+            if (prezzo <= 0)
+            {
+                Padre.PrezzoCentesimi = 0; Padre.VariantiTesto = null;
+                return "Il prezzo della combinazione è € 0,00: controlla i prezzi dei gusti o dell'articolo.";
+            }
             return null;
         }
 
@@ -101,11 +103,6 @@ namespace PosTouch.Core.Vendita
         /// <summary>La combinazione è ancora nello scontrino? (può essere stata cancellata con C/elimina)</summary>
         public bool Presente => _carrello.Righe.Contains(Padre);
 
-        public static int Prezzo(Prodotto prodBase, IList<int> prezziGusti) => (PoliticaPrezzoCombinazione)prodBase.PoliticaPrezzo switch
-        {
-            PoliticaPrezzoCombinazione.PiuCaro => prezziGusti.Count > 0 ? prezziGusti.Max() : 0,
-            PoliticaPrezzoCombinazione.Media => prezziGusti.Count > 0 ? (int)Math.Round(prezziGusti.Average(), MidpointRounding.AwayFromZero) : 0,
-            _ => prodBase.PrezzoCentesimi
-        };
+        public static int Prezzo(Prodotto prodBase, IList<int> prezziGusti) => Combinazioni.PrezzoBase(prodBase, prezziGusti);
     }
 }

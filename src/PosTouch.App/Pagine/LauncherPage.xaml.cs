@@ -44,6 +44,25 @@ namespace PosTouch.App.Pagine
             SottotitoloPuntoVendita.Text = cfg.SottotitoloPuntoVendita ?? "";
             AggiornaOra();
             _orologio.Start();
+            if (!_deviazioniControllate) { _deviazioniControllate = true; Dispatcher.Dispatch(async () => await ControllaDeviazioniAsync()); }
+        }
+
+        private static bool _deviazioniControllate;
+
+        /// <summary>ControllaDeviazioniSalvate del PC: all'avvio chiede se le stampanti deviate funzionano di nuovo.</summary>
+        private static async Task ControllaDeviazioniAsync()
+        {
+            try
+            {
+                var dev = ContestoCassa.Spooler.Deviazioni();
+                if (dev.Count == 0) return;
+                string lista = string.Join("\n", dev.Select(d => $"• {d.NomeOrigine} → {d.NomeDestinazione} (dal {d.Attivata:dd/MM HH:mm})"));
+                bool ok = await MessaggioBox.Domanda("🔀 DEVIAZIONI STAMPANTI — CONTROLLO AVVIO",
+                    $"Nella sessione precedente erano attive queste deviazioni:\n\n{lista}\n\nLe stampanti funzionano correttamente?\n\n" +
+                    "• SÌ → tolgo le deviazioni (stampa normale)\n• NO → le lascio attive");
+                if (ok) ContestoCassa.Spooler.RimuoviDeviazioni();
+            }
+            catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Error($"Controllo deviazioni: {ex.Message}"); }
         }
 
         protected override void OnDisappearing()

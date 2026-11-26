@@ -47,6 +47,14 @@ namespace PosTouch.Core.Sale
 
         public int InErrore => _archivio.ContaInErrore();
 
+        public List<DeviazioneStampa> Deviazioni() => _archivio.Deviazioni();
+
+        public void AttivaDeviazione(DeviazioneStampa d) { _archivio.AttivaDeviazione(d); Sveglia(); Cambiato?.Invoke(InErrore); }
+
+        public void RimuoviDeviazioni() { _archivio.RimuoviDeviazioni(); Cambiato?.Invoke(InErrore); }
+
+        public void DeviaJob(long id, string nome, string ip, int porta) { _archivio.DeviaJob(id, nome, ip, porta); Sveglia(); Cambiato?.Invoke(InErrore); }
+
         private async Task CicloAsync()
         {
             while (true)

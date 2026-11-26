@@ -319,6 +319,8 @@ namespace PosTouch.App.Pagine
                 Children =
                 {
                     Spunta("Abilita portate (📑 FUNZIONI e ⏩ AVANZA al tavolo)", _c.AbilitaPortate, x => _c.AbilitaPortate = x),
+                    Spunta("Abilita 🔀 SPOSTA tavolo", _c.AbilitaSpostaTavolo, x => _c.AbilitaSpostaTavolo = x),
+                    Spunta("Abilita 🔗 UNISCI conti", _c.AbilitaUnisciConti, x => _c.AbilitaUnisciConti = x),
                     new Label { Text = "Separatori portate, in ordine (separati da virgola):", FontSize = 15 },
                     Campo(string.Join(", ", _c.SeparatoriPortate), t => _c.SeparatoriPortate = t.Split(',').Select(x => x.Trim().ToUpperInvariant()).Where(x => x.Length > 0).Distinct().ToList(),
                           segnaposto: "SEGUE, SEGUE 2, SEGUE 3")

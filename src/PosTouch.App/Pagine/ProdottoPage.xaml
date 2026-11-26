@@ -97,11 +97,15 @@
                                     <CheckBox x:Name="ChkCombinazione" Color="#4CAF50" CheckedChanged="OnTipoArticolo" />
                                     <Label Text="🍕 Combinazione (multi-gusto)" FontSize="15" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
-                                <Grid x:Name="PannelloCombinazione" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6" Margin="34,0,0,4" IsVisible="False">
+                                <Grid x:Name="PannelloCombinazione" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6" Margin="34,0,0,4" IsVisible="False">
                                     <Label Text="Gusti:" FontSize="14" VerticalOptions="Center" />
                                     <ctl:CampoScelta x:Name="SceltaGusti" Grid.Column="1" FontSize="15" Titolo="Numero di gusti" Colonne="5" />
                                     <Label Grid.Row="1" Text="Prezzo:" FontSize="14" VerticalOptions="Center" />
                                     <ctl:CampoScelta x:Name="SceltaPolitica" Grid.Row="1" Grid.Column="1" FontSize="15" Titolo="Prezzo della combinazione" Colonne="1" />
+                                    <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2">
+                                        <CheckBox x:Name="ChkProporzionali" Color="#4CAF50" />
+                                        <Label Text="Varianti proporzionali (prezzo diviso per i gusti)" FontSize="14" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
                                 </Grid>
                             </VerticalStackLayout>
                         </Border>

@@ -41,7 +41,8 @@ namespace PosTouch.App.Pagine
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, DimensioneFontTasto = esistente.DimensioneFontTasto,
                     IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo, CentroProduzioneId = esistente.CentroProduzioneId,
                     VenditaAPeso = esistente.VenditaAPeso, UnitaPeso = esistente.UnitaPeso, IsCodiceBilancia = esistente.IsCodiceBilancia,
-                    IsCombinazione = esistente.IsCombinazione, NumeroGusti = esistente.NumeroGusti, PoliticaPrezzo = esistente.PoliticaPrezzo
+                    IsCombinazione = esistente.IsCombinazione, NumeroGusti = esistente.NumeroGusti, PoliticaPrezzo = esistente.PoliticaPrezzo,
+                    VariantiProporzionali = esistente.VariantiProporzionali
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
@@ -58,6 +59,7 @@ namespace PosTouch.App.Pagine
             SceltaGusti.Indice = Math.Max(0, Array.IndexOf(Gusti, _p.NumeroGusti));
             SceltaPolitica.Voci = Politiche;
             SceltaPolitica.Indice = Math.Clamp(_p.PoliticaPrezzo, 0, 2);
+            ChkProporzionali.IsChecked = _p.VariantiProporzionali;
             OnTipoArticolo(null, null);
 
             // centro comande: come la categoria / nessuna stampa / centro specifico
@@ -199,6 +201,7 @@ namespace PosTouch.App.Pagine
             _p.IsCombinazione = ChkCombinazione.IsChecked;
             _p.NumeroGusti = Gusti[Math.Max(0, SceltaGusti.Indice)];
             _p.PoliticaPrezzo = Math.Max(0, SceltaPolitica.Indice);
+            _p.VariantiProporzionali = ChkProporzionali.IsChecked;
             _p.CentroProduzioneId = SceltaCentro.Indice == 1 ? -1 : SceltaCentro.Indice >= 2 ? _centri[SceltaCentro.Indice - 2].Id : 0;
             _p.Descrizione = CampoDescrizione.Text.Trim().ToUpperInvariant();
             _p.CategoriaId = cat.Id;

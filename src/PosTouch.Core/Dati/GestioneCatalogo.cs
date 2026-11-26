@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using PosTouch.Core.Diagnostica;
 using PosTouch.Core.Modelli;
@@ -144,16 +145,16 @@ namespace PosTouch.Core.Dati
                 {
                     p.Codice = ProssimoCodice(conn);
                     cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo, CentroProduzioneId,
-                                                              VenditaAPeso, UnitaPeso, IsCodiceBilancia, IsCombinazione, NumeroGusti, PoliticaPrezzo)
+                                                              VenditaAPeso, UnitaPeso, IsCodiceBilancia, IsCombinazione, NumeroGusti, PoliticaPrezzo, VariantiProporzionali)
                                         VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att, $centro,
-                                                $peso, $unita, $bil, $comb, $gusti, $pol)";
+                                                $peso, $unita, $bil, $comb, $gusti, $pol, $prop)";
                     cmd.Parameters.AddWithValue("$cod", p.Codice);
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Prodotti SET Barcode=$b, Descrizione=$d, PrezzoCentesimi=$pr, CostoCentesimi=$costo, CategoriaId=$cat,
                                         Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att, CentroProduzioneId=$centro,
-                                        VenditaAPeso=$peso, UnitaPeso=$unita, IsCodiceBilancia=$bil, IsCombinazione=$comb, NumeroGusti=$gusti, PoliticaPrezzo=$pol WHERE Id=$id";
+                                        VenditaAPeso=$peso, UnitaPeso=$unita, IsCodiceBilancia=$bil, IsCombinazione=$comb, NumeroGusti=$gusti, PoliticaPrezzo=$pol, VariantiProporzionali=$prop WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", p.Id);
                 }
                 cmd.Parameters.AddWithValue("$b", barcode);
@@ -173,6 +174,7 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$comb", p.IsCombinazione ? 1 : 0);
                 cmd.Parameters.AddWithValue("$gusti", Math.Clamp(p.NumeroGusti, 2, 8));
                 cmd.Parameters.AddWithValue("$pol", Math.Clamp(p.PoliticaPrezzo, 0, 2));
+                cmd.Parameters.AddWithValue("$prop", p.VariantiProporzionali ? 1 : 0);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Articolo salvato: {p.Descrizione} €{p.PrezzoCentesimi / 100m:F2} cat {p.CategoriaId}");
@@ -235,6 +237,72 @@ namespace PosTouch.Core.Dati
                 cmd.CommandText = "DELETE FROM Prodotti WHERE Id=$id";
                 cmd.Parameters.AddWithValue("$id", id);
                 cmd.ExecuteNonQuery();
+            });
+        }
+
+        // ══════════════ VARIANTI ══════════════
+
+        /// <summary>Crea o aggiorna una variante e le categorie in cui è disponibile.</summary>
+        public void SalvaVariante(Variante v)
+        {
+            if (string.IsNullOrWhiteSpace(v.Nome)) throw new ArgumentException("Il nome della variante è obbligatorio.");
+            if (v.PrezzoAggiuntaCent < 0 || v.PrezzoRimozioneCent < 0) throw new ArgumentException("I prezzi della variante non possono essere negativi.");
+            Esegui(conn =>
+            {
+                using var tx = conn.BeginTransaction();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.Transaction = tx;
+                    cmd.CommandText = v.Id == 0
+                        ? @"INSERT INTO Varianti (Nome, Gruppo, PrezzoAggiuntaCent, PrezzoRimozioneCent, Ordine, Attiva, Tipo)
+                            VALUES ($n, $g, $pa, $pr, $o, $a, $t); SELECT last_insert_rowid();"
+                        : @"UPDATE Varianti SET Nome=$n, Gruppo=$g, PrezzoAggiuntaCent=$pa, PrezzoRimozioneCent=$pr, Ordine=$o, Attiva=$a, Tipo=$t
+                            WHERE Id=$id; SELECT $id;";
+                    cmd.Parameters.AddWithValue("$n", v.Nome.Trim().ToUpperInvariant());
+                    cmd.Parameters.AddWithValue("$g", (v.Gruppo ?? "").Trim().ToUpperInvariant());
+                    cmd.Parameters.AddWithValue("$pa", v.PrezzoAggiuntaCent);
+                    cmd.Parameters.AddWithValue("$pr", v.PrezzoRimozioneCent);
+                    cmd.Parameters.AddWithValue("$o", v.Ordine);
+                    cmd.Parameters.AddWithValue("$a", v.Attiva ? 1 : 0);
+                    cmd.Parameters.AddWithValue("$t", (int)v.Tipo);
+                    cmd.Parameters.AddWithValue("$id", v.Id);
+                    v.Id = Convert.ToInt32(cmd.ExecuteScalar());
+                }
+                using (var del = conn.CreateCommand())
+                {
+                    del.Transaction = tx;
+                    del.CommandText = "DELETE FROM CategorieVarianti WHERE VarianteId=$id";
+                    del.Parameters.AddWithValue("$id", v.Id);
+                    del.ExecuteNonQuery();
+                }
+                foreach (int cat in v.Categorie.Distinct())
+                {
+                    using var ins = conn.CreateCommand();
+                    ins.Transaction = tx;
+                    ins.CommandText = "INSERT OR IGNORE INTO CategorieVarianti (CategoriaId, VarianteId) VALUES ($c, $v)";
+                    ins.Parameters.AddWithValue("$c", cat);
+                    ins.Parameters.AddWithValue("$v", v.Id);
+                    ins.ExecuteNonQuery();
+                }
+                tx.Commit();
+            });
+            LogManager.Info($"Variante salvata: {v.Nome} (+{v.PrezzoAggiuntaCent} / -{v.PrezzoRimozioneCent}) su {v.Categorie.Count} categorie");
+        }
+
+        public void EliminaVariante(int id)
+        {
+            Esegui(conn =>
+            {
+                using var tx = conn.BeginTransaction();
+                foreach (var sql in new[] { "DELETE FROM CategorieVarianti WHERE VarianteId=$id", "DELETE FROM Varianti WHERE Id=$id" })
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
             });
         }
 
@@ -318,6 +386,27 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Prodotti", "IsCombinazione", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "NumeroGusti", "INTEGER NOT NULL DEFAULT 2");
             AggiungiColonna(conn, "Prodotti", "PoliticaPrezzo", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "VariantiProporzionali", "INTEGER NOT NULL DEFAULT 0");
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS Varianti (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Nome TEXT NOT NULL,
+                        Gruppo TEXT DEFAULT '',
+                        PrezzoAggiuntaCent INTEGER NOT NULL DEFAULT 0,
+                        PrezzoRimozioneCent INTEGER NOT NULL DEFAULT 0,
+                        Ordine INTEGER DEFAULT 0,
+                        Attiva INTEGER DEFAULT 1
+                    );
+                    CREATE TABLE IF NOT EXISTS CategorieVarianti (
+                        CategoriaId INTEGER NOT NULL,
+                        VarianteId INTEGER NOT NULL,
+                        PRIMARY KEY (CategoriaId, VarianteId)
+                    );";
+                cmd.ExecuteNonQuery();
+            }
+            AggiungiColonna(conn, "Varianti", "Tipo", "INTEGER NOT NULL DEFAULT 0");
         }
 
         private static void AggiungiColonna(SqliteConnection conn, string tabella, string colonna, string tipo)

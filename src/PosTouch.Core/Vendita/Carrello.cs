@@ -54,6 +54,9 @@ namespace PosTouch.Core.Vendita
         /// <summary>Righe già comandate tolte dal carrello: la sessione tavolo le accumula per lo STORNO.</summary>
         public event Action<IReadOnlyList<RigaScontrino>> ComandateRimosse;
 
+        /// <summary>Ricerca articolo per Id (impostata all'avvio con il catalogo): serve a ricalcolare le combinazioni.</summary>
+        public static Func<int, Prodotto> RisolviProdotto { get; set; }
+
         public bool Vuoto => Righe.Count == 0;
         public bool HaArticoli => Righe.Any(r => r.Tipo == TipoRiga.Prodotto);
         public bool HaSconto => Righe.Any(r => r.Tipo == TipoRiga.Sconto);
@@ -85,7 +88,9 @@ namespace PosTouch.Core.Vendita
                                                        && r.ProdottoId == p.Id
                                                        && r.PrezzoCentesimi == prezzo
                                                        && !r.Comandata
-                                                       && r.Portata == portataDest);
+                                                       && r.Portata == portataDest
+                                                       && string.IsNullOrEmpty(r.VariantiTesto)
+                                                       && FigliDi(r).Count == 0);
                 if (esistente != null)
                 {
                     if (!RigaAmmessa(prezzo, esistente.Quantita + quantita)) return null;
@@ -144,17 +149,20 @@ namespace PosTouch.Core.Vendita
             var stornate = new List<RigaScontrino>();
             // combinazioni: toccare un gusto o il padre toglie tutta la combinazione (padre + gusti), come il PC
             var daTogliere = new List<RigaScontrino>();
+            var varianti = righe.Where(r => r.Tipo == TipoRiga.Variante).ToList();
             foreach (var r in righe.ToList())
             {
+                if (r.Tipo == TipoRiga.Variante) continue;   // varianti: tolte una per una più sotto
                 var x = r.Tipo == TipoRiga.Gusto ? PadreDi(r) : r;
                 if (x == null || daTogliere.Contains(x)) continue;
                 daTogliere.Add(x);
                 if (x.Tipo == TipoRiga.Prodotto)
                     foreach (var f in FigliDi(x)) if (!daTogliere.Contains(f)) daTogliere.Add(f);
             }
+            foreach (var v in varianti.Where(v => !daTogliere.Contains(v))) RimuoviVariante(v);
             foreach (var r in daTogliere)
             {
-                if (r.Tipo == TipoRiga.Gusto) { Righe.Remove(r); continue; }
+                if (r.Tipo is TipoRiga.Gusto or TipoRiga.Variante) { Righe.Remove(r); continue; }
                 if (r.Tipo == TipoRiga.Prodotto)
                 {
                     if (Righe.Remove(r) && r.Comandata) stornate.Add(r);
@@ -230,44 +238,82 @@ namespace PosTouch.Core.Vendita
             return riga;
         }
 
-        /// <summary>Aggiunge una riga figlia (gusto) subito dopo il padre e i suoi figli.</summary>
+        private static bool IsFiglio(RigaScontrino r) => r.Tipo is TipoRiga.Gusto or TipoRiga.Variante;
+
+        /// <summary>Aggiunge una riga figlia (gusto) dopo il padre e tutti i suoi figli.</summary>
         internal void AggiungiFiglio(RigaScontrino padre, RigaScontrino figlio)
         {
             int i = Righe.IndexOf(padre);
             if (i < 0) return;
             int pos = i + 1;
-            while (pos < Righe.Count && Righe[pos].Tipo == TipoRiga.Gusto) pos++;
+            while (pos < Righe.Count && IsFiglio(Righe[pos])) pos++;
             if (pos >= Righe.Count) Righe.Add(figlio); else Righe.Insert(pos, figlio);
             Aggiornato();
         }
 
-        /// <summary>Togli l'ultimo gusto del padre (tasto C durante la combinazione).</summary>
+        /// <summary>Inserisce una variante subito sotto la riga indicata (dopo le sue varianti già presenti).</summary>
+        internal void InserisciVariante(RigaScontrino target, RigaScontrino variante)
+        {
+            int pos = Righe.IndexOf(target) + 1;
+            if (pos <= 0) return;
+            while (pos < Righe.Count && Righe[pos].Tipo == TipoRiga.Variante) pos++;
+            if (pos >= Righe.Count) Righe.Add(variante); else Righe.Insert(pos, variante);
+        }
+
+        /// <summary>Togli l'ultimo gusto (e le sue varianti) del padre — tasto C durante la combinazione.</summary>
         internal bool TogliUltimoFiglio(RigaScontrino padre)
         {
-            var f = FigliDi(padre).LastOrDefault();
-            if (f == null) return false;
-            Righe.Remove(f);
+            var figli = FigliDi(padre);
+            var gusto = figli.LastOrDefault(f => f.Tipo == TipoRiga.Gusto);
+            if (gusto == null) return false;
+            foreach (var f in figli.Skip(figli.IndexOf(gusto))) Righe.Remove(f);
             Aggiornato();
             return true;
         }
 
+        /// <summary>Gusti e varianti subito sotto l'articolo.</summary>
         public List<RigaScontrino> FigliDi(RigaScontrino padre)
         {
             var figli = new List<RigaScontrino>();
             int i = Righe.IndexOf(padre);
             if (i < 0) return figli;
-            for (int k = i + 1; k < Righe.Count && Righe[k].Tipo == TipoRiga.Gusto; k++) figli.Add(Righe[k]);
+            for (int k = i + 1; k < Righe.Count && IsFiglio(Righe[k]); k++) figli.Add(Righe[k]);
             return figli;
         }
 
+        /// <summary>Articolo a cui appartiene un gusto o una variante.</summary>
         public RigaScontrino PadreDi(RigaScontrino figlio)
         {
             for (int k = Righe.IndexOf(figlio) - 1; k >= 0; k--)
             {
                 if (Righe[k].Tipo == TipoRiga.Prodotto) return Righe[k];
-                if (Righe[k].Tipo != TipoRiga.Gusto) break;
+                if (!IsFiglio(Righe[k])) break;
             }
             return null;
+        }
+
+        /// <summary>Riga a cui è attaccata una variante (l'articolo o il gusto subito sopra).</summary>
+        public RigaScontrino ProprietarioDi(RigaScontrino variante)
+        {
+            for (int k = Righe.IndexOf(variante) - 1; k >= 0; k--)
+                if (Righe[k].Tipo != TipoRiga.Variante) return Righe[k];
+            return null;
+        }
+
+        /// <summary>RimuoviSingolaVariante del PC: toglie la variante e ne scala il prezzo (con il segno giusto).</summary>
+        private void RimuoviVariante(RigaScontrino v)
+        {
+            var proprietario = ProprietarioDi(v);
+            var padre = PadreDi(v);
+            if (padre?.Comandata == true) { UltimoErrore = "Articolo già inviato in comanda: le varianti non si possono togliere."; return; }
+            Righe.Remove(v);
+            if (proprietario?.Tipo == TipoRiga.Prodotto)
+            {
+                proprietario.PrezzoCentesimi -= v.PrezzoOriginaleCentesimi;
+                proprietario.VariantiTesto = Varianti.TogliTesto(proprietario.VariantiTesto, v.Descrizione);
+            }
+            else if (proprietario?.Tipo == TipoRiga.Gusto && padre != null && Combinazioni.Chiusa(padre))
+                Combinazioni.Ricalcola(this, padre);
         }
 
         /// <summary>Ricalcola totali e lista dopo una modifica fatta da fuori (es. chiusura combinazione).</summary>

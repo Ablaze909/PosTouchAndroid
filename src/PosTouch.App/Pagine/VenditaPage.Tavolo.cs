@@ -47,6 +47,9 @@ namespace PosTouch.App.Pagine
             TitoloScontrino.Text = tavolo ? $"🍽️ {_sessione.Titolo.ToUpperInvariant()}" : "📋 SCONTRINO";
             BtnContoTavolo.IsVisible = BtnPreconto.IsVisible = Cfg.AbilitaStampanteTermica;
             BtnFunzioniPortate.IsVisible = BtnAvanza.IsVisible = tavolo && sale.AbilitaPortate && sale.AbilitaComande;
+            bool inSala = tavolo && !_sessione.IsContoCliente;   // come il PC: sposta/unisci solo per i tavoli delle sale
+            BtnSposta.IsVisible = inSala && sale.AbilitaSpostaTavolo;
+            BtnUnisci.IsVisible = inSala && sale.AbilitaUnisciConti;
         }
 
         // ══════════════ APERTURA ══════════════

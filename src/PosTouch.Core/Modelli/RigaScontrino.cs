@@ -5,7 +5,8 @@ namespace PosTouch.Core.Modelli
     /// <summary>Stessi tipi di riga del PC. Subtotale e Separatore sono solo visivi (blocco sconto).</summary>
     /// <summary>Portata = separatore delle uscite al tavolo ("── SEGUE ──", "⚡⚡ SUBITO ⚡⚡"); non conta nel totale.</summary>
     /// <summary>Gusto = riga figlia di un articolo a combinazione (prezzo nel padre), come sul PC.</summary>
-    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore, Portata, Gusto }
+    /// <summary>Variante = riga decorativa sotto un articolo o un gusto ("+ MOZZARELLA"); il prezzo è già nel padre.</summary>
+    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore, Portata, Gusto, Variante }
 
     /// <summary>
     /// Riga del carrello. Stessa semantica della versione Windows:
@@ -84,6 +85,10 @@ namespace PosTouch.Core.Modelli
         public bool IsSeparatore => Tipo == TipoRiga.Separatore;
         public bool IsPortata => Tipo == TipoRiga.Portata;
         public bool IsGusto => Tipo == TipoRiga.Gusto;
+        public bool IsVariante => Tipo == TipoRiga.Variante;
+        /// <summary>Prezzo della variante (con segno) per la lista: "+€0,50" / "-€0,30"; vuoto se gratis.</summary>
+        public string VarianteDisplay => Tipo != TipoRiga.Variante || PrezzoCentesimi == 0 ? ""
+            : $"{(PrezzoCentesimi > 0 ? "+" : "-")}€{System.Math.Abs(PrezzoCentesimi) / 100m:F2}".Replace('.', ',');
 
         /// <summary>Testo stampato in comanda sotto l'articolo (gusti della combinazione, separati da "|").</summary>
         public string VariantiTesto { get; set; }
@@ -101,7 +106,7 @@ namespace PosTouch.Core.Modelli
         private void Notifica()
         {
             foreach (var p in new[] { nameof(PrezzoCentesimi), nameof(Quantita), nameof(ImportoEuro), nameof(ImportoDisplay),
-                                      nameof(QuantitaDisplay), nameof(Alternata), nameof(Selezionata), nameof(ColoreSfondo) })
+                                      nameof(QuantitaDisplay), nameof(Alternata), nameof(Selezionata), nameof(ColoreSfondo), nameof(VarianteDisplay) })
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
         }
 

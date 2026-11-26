@@ -88,7 +88,8 @@ namespace PosTouch.App.Pagine
         private void AggiornaCoda()
         {
             int n = ContestoCassa.Spooler.InErrore;
-            _coda.Text = n > 0 ? $"🖨️ CODA ⚠️ {n}" : "🖨️ CODA";
+            bool deviata = ContestoCassa.Spooler.Deviazioni().Count > 0;
+            _coda.Text = (n > 0 ? $"🖨️ CODA ⚠️ {n}" : "🖨️ CODA") + (deviata ? " 🔀" : "");
             _coda.BackgroundColor = Ui.C(n > 0 ? "#C62828" : "#37474F");
         }
 
