@@ -197,8 +197,11 @@
                     <Button Grid.Column="1" Text="﹣" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
                 </Grid>
 
-                <Button x:Name="BtnChiudiLista" Grid.Row="3" Text="▲ CHIUDI LISTA" FontSize="14" BackgroundColor="#607D8B"
-                        HeightRequest="36" Margin="0,4,0,0" CornerRadius="0" IsVisible="False" Clicked="OnChiudiLista" />
+                <!-- Lista espansa: la tastiera (con C) è nascosta, quindi qui c'è il tasto per cancellare le righe selezionate -->
+                <Grid x:Name="BarraListaEspansa" Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="4" Margin="0,4,0,0" IsVisible="False">
+                    <Button Text="🗑️ CANCELLA RIGHE" FontSize="14" BackgroundColor="#F44336" HeightRequest="48" CornerRadius="0" Clicked="OnCancellaRigheEspanso" />
+                    <Button Grid.Column="1" Text="▲ CHIUDI LISTA" FontSize="14" BackgroundColor="#607D8B" HeightRequest="48" CornerRadius="0" Clicked="OnChiudiLista" />
+                </Grid>
             </Grid>
 
             <BoxView Grid.RowSpan="5" WidthRequest="1" Color="#E5E5E5" HorizontalOptions="Start" InputTransparent="True" />

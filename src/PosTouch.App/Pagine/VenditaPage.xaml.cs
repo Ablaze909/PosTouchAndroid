@@ -489,11 +489,24 @@ namespace PosTouch.App.Pagine
         private void OnIntestazioneScontrino(object sender, TappedEventArgs e) => ApplicaModalitaEspansa(!_scontrinoEspanso);
         private void OnChiudiLista(object sender, EventArgs e) => ApplicaModalitaEspansa(false);
 
+        /// <summary>Lista espansa: cancella le righe selezionate (con un tocco sulla riga).</summary>
+        private async void OnCancellaRigheEspanso(object sender, EventArgs e)
+        {
+            var selezionate = Carrello.Righe.Where(r => r.Selezionata).ToList();
+            if (selezionate.Count == 0)
+            {
+                await MessaggioBox.Info("CANCELLA RIGHE", "Tocca le righe da cancellare per selezionarle, poi premi 🗑️ CANCELLA RIGHE.");
+                return;
+            }
+            Carrello.Rimuovi(selezionate);
+            if (Carrello.Vuoto) ApplicaModalitaEspansa(false);
+        }
+
         private void ApplicaModalitaEspansa(bool espanso)
         {
             _scontrinoEspanso = espanso;
             TastieraNumerica.IsVisible = !espanso;
-            BtnChiudiLista.IsVisible = espanso;
+            BarraListaEspansa.IsVisible = espanso;
         }
 
         private void OnScrollSu(object sender, EventArgs e) => ScorriLista(-3);
