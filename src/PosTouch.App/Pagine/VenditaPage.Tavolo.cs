@@ -43,7 +43,7 @@ namespace PosTouch.App.Pagine
             var sale = Cfg.Sale;
             BarraInferiore.IsVisible = !tavolo;
             BarraTavolo.IsVisible = tavolo;
-            BtnSale.IsVisible = !tavolo && ((sale.AbilitaSale && sale.Sale.Count > 0) || sale.AbilitaContiClienti);
+            BtnSale.IsVisible = false;   // come il PC: alle sale si va con 🚪 (il tasto resta solo per compatibilità)
             BtnSale.Text = sale.AbilitaSale ? "🍽️ SALE" : "👤 CONTI";
             BtnEsci.Text = tavolo ? "⬅" : "🚪";
             TitoloScontrino.Text = tavolo ? $"🍽️ {_sessione.Titolo.ToUpperInvariant()}" : "📋 SCONTRINO";

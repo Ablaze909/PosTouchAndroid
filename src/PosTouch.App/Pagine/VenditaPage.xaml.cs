@@ -193,6 +193,14 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("SCONTRINO APERTO", "Chiudi o svuota lo scontrino prima di uscire.");
                 return;
             }
+            if (_modalitaModifica) ImpostaModalitaModifica(false);
+            // come il PC (btnEsci_Click): con sale o conti clienti attivi 🚪 porta alla schermata SALE
+            var sale = ContestoCassa.Impostazioni.Sale;
+            if ((sale.AbilitaSale && sale.Sale.Count > 0) || sale.AbilitaContiClienti)
+            {
+                await Navigazione.Apri(this, () => new TavoliPage());
+                return;
+            }
             await Navigazione.Chiudi(this);
         }
 

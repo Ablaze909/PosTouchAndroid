@@ -14,6 +14,9 @@ namespace PosTouch.App.Servizi
         /// <summary>Restituisce false se la pagina non è stata chiusa (un'altra navigazione era in corso o errore).</summary>
         public static Task<bool> Chiudi(Page pagina) => Esegui(() => pagina.Navigation.PopAsync());
 
+        /// <summary>Torna alla schermata iniziale (launcher), chiudendo tutte le pagine aperte.</summary>
+        public static Task<bool> TornaAllInizio(Page pagina) => Esegui(() => pagina.Navigation.PopToRootAsync());
+
         private static async Task<bool> Esegui(Func<Task> azione)
         {
             if (_occupato) return false;

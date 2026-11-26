@@ -44,6 +44,9 @@ namespace PosTouch.Core.Sale
         public StatoJob Stato { get; set; }
         public int Tentativi { get; set; }
         public string UltimoErrore { get; set; }
+        /// <summary>Tavolo da cui viene la stampa (per segnare il tavolo NERO "ERRORE STAMPA" come sul PC).</summary>
+        public int SalaId { get; set; }
+        public int NumeroTavolo { get; set; }
     }
 
     /// <summary>Deviazione forzata (DeviazioniAttive del PC): tutto ciò che va alla stampante Origine esce sulla Destinazione.</summary>
@@ -175,6 +178,8 @@ namespace PosTouch.Core.Sale
                 AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
                 AggiungiColonna(c, "RigheTavolo", "InStorno", "INTEGER NOT NULL DEFAULT 0");
+                AggiungiColonna(c, "CodaStampa", "SalaId", "INTEGER NOT NULL DEFAULT 0");
+                AggiungiColonna(c, "CodaStampa", "NumeroTavolo", "INTEGER NOT NULL DEFAULT 0");
                 Esegui(c, null, @"CREATE TABLE IF NOT EXISTS DeviazioniStampa (
                                     IPOrigine TEXT NOT NULL, PortaOrigine INTEGER NOT NULL, NomeOrigine TEXT NOT NULL,
                                     IPDestinazione TEXT NOT NULL, PortaDestinazione INTEGER NOT NULL, NomeDestinazione TEXT NOT NULL,
@@ -355,7 +360,7 @@ namespace PosTouch.Core.Sale
                             cmd.ExecuteNonQuery();
                         }
                     }
-                    if (stampe != null) foreach (var j in stampe) Accoda(c, tx, j);
+                    if (stampe != null) foreach (var j in stampe) { j.SalaId = t.SalaId; j.NumeroTavolo = t.Numero; Accoda(c, tx, j); }
                     if (storni != null) foreach (var s in storni) RegistraStorno(c, tx, s);
                     tx.Commit();
                 }
@@ -567,6 +572,21 @@ namespace PosTouch.Core.Sale
             lock (_lock) { using var c = Apri(); Esegui(c, null, "DELETE FROM CodaStampa WHERE Id=$id", ("$id", id)); }
         }
 
+        /// <summary>Tavoli con almeno una stampa in errore: chiave "sala:numero".</summary>
+        public HashSet<string> TavoliConErroreStampa()
+        {
+            lock (_lock)
+            {
+                var r = new HashSet<string>();
+                using var c = Apri();
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = "SELECT DISTINCT SalaId, NumeroTavolo FROM CodaStampa WHERE Stato = 1 AND NumeroTavolo <> 0";
+                using var l = cmd.ExecuteReader();
+                while (l.Read()) r.Add($"{l.GetInt32(0)}:{l.GetInt32(1)}");
+                return r;
+            }
+        }
+
         public int ContaInErrore()
         {
             lock (_lock)
@@ -599,8 +619,10 @@ namespace PosTouch.Core.Sale
             }
             using var cmd = c.CreateCommand();
             cmd.Transaction = tx;
-            cmd.CommandText = @"INSERT INTO CodaStampa (DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati)
-                                VALUES ($d, $t, $desc, $st, $ip, $porta, $dati)";
+            cmd.CommandText = @"INSERT INTO CodaStampa (DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, SalaId, NumeroTavolo)
+                                VALUES ($d, $t, $desc, $st, $ip, $porta, $dati, $sala, $num)";
+            cmd.Parameters.AddWithValue("$sala", j.SalaId);
+            cmd.Parameters.AddWithValue("$num", j.NumeroTavolo);
             cmd.Parameters.AddWithValue("$d", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             cmd.Parameters.AddWithValue("$t", (int)j.Tipo);
             cmd.Parameters.AddWithValue("$desc", j.Descrizione ?? "");
