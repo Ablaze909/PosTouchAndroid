@@ -226,6 +226,8 @@ namespace PosTouch.App.Pagine
             }
         }
 
+        private async void OnConfiguraSale(object sender, EventArgs e) => await Navigazione.Apri(this, () => new SaleConfigPage());
+
         private bool _provaTermica;
 
         /// <summary>🖨️ Stampa di prova con IP e porta scritti nei campi (anche prima di salvare).</summary>

@@ -149,6 +149,15 @@
                         <Button x:Name="BtnProvaTermica" Text="🖨️ STAMPA DI PROVA" BackgroundColor="#9C27B0" Style="{StaticResource TastoTouch}" Clicked="OnProvaTermica" />
                     </VerticalStackLayout>
                 </Border>
+
+                <Border Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="🍽️ SALE E COMANDE" Style="{StaticResource TitoloCard}" TextColor="#00897B" Margin="0,0,0,5" />
+                        <Label Text="Sale e tavoli, stampanti delle comande, centri di produzione (CUCINA, BAR…), stampanti per sala, portate."
+                               FontSize="13" TextColor="#999999" Margin="0,0,0,10" />
+                        <Button Text="⚙️ CONFIGURA SALE E COMANDE" BackgroundColor="#00897B" Style="{StaticResource TastoTouch}" Clicked="OnConfiguraSale" />
+                    </VerticalStackLayout>
+                </Border>
                 </VerticalStackLayout>
             </Grid>
         </ScrollView>

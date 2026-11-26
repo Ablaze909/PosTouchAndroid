@@ -45,6 +45,9 @@ namespace PosTouch.Core.Configurazione
         public bool AccorpaRigheConto { get; set; } = true;
         /// <summary>Stampa "Conto N. x" in fondo al conto (sul PC non c'era: predefinito spento).</summary>
         public bool StampaNumeroConto { get; set; } = false;
+
+        /// <summary>Sale, tavoli, centri di produzione, stampanti comande e portate.</summary>
+        public ConfigSale Sale { get; set; } = new ConfigSale();
         /// <summary>Mostra la riga ＋/﹣ sotto la tastiera (MostraRigaVariantiVendita del PC).</summary>
         public bool MostraRigaPiuMeno { get; set; } = true;
         /// <summary>Accorpa righe uguali a video (2× caffè → una riga).</summary>
@@ -80,7 +83,12 @@ namespace PosTouch.Core.Configurazione
             TimeoutRispostaRT_ms = TimeoutRispostaRT_ms
         };
 
-        public Impostazioni Copia() => (Impostazioni)MemberwiseClone();
+        public Impostazioni Copia()
+        {
+            var c = (Impostazioni)MemberwiseClone();
+            c.Sale = (Sale ?? new ConfigSale()).Copia();
+            return c;
+        }
     }
 
     /// <summary>Lettura/scrittura di impostazioni.json.</summary>

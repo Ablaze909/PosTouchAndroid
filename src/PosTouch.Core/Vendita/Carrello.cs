@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using PosTouch.Core.Modelli;
+using PosTouch.Core.Sale;
 
 namespace PosTouch.Core.Vendita
 {
@@ -45,6 +46,14 @@ namespace PosTouch.Core.Vendita
             return UltimoErrore == null;
         }
 
+        // ── Tavolo (portate e comande) ──
+        /// <summary>Separatori portate configurati (null al banco): servono per il numero logico.</summary>
+        public IList<string> SeparatoriPortate { get; set; }
+        /// <summary>Portata dove inserire i prossimi articoli (null = in fondo; 0 = SUBITO).</summary>
+        public int? PortataTarget { get; set; }
+        /// <summary>Righe già comandate tolte dal carrello: la sessione tavolo le accumula per lo STORNO.</summary>
+        public event Action<IReadOnlyList<RigaScontrino>> ComandateRimosse;
+
         public bool Vuoto => Righe.Count == 0;
         public bool HaArticoli => Righe.Any(r => r.Tipo == TipoRiga.Prodotto);
         public bool HaSconto => Righe.Any(r => r.Tipo == TipoRiga.Sconto);
@@ -69,9 +78,14 @@ namespace PosTouch.Core.Vendita
 
             if (accorpa)
             {
+                // mai accorpare su una riga già comandata (la cucina riceverebbe la differenza sbagliata)
+                // né su una riga di un'altra portata
+                int portataDest = PortataDestinazione();
                 var esistente = Righe.FirstOrDefault(r => r.Tipo == TipoRiga.Prodotto
                                                        && r.ProdottoId == p.Id
-                                                       && r.PrezzoCentesimi == prezzo);
+                                                       && r.PrezzoCentesimi == prezzo
+                                                       && !r.Comandata
+                                                       && r.Portata == portataDest);
                 if (esistente != null)
                 {
                     if (!RigaAmmessa(prezzo, esistente.Quantita + quantita)) return null;
@@ -94,7 +108,8 @@ namespace PosTouch.Core.Vendita
                 UnitaPeso = p.VenditaAPeso ? (string.IsNullOrWhiteSpace(p.UnitaPeso) ? "Kg" : p.UnitaPeso) : null,
                 PrezzoCentesimi = prezzo,
                 PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
-                Quantita = quantita
+                Quantita = quantita,
+                CentroProduzioneId = p.CentroStampa
             };
             InserisciArticolo(riga);
             Aggiornato();
@@ -103,6 +118,11 @@ namespace PosTouch.Core.Vendita
 
         public bool ImpostaQuantita(RigaScontrino riga, decimal quantita)
         {
+            if (riga?.Comandata == true)
+            {
+                UltimoErrore = "Articolo già inviato in comanda: per cambiarlo eliminalo (verrà stornato) e battilo di nuovo.";
+                return false;
+            }
             if (riga == null || riga.Tipo != TipoRiga.Prodotto || !RigaAmmessa(riga.PrezzoCentesimi, quantita)) return false;
             riga.Quantita = quantita;
             Aggiornato();
@@ -121,13 +141,20 @@ namespace PosTouch.Core.Vendita
         public void Rimuovi(IEnumerable<RigaScontrino> righe)
         {
             bool togliSconto = false;
+            var stornate = new List<RigaScontrino>();
             foreach (var r in righe.ToList())
             {
-                if (r.Tipo == TipoRiga.Prodotto) Righe.Remove(r);
+                if (r.Tipo == TipoRiga.Prodotto)
+                {
+                    if (Righe.Remove(r) && r.Comandata) stornate.Add(r);
+                }
+                else if (r.Tipo == TipoRiga.Portata) Righe.Remove(r);
                 else togliSconto = true;
             }
             if (togliSconto || !HaArticoli) RimuoviBloccoSconto();
+            if (!HaArticoli) foreach (var sep in Righe.Where(x => x.Tipo == TipoRiga.Portata).ToList()) Righe.Remove(sep);
             Aggiornato();
+            if (stornate.Count > 0) ComandateRimosse?.Invoke(stornate);
         }
 
         /// <summary>Sconto percentuale sul totale (come ScontoDialog percentuale del PC).</summary>
@@ -161,7 +188,71 @@ namespace PosTouch.Core.Vendita
         public void Svuota()
         {
             Righe.Clear();
+            PortataTarget = null;
             Aggiornato();
+        }
+
+        /// <summary>Carica le righe di un tavolo (dall'archivio tavoli).</summary>
+        public void Carica(IEnumerable<RigaScontrino> righe)
+        {
+            Righe.Clear();
+            foreach (var r in righe) Righe.Add(r);
+            PortataTarget = null;
+            Aggiornato();
+        }
+
+        // ══════════════ PORTATE ══════════════
+
+        /// <summary>
+        /// FUNZIONI → separatore (btnFunzioni_Click del PC): se esiste già diventa la destinazione dei prossimi
+        /// articoli, altrimenti viene aggiunto in fondo. "SUBITO" va in testa. Restituisce la portata logica.
+        /// </summary>
+        public int ScegliPortata(string nome)
+        {
+            if (nome == null) return PortataTarget ?? 0;
+            if (nome.Contains("SUBITO"))
+            {
+                PortataTarget = 0;
+                bool presente = Righe.Any(Portate.IsSubito);
+                if (!presente && Righe.Any(Portate.IsSeparatoreReale))
+                {
+                    int pos = Righe.IndexOf(Righe.First(Portate.IsSeparatoreReale));
+                    Righe.Insert(pos, new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 });
+                }
+                Aggiornato();
+                return 0;
+            }
+            var esistente = Righe.FirstOrDefault(r => Portate.IsSeparatoreReale(r) &&
+                                                      Portate.Nome(r).Equals(nome.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (esistente == null)
+            {
+                esistente = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.Descrizione(nome), Quantita = 0 };
+                var blocco = InizioBloccoSconto();
+                if (blocco == null) Righe.Add(esistente); else Righe.Insert(Righe.IndexOf(blocco), esistente);
+            }
+            Aggiornato();
+            PortataTarget = esistente.Portata;
+            return esistente.Portata;
+        }
+
+        /// <summary>Riordino delle sezioni portata (alla chiusura del tavolo, come il PC).</summary>
+        public void RiordinaPortate()
+        {
+            var blocco = Righe.Where(r => r.Tipo is TipoRiga.Separatore or TipoRiga.Subtotale or TipoRiga.Sconto).ToList();
+            var area = Righe.Where(r => r.Tipo is TipoRiga.Prodotto or TipoRiga.Portata).ToList();
+            var ordinate = Portate.Riordina(area, SeparatoriPortate);
+            if (ordinate.SequenceEqual(area)) return;
+            Righe.Clear();
+            foreach (var r in ordinate.Concat(blocco)) Righe.Add(r);
+            Aggiornato();
+        }
+
+        /// <summary>Portata che riceverà il prossimo articolo.</summary>
+        private int PortataDestinazione()
+        {
+            if (PortataTarget.HasValue) return PortataTarget.Value;
+            var ultimo = Righe.LastOrDefault(r => r.Tipo == TipoRiga.Portata);
+            return ultimo == null || Portate.IsSubito(ultimo) ? 0 : ultimo.Portata;
         }
 
         /// <summary>Copia delle righe da usare per l'emissione (il carrello può cambiare nel frattempo).</summary>
@@ -180,16 +271,43 @@ namespace PosTouch.Core.Vendita
 
         private void RimuoviBloccoSconto()
         {
-            foreach (var r in Righe.Where(r => r.Tipo != TipoRiga.Prodotto).ToList())
+            foreach (var r in Righe.Where(r => r.Tipo is TipoRiga.Separatore or TipoRiga.Subtotale or TipoRiga.Sconto).ToList())
                 Righe.Remove(r);
         }
 
-        // Gli articoli aggiunti dopo uno sconto vanno sopra il blocco SUBTOTALE/SCONTO
+        private RigaScontrino InizioBloccoSconto() =>
+            Righe.FirstOrDefault(x => x.Tipo is TipoRiga.Separatore or TipoRiga.Subtotale or TipoRiga.Sconto);
+
+        // Gli articoli aggiunti dopo uno sconto vanno sopra il blocco SUBTOTALE/SCONTO;
+        // al tavolo vanno in fondo alla sezione della portata scelta (PortataTarget).
         private void InserisciArticolo(RigaScontrino r)
         {
-            var inizioBlocco = Righe.FirstOrDefault(x => x.Tipo != TipoRiga.Prodotto);
-            if (inizioBlocco == null) Righe.Add(r);
-            else Righe.Insert(Righe.IndexOf(inizioBlocco), r);
+            var inizioBlocco = InizioBloccoSconto();
+            int fine = inizioBlocco == null ? Righe.Count : Righe.IndexOf(inizioBlocco);
+            int pos = fine;
+            if (PortataTarget.HasValue && Righe.Any(x => x.Tipo == TipoRiga.Portata))
+            {
+                int target = PortataTarget.Value;
+                int inizio = -1;
+                if (target == 0)
+                {
+                    // SUBITO: prima del primo separatore reale
+                    var primo = Righe.FirstOrDefault(Portate.IsSeparatoreReale);
+                    if (primo != null) pos = Righe.IndexOf(primo);
+                }
+                else
+                {
+                    var sep = Righe.FirstOrDefault(x => Portate.IsSeparatoreReale(x) && x.Portata == target);
+                    if (sep != null) inizio = Righe.IndexOf(sep);
+                    if (inizio >= 0)
+                    {
+                        pos = fine;
+                        for (int i = inizio + 1; i < fine; i++)
+                            if (Righe[i].Tipo == TipoRiga.Portata) { pos = i; break; }
+                    }
+                }
+            }
+            if (pos >= Righe.Count) Righe.Add(r); else Righe.Insert(pos, r);
         }
 
         private void Aggiornato()
@@ -209,6 +327,9 @@ namespace PosTouch.Core.Vendita
             // Sconto percentuale ricalcolato sul subtotale attuale (l'RT lo applica sul totale finale)
             if (s?.ScontoPercentualeCent is int pc)
                 s.PrezzoCentesimi = -(int)Math.Round(sub * pc / 10000m, MidpointRounding.AwayFromZero);
+
+            if (Righe.Any(x => x.Tipo == TipoRiga.Portata)) Portate.Assegna(Righe, SeparatoriPortate);
+            else foreach (var x in Righe) if (x.Tipo == TipoRiga.Prodotto) x.Portata = 0;
 
             for (int i = 0; i < Righe.Count; i++) Righe[i].Alternata = i % 2 == 1;
             Cambiato?.Invoke();

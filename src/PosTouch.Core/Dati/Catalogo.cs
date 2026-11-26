@@ -78,7 +78,8 @@ namespace PosTouch.Core.Dati
                         ColoreTesto = l.Testo("ColoreTestoCategoria", "#000000"),
                         Icona = l.Testo("Icona", ""),
                         Ordine = l.Int("Ordine"),
-                        Attiva = l.Bool("Attiva", true)
+                        Attiva = l.Bool("Attiva", true),
+                        CentroProduzioneId = l.Int("CentroProduzioneId")
                     });
                 }
             }
@@ -113,7 +114,9 @@ namespace PosTouch.Core.Dati
                         Attivo = l.Bool("Attivo", true),
                         VenditaAPeso = l.Bool("VenditaAPeso"),
                         UnitaPeso = l.Testo("UnitaPeso", "Kg"),
-                        IsCombinazione = l.Bool("IsCombinazione")
+                        IsCombinazione = l.Bool("IsCombinazione"),
+                        CentroProduzioneId = l.Int("CentroProduzioneId"),
+                        CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId)
                     });
                 }
             }
@@ -127,6 +130,10 @@ namespace PosTouch.Core.Dati
             LogManager.Info($"Catalogo caricato: {categorie.Count} categorie, {prodotti.Count} prodotti");
             return prodotti.Count;
         }
+
+        /// <summary>Articolo: &gt;0 il suo centro, -1 nessuna stampa, 0 quello della categoria.</summary>
+        public static int CentroEffettivo(int centroArticolo, int centroCategoria)
+            => centroArticolo > 0 ? centroArticolo : centroArticolo < 0 ? 0 : Math.Max(0, centroCategoria);
 
         /// <summary>
         /// Importa un pos.db copiato dal PC. Verifica che contenga le tabelle giuste

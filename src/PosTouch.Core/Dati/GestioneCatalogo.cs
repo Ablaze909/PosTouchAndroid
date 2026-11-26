@@ -50,14 +50,14 @@ namespace PosTouch.Core.Dati
                 {
                     // Id esplicito sotto 9000: nel pos.db del PC le categorie tabacchi partono da 9000 e
                     // l'autoincremento darebbe 9001, 9002... (categoria nuova invisibile nella vendita)
-                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva)
+                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva, CentroProduzioneId)
                                         VALUES ((SELECT IFNULL(MAX(Id),0)+1 FROM Categorie WHERE Id < 9000), $n, $rep, $iva, $col, $colT, $ico,
-                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 9000), $att)";
+                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 9000), $att, $centro)";
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Categorie SET Nome=$n, RepartoFiscale=$rep, AliquotaIVA=$iva, Colore=$col,
-                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att WHERE Id=$id";
+                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att, CentroProduzioneId=$centro WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", c.Id);
                 }
                 cmd.Parameters.AddWithValue("$n", c.Nome.Trim());
@@ -67,6 +67,7 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$colT", c.ColoreTesto ?? "#000000");
                 cmd.Parameters.AddWithValue("$ico", c.Icona ?? "");
                 cmd.Parameters.AddWithValue("$att", c.Attiva ? 1 : 0);
+                cmd.Parameters.AddWithValue("$centro", c.CentroProduzioneId);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Categoria salvata: {c.Nome} (reparto {c.RepartoFiscale}, IVA {c.AliquotaIVA}%)");
@@ -142,14 +143,14 @@ namespace PosTouch.Core.Dati
                 if (p.Id == 0)
                 {
                     p.Codice = ProssimoCodice(conn);
-                    cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo)
-                                        VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att)";
+                    cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo, CentroProduzioneId)
+                                        VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att, $centro)";
                     cmd.Parameters.AddWithValue("$cod", p.Codice);
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Prodotti SET Barcode=$b, Descrizione=$d, PrezzoCentesimi=$pr, CostoCentesimi=$costo, CategoriaId=$cat,
-                                        Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att WHERE Id=$id";
+                                        Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att, CentroProduzioneId=$centro WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", p.Id);
                 }
                 cmd.Parameters.AddWithValue("$b", barcode);
@@ -162,6 +163,7 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$costo", p.CostoCentesimi);
                 cmd.Parameters.AddWithValue("$font", p.DimensioneFontTasto);
                 cmd.Parameters.AddWithValue("$att", p.Attivo ? 1 : 0);
+                cmd.Parameters.AddWithValue("$centro", p.CentroProduzioneId);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Articolo salvato: {p.Descrizione} €{p.PrezzoCentesimi / 100m:F2} cat {p.CategoriaId}");
@@ -299,6 +301,8 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Prodotti", "CostoCentesimi", "INTEGER DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "DimensioneFontTasto", "INTEGER DEFAULT 12");
             AggiungiColonna(conn, "Categorie", "Icona", "TEXT DEFAULT ''");
+            AggiungiColonna(conn, "Categorie", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
         }
 
         private static void AggiungiColonna(SqliteConnection conn, string tabella, string colonna, string tipo)

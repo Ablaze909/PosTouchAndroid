@@ -13,6 +13,8 @@ namespace PosTouch.App.Pagine
 
         /// <param name="esistente">null = nuovo prodotto</param>
         /// <param name="categoriaId">categoria proposta per un nuovo prodotto</param>
+        private List<PosTouch.Core.Configurazione.CentroProduzione> _centri = new();
+
         public ProdottoPage(Prodotto esistente, int categoriaId)
         {
             InitializeComponent();
@@ -26,13 +28,18 @@ namespace PosTouch.App.Pagine
                     Id = esistente.Id, Codice = esistente.Codice, Barcode = esistente.Barcode, Descrizione = esistente.Descrizione,
                     PrezzoCentesimi = esistente.PrezzoCentesimi, CostoCentesimi = esistente.CostoCentesimi, CategoriaId = esistente.CategoriaId,
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, DimensioneFontTasto = esistente.DimensioneFontTasto,
-                    IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo
+                    IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo, CentroProduzioneId = esistente.CentroProduzioneId
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
             PannelloAttivo.IsVisible = BtnElimina.IsVisible = esistente != null;
             SwAttivo.IsToggled = _p.Attivo;
 
+            // centro comande: come la categoria / nessuna stampa / centro specifico
+            _centri = ContestoCassa.Impostazioni.Sale.Centri.ToList();
+            SceltaCentro.Voci = new[] { "📂 Come la categoria", "🚫 Nessuna stampa" }.Concat(_centri.Select(c => c.Nome)).ToList();
+            int ic = _centri.FindIndex(c => c.Id == _p.CentroProduzioneId);
+            SceltaCentro.Indice = _p.CentroProduzioneId < 0 ? 1 : ic >= 0 ? ic + 2 : 0;
             SceltaCategoria.Voci = _categorie.Select(c => c.Nome).ToList();
             SceltaCategoria.Indice = _categorie.FindIndex(c => c.Id == _p.CategoriaId);
             CampoDescrizione.Text = _p.Descrizione;
@@ -156,6 +163,7 @@ namespace PosTouch.App.Pagine
                     "Il prezzo è € 0,00.\n\nIn vendita verrà chiesto il prezzo ad ogni battitura. Continuare?"))
                 return;
 
+            _p.CentroProduzioneId = SceltaCentro.Indice == 1 ? -1 : SceltaCentro.Indice >= 2 ? _centri[SceltaCentro.Indice - 2].Id : 0;
             _p.Descrizione = CampoDescrizione.Text.Trim().ToUpperInvariant();
             _p.CategoriaId = cat.Id;
             _p.Barcode = (CampoBarcode.Text ?? "").Trim();

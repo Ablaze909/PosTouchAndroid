@@ -68,6 +68,8 @@
         <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="40,*">
             <Grid BackgroundColor="#FAFAFA">
                 <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                    <Button x:Name="BtnSale" Text="🍽️ SALE" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#00897B"
+                            Style="{StaticResource TastoToolbar}" Clicked="OnSale" IsVisible="False" />
                     <Button x:Name="BtnStrumenti" Text="🔧" WidthRequest="46" BackgroundColor="#555555" Style="{StaticResource TastoToolbar}" Clicked="OnStrumenti" />
                     <Button x:Name="BtnModifica" Text="✏️" WidthRequest="46" BackgroundColor="#757575" Style="{StaticResource TastoToolbar}" Clicked="OnModifica" />
                     <Button x:Name="BtnFunzioniCassa" Text="💰 FUNZIONI CASSA" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
@@ -91,7 +93,8 @@
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnIntestazioneScontrino" />
                 </Grid.GestureRecognizers>
-                <Label Text="📋 SCONTRINO" FontSize="14" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                <Label x:Name="TitoloScontrino" Text="📋 SCONTRINO" FontSize="14" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"
+                       LineBreakMode="TailTruncation" />
                 <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
                     <Label x:Name="Orologio" Text="00:00:00" FontSize="14" FontAttributes="Bold" FontFamily="monospace" TextColor="White" />
                     <Label x:Name="Data" Text="01/01/2026" FontSize="11" TextColor="White" VerticalOptions="Center" />
@@ -132,6 +135,12 @@
                                 <!-- separatore -->
                                 <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="10" TextColor="#BDBDBD"
                                        HorizontalTextAlignment="Center" VerticalOptions="Center" LineBreakMode="NoWrap" IsVisible="{Binding IsSeparatore}" />
+                                <!-- separatore portata (SEGUE / SUBITO) -->
+                                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="13" FontAttributes="Bold" TextColor="White"
+                                       BackgroundColor="#546E7A" Padding="0,3" HorizontalTextAlignment="Center" VerticalOptions="Center"
+                                       IsVisible="{Binding IsPortata}" />
+                                <!-- già comandata: barretta verde a sinistra -->
+                                <BoxView WidthRequest="3" Color="#43A047" HorizontalOptions="Start" Margin="-4,-6,0,-6" IsVisible="{Binding Comandata}" />
                                 <!-- riga selezionata: bordo inferiore nero -->
                                 <BoxView Grid.ColumnSpan="3" HeightRequest="2" Color="#111111" VerticalOptions="End"
                                          IsVisible="{Binding Selezionata}" />
@@ -214,6 +223,18 @@
             <Button x:Name="BtnConto" Grid.Column="2" Text="📄 CONTO" FontSize="18" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button Grid.Column="3" Text="📂 CASSETTO" FontSize="18" BackgroundColor="#FF9800" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassetto" />
             <Button Grid.Column="4" Text="🔍 BARCODE" FontSize="18" BackgroundColor="#795548" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnBarcode" />
+        </Grid>
+
+        <!-- ═════════ BARRA TAVOLO (come VenditaContoClienteDialog del PC) ═════════ -->
+        <Grid x:Name="BarraTavolo" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" IsVisible="False"
+              ColumnDefinitions="*,*,*,*,*,*,*,*">
+            <Button Grid.ColumnSpan="2" Text="💰 CASSA" FontSize="16" BackgroundColor="#388E3C" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassa" />
+            <Button x:Name="BtnContoTavolo" Grid.Column="2" Text="📄 CONTO" FontSize="14" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
+            <Button x:Name="BtnPreconto" Grid.Column="3" Text="📋 PRECONTO" FontSize="13" BackgroundColor="#FDD835" TextColor="#333333" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnPreconto" />
+            <Button Grid.Column="4" Text="🚫 NO STAMPA" FontSize="13" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnNoStampa" />
+            <Button Grid.Column="5" Text="✖ ANNULLA" FontSize="13" BackgroundColor="#757575" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAnnullaTavolo" />
+            <Button x:Name="BtnFunzioniPortate" Grid.Column="6" Text="📑 FUNZIONI" FontSize="13" BackgroundColor="#546E7A" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnFunzioniPortate" />
+            <Button x:Name="BtnAvanza" Grid.Column="7" Text="⏩ AVANZA" FontSize="13" BackgroundColor="#1565C0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAvanza" />
         </Grid>
 
         <!-- ═════════ MODALITÀ MODIFICA: scontrino, tastiera e barra inferiore bloccati ═════════ -->

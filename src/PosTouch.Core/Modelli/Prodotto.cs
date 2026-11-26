@@ -18,6 +18,10 @@ namespace PosTouch.Core.Modelli
         /// <summary>Dimensione testo del tasto: 10 piccolo, 12 medio, 14 grande, 16 XL (come sul PC).</summary>
         public int DimensioneFontTasto { get; set; } = 12;
         public bool IsPreferito { get; set; }
+        /// <summary>Centro di produzione dell'articolo: 0 = come la categoria, -1 = nessuna stampa, &gt;0 = centro.</summary>
+        public int CentroProduzioneId { get; set; }
+        /// <summary>Centro effettivo per le comande (articolo, altrimenti categoria); 0 = nessuna stampa.</summary>
+        public int CentroStampa { get; set; }
         /// <summary>Vendita a peso (dal PC): la quantità è il peso, il prezzo è per unità di peso.</summary>
         public bool VenditaAPeso { get; set; }
         public string UnitaPeso { get; set; } = "Kg";

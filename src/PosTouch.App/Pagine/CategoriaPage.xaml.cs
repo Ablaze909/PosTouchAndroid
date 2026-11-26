@@ -22,6 +22,8 @@ namespace PosTouch.App.Pagine
             Riquadro.HeightRequest = Math.Min(560, height - 24);
         }
 
+        private List<PosTouch.Core.Configurazione.CentroProduzione> _centri = new();
+
         public CategoriaPage(Categoria esistente)
         {
             InitializeComponent();
@@ -31,7 +33,7 @@ namespace PosTouch.App.Pagine
                 {
                     Id = esistente.Id, Nome = esistente.Nome, RepartoFiscale = esistente.RepartoFiscale, AliquotaIVA = esistente.AliquotaIVA,
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, Icona = esistente.Icona, Ordine = esistente.Ordine,
-                    Attiva = esistente.Attiva
+                    Attiva = esistente.Attiva, CentroProduzioneId = esistente.CentroProduzioneId
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVA CATEGORIA" : "✏️ MODIFICA CATEGORIA";
@@ -39,6 +41,11 @@ namespace PosTouch.App.Pagine
             SwAttiva.IsToggled = _cat.Attiva;
             CampoNome.Text = _cat.Nome;
             _reparto = _cat.RepartoFiscale;
+            // centro comande: "Nessuna stampa" + centri configurati
+            _centri = ContestoCassa.Impostazioni.Sale.Centri.ToList();
+            SceltaCentro.Voci = new[] { "🚫 Nessuna stampa" }.Concat(_centri.Select(c => c.Nome)).ToList();
+            int ic = _centri.FindIndex(c => c.Id == _cat.CentroProduzioneId);
+            SceltaCentro.Indice = ic >= 0 ? ic + 1 : 0;
             SceltaIva.Voci = Aliquote.Select(a => $"{a}%").ToList();
             int iva = Array.IndexOf(Aliquote, _cat.AliquotaIVA);
             SceltaIva.Indice = iva >= 0 ? iva : 2;
@@ -121,6 +128,7 @@ namespace PosTouch.App.Pagine
             _cat.Nome = CampoNome.Text.Trim().ToUpperInvariant();
             _cat.RepartoFiscale = _reparto;
             _cat.AliquotaIVA = Aliquote[Math.Max(0, SceltaIva.Indice)];
+            _cat.CentroProduzioneId = SceltaCentro.Indice > 0 ? _centri[SceltaCentro.Indice - 1].Id : 0;
             _cat.Attiva = SwAttiva.IsToggled || _cat.Id == 0;
             try
             {

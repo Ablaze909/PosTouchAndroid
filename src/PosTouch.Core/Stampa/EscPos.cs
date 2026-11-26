@@ -19,6 +19,17 @@ namespace PosTouch.Core.Stampa
         private static readonly byte[] NORMAL_SIZE = { 0x1B, 0x21, 0x00, 0x1D, 0x21, 0x00 };
         private static readonly byte[] DOUBLE_HEIGHT = { 0x1D, 0x21, 0x10 };
         private static readonly byte[] CUT_PAPER = { 0x1D, 0x56, 0x41, 0x00 };
+        private static readonly byte[] DOUBLE_WIDTH = { 0x1D, 0x21, 0x01 };
+        private static readonly byte[] DOUBLE_SIZE = { 0x1D, 0x21, 0x11 };
+        private static readonly byte[] TRIPLE_SIZE = { 0x1D, 0x21, 0x22 };
+        private static readonly byte[] TRIPLE_HEIGHT = { 0x1D, 0x21, 0x20 };
+        private static readonly byte[] TRIPLE_WIDTH = { 0x1D, 0x21, 0x02 };
+        private static readonly byte[] REVERSE_ON = { 0x1D, 0x42, 0x01 };
+        private static readonly byte[] REVERSE_OFF = { 0x1D, 0x42, 0x00 };
+        private static readonly byte[] BUZZER_BEL = { 0x07, 0x07, 0x07 };
+        private static readonly byte[] BUZZER_EPSON = { 0x1B, 0x28, 0x41, 0x05, 0x00, 0x61, 0x64, 0x00, 0x01, 0x03 };
+        private static readonly byte[] BUZZER_ESCB = { 0x1B, 0x42, 0x03, 0x02 };
+        private static readonly byte[] BUZZER_DLE = { 0x10, 0x14, 0x01, 0x00, 0x01 };
 
         private readonly List<byte> _b = new List<byte>();
 
@@ -33,6 +44,40 @@ namespace PosTouch.Core.Stampa
         public EscPos Centro() { _b.AddRange(CENTER); return this; }
         public EscPos Sinistra() { _b.AddRange(LEFT); return this; }
         public EscPos Taglio() { _b.AddRange(CUT_PAPER); return this; }
+        public EscPos DoppiaDimensione() { _b.AddRange(DOUBLE_SIZE); return this; }
+        public EscPos Inverso(bool on) { _b.AddRange(on ? REVERSE_ON : REVERSE_OFF); return this; }
+
+        /// <summary>ApplyStyleAsync del PC: 1=normale 2=bold 3=2xAlt 4=2xAlt+bold 5=2xLarg 6=2xLarg+bold 7=2x2 8=2x2+bold 9=3x3 10=3x3+bold 11=3xAlt 12=3xLarg.</summary>
+        public EscPos Stile(int id)
+        {
+            Normale(); Grassetto(false);
+            switch (id)
+            {
+                case 2: Grassetto(true); break;
+                case 3: _b.AddRange(DOUBLE_HEIGHT); break;
+                case 4: _b.AddRange(DOUBLE_HEIGHT); Grassetto(true); break;
+                case 5: _b.AddRange(DOUBLE_WIDTH); break;
+                case 6: _b.AddRange(DOUBLE_WIDTH); Grassetto(true); break;
+                case 7: _b.AddRange(DOUBLE_SIZE); break;
+                case 8: _b.AddRange(DOUBLE_SIZE); Grassetto(true); break;
+                case 9: _b.AddRange(TRIPLE_SIZE); break;
+                case 10: _b.AddRange(TRIPLE_SIZE); Grassetto(true); break;
+                case 11: _b.AddRange(TRIPLE_HEIGHT); break;
+                case 12: _b.AddRange(TRIPLE_WIDTH); break;
+            }
+            return this;
+        }
+
+        /// <summary>ResetStyleAsync del PC.</summary>
+        public EscPos ResetStile() { Normale(); return Grassetto(false); }
+
+        /// <summary>Cicalino comande: 0=Off, 1=BEL, 2=Epson ESC(A, 3=ESC B, 4=DLE DC4.</summary>
+        public EscPos Cicalino(int tipo)
+        {
+            var cmd = tipo switch { 1 => BUZZER_BEL, 2 => BUZZER_EPSON, 3 => BUZZER_ESCB, 4 => BUZZER_DLE, _ => null };
+            if (cmd != null) _b.AddRange(cmd);
+            return this;
+        }
 
         /// <summary>ScriviCentrato del PC.</summary>
         public EscPos Centrato(string testo, bool grassetto, bool doppiaAltezza)

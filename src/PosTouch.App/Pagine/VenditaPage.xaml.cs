@@ -28,14 +28,14 @@ namespace PosTouch.App.Pagine
         private RigaScontrino _ultimaRigaToccata;
         private DateTime _ultimoTocco = DateTime.MinValue;
 
-        private Carrello Carrello => ContestoCassa.Carrello;
+        /// <summary>Scontrino a video: quello del banco o quello del tavolo aperto.</summary>
+        private Carrello Carrello => _sessione?.Carrello ?? ContestoCassa.Carrello;
         private Impostazioni Cfg => ContestoCassa.Impostazioni;
 
         public VenditaPage()
         {
             InitializeComponent();
-            ListaRighe.ItemsSource = Carrello.Righe;
-            Carrello.Cambiato += AggiornaTotale;
+            CollegaCarrello(null);
             _tastierino.Cambiato += () =>
             {
                 DisplayTastierino.Text = _tastierino.Display;
@@ -57,6 +57,7 @@ namespace PosTouch.App.Pagine
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
             RigaQuantita.IsVisible = Cfg.MostraRigaPiuMeno;
             BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata
+            AggiornaModoTavolo();
             // Sconti disattivati: spariscono i due tasti sconto, ANNULLA resta e occupa tutta la riga
             BtnScontoValore.IsVisible = BtnScontoPerc.IsVisible = Cfg.AbilitaSconti;
             Grid.SetColumn(BtnAnnulla, Cfg.AbilitaSconti ? 2 : 0);
@@ -172,6 +173,7 @@ namespace PosTouch.App.Pagine
         /// <summary>🚪: torna alla schermata iniziale (come TornaAlLauncher del PC).</summary>
         private async void OnEsci(object sender, EventArgs e)
         {
+            if (_sessione != null) { OnTornaSala(); return; }   // al tavolo 🚪 diventa ⬅ SALA
             if (!Carrello.Vuoto)
             {
                 await MessaggioBox.Avviso("SCONTRINO APERTO", "Chiudi o svuota lo scontrino prima di uscire.");
@@ -184,6 +186,7 @@ namespace PosTouch.App.Pagine
         protected override bool Indietro()
         {
             if (Attesa.IsVisible) return true;
+            if (_sessione != null && !_modalitaModifica) { OnTornaSala(); return true; }
             if (_modalitaModifica) { ImpostaModalitaModifica(false); return true; } // indietro = esci dalla modifica
             if (OverlayPagamento.IsVisible) { OverlayPagamento.IsVisible = false; return true; }
             OnEsci(this, EventArgs.Empty);

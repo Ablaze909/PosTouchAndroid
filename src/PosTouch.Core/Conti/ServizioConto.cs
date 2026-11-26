@@ -42,8 +42,6 @@ namespace PosTouch.Core.Conti
     /// </summary>
     public class ServizioConto
     {
-        private static readonly SemaphoreSlim _termica = new SemaphoreSlim(1, 1);
-
         private readonly Func<Impostazioni> _impostazioni;
         private readonly ArchivioVendite _archivio;
         private int _inCorso;
@@ -61,6 +59,7 @@ namespace PosTouch.Core.Conti
             if (Interlocked.CompareExchange(ref _inCorso, 1, 0) != 0)
                 return EsitoConto.Errore("ATTENDERE", "Stampa in corso...\nAttendere il completamento.");
             bool preso = false;
+            string ipPreso = null; int portaPresa = 0;
             try
             {
                 var cfg = _impostazioni();
@@ -73,7 +72,8 @@ namespace PosTouch.Core.Conti
                 if (totale <= 0)
                     return EsitoConto.Errore("TOTALE NON VALIDO", "Non è possibile stampare un conto con totale negativo o zero!");
 
-                preso = await _termica.WaitAsync(TimeSpan.FromSeconds(10));
+                preso = await AccessoStampanti.PrendiAsync(cfg.IP_Termica, cfg.Porta_Termica, TimeSpan.FromSeconds(10));
+                ipPreso = cfg.IP_Termica; portaPresa = cfg.Porta_Termica;
                 if (!preso) return EsitoConto.Errore("STAMPANTE OCCUPATA", "La stampante sta eseguendo un'altra stampa.\nRiprovare tra qualche secondo.");
 
                 using var st = new StampanteTermica(cfg.IP_Termica, cfg.Porta_Termica);
@@ -111,7 +111,7 @@ namespace PosTouch.Core.Conti
             }
             finally
             {
-                if (preso) _termica.Release();
+                if (preso) AccessoStampanti.Rilascia(ipPreso, portaPresa);
                 Interlocked.Exchange(ref _inCorso, 0);
             }
         }
@@ -147,22 +147,8 @@ namespace PosTouch.Core.Conti
         /// <summary>🖨️ Stampa di prova (impostazioni), con IP e porta indicati.</summary>
         public static async Task<(bool ok, string messaggio)> ProvaAsync(string ip, int porta, string intestazione)
         {
-            if (!await _termica.WaitAsync(TimeSpan.FromSeconds(5))) return (false, "La stampante sta eseguendo un'altra stampa.");
-            try
-            {
-                using var st = new StampanteTermica(ip, porta);
-                if (!await st.ConnettiAsync()) return (false, st.UltimoErrore);
-                await st.InviaAsync(LayoutConto.Prova(intestazione, ip, porta));
-                return (true, $"Stampa di prova inviata a {ip}:{porta}.");
-            }
-            catch (Exception ex)
-            {
-                return (false, ex.Message);
-            }
-            finally
-            {
-                _termica.Release();
-            }
+            string errore = await AccessoStampanti.InviaAsync(ip, porta, LayoutConto.Prova(intestazione, ip, porta), TimeSpan.FromSeconds(5));
+            return errore == null ? (true, $"Stampa di prova inviata a {ip}:{porta}.") : (false, errore);
         }
     }
 }

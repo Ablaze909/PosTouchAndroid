@@ -62,6 +62,7 @@ namespace PosTouch.App.Pagine
                 SvuotaScontrino();
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.StampatoSenzaArchivio)
                     await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
+                await DopoPagamentoAsync();
             }
             finally { _venditaAvviata = false; }
         }
@@ -169,6 +170,7 @@ namespace PosTouch.App.Pagine
             if (restoCent > 0) MostraRestoConTimer(restoCent);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
+            await DopoPagamentoAsync();
         }
 
         /// <summary>Barra RESTO arancione per 3 secondi (MostraRestoConTimer del PC).</summary>

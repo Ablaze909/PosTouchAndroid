@@ -93,8 +93,16 @@ namespace PosTouch.App.Pagine
         private async void OnAnnulla(object sender, EventArgs e)
         {
             if (Carrello.Righe.Count == 0) return;
-            if (await MessaggioBox.Conferma("ANNULLA SCONTRINO", "Vuoi annullare tutto lo scontrino?\n\nQuesta operazione non può essere annullata."))
-                SvuotaScontrino();
+            if (!await MessaggioBox.Conferma("ANNULLA SCONTRINO", "Vuoi annullare tutto lo scontrino?\n\nQuesta operazione non può essere annullata."))
+                return;
+            if (_sessione != null)
+            {
+                // al tavolo: gli articoli già comandati vengono stornati all'uscita
+                if (_scontrinoEspanso) ApplicaModalitaEspansa(false);
+                Carrello.Rimuovi(Carrello.Righe.ToList());
+                _tastierino.Azzera();
+            }
+            else SvuotaScontrino();
         }
 
         private RigaScontrino PrimaSelezionata() => Carrello.Righe.FirstOrDefault(r => r.Selezionata);

@@ -11,6 +11,8 @@ namespace PosTouch.Core.Modelli
         public string ColoreTesto { get; set; } = "#000000";
         public string Icona { get; set; } = "";
         public int Ordine { get; set; }
+        /// <summary>Centro di produzione delle comande (0 = nessuna stampa).</summary>
+        public int CentroProduzioneId { get; set; }
         /// <summary>Visibile nel POS (false = nascosta, come sul PC).</summary>
         public bool Attiva { get; set; } = true;
         /// <summary>Numero articoli attivi (calcolato dal catalogo).</summary>

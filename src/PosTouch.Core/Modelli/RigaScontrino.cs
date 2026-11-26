@@ -3,7 +3,8 @@ using System.ComponentModel;
 namespace PosTouch.Core.Modelli
 {
     /// <summary>Stessi tipi di riga del PC. Subtotale e Separatore sono solo visivi (blocco sconto).</summary>
-    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore }
+    /// <summary>Portata = separatore delle uscite al tavolo ("── SEGUE ──", "⚡⚡ SUBITO ⚡⚡"); non conta nel totale.</summary>
+    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore, Portata }
 
     /// <summary>
     /// Riga del carrello. Stessa semantica della versione Windows:
@@ -27,6 +28,20 @@ namespace PosTouch.Core.Modelli
         /// <summary>Unità di peso ("Kg", "g"...) per gli articoli venduti a peso; null = articolo a pezzi.</summary>
         public string UnitaPeso { get; set; }
         public bool IsAPeso => !string.IsNullOrEmpty(UnitaPeso);
+
+        // ── Tavoli e comande ──
+        /// <summary>Centro di produzione (CUCINA, BAR...) dove va la comanda; 0 = nessuna stampa.</summary>
+        public int CentroProduzioneId { get; set; }
+        /// <summary>Numero logico della portata (0 = SUBITO / prima uscita). Per le righe Portata è il numero del separatore.</summary>
+        public int Portata { get; set; }
+
+        private bool _comandata;
+        /// <summary>Già inviata in produzione: toglierla genera uno STORNO.</summary>
+        public bool Comandata
+        {
+            get => _comandata;
+            set { if (_comandata != value) { _comandata = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Comandata))); } }
+        }
         public int PrezzoOriginaleCentesimi { get; set; }
         public int? ScontoPercentualeCent { get; set; }
 
@@ -66,6 +81,7 @@ namespace PosTouch.Core.Modelli
         public bool IsSconto => Tipo == TipoRiga.Sconto;
         public bool IsSubtotale => Tipo == TipoRiga.Subtotale;
         public bool IsSeparatore => Tipo == TipoRiga.Separatore;
+        public bool IsPortata => Tipo == TipoRiga.Portata;
         /// <summary>Conta nel totale (articoli e sconti; subtotale e separatori no).</summary>
         public bool ContaNelTotale => Tipo == TipoRiga.Prodotto || Tipo == TipoRiga.Sconto;
 

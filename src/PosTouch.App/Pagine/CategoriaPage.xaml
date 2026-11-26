@@ -59,6 +59,11 @@
                     <Border Style="{StaticResource Campo}">
                         <ctl:CampoScelta x:Name="SceltaIva" FontSize="15" Titolo="Aliquota IVA" Colonne="4" />
                     </Border>
+
+                    <Label Text="🍽️ Comande (centro di produzione)" Style="{StaticResource Etichetta}" />
+                    <Border Style="{StaticResource Campo}">
+                        <ctl:CampoScelta x:Name="SceltaCentro" FontSize="15" Titolo="Centro di produzione" Colonne="2" />
+                    </Border>
                 </VerticalStackLayout>
 
                 <!-- destra -->

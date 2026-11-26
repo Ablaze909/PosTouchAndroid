@@ -3,6 +3,7 @@ using PosTouch.Core.Configurazione;
 using PosTouch.Core.Dati;
 using PosTouch.Core.Diagnostica;
 using PosTouch.Core.Fiscale;
+using PosTouch.Core.Sale;
 using PosTouch.Core.Vendita;
 
 namespace PosTouch.App.Servizi
@@ -23,6 +24,11 @@ namespace PosTouch.App.Servizi
         public static PosTouch.Core.Conti.ServizioConto ServizioConto { get; private set; }
         public static FunzioniCassa FunzioniCassa { get; private set; }
         public static Carrello Carrello { get; } = new Carrello();
+        public static ArchivioTavoli Tavoli { get; private set; }
+        public static SpoolerComande Spooler { get; private set; }
+
+        /// <summary>Apre un tavolo (lo crea se libero) con le impostazioni correnti.</summary>
+        public static SessioneTavolo ApriTavolo(int salaId, int numero) => new SessioneTavolo(Tavoli, Spooler, () => Impostazioni, salaId, numero);
 
         private static PosTouch.App.Pagine.VenditaPage _paginaVendita;
         /// <summary>Una sola schermata vendita per tutta l'app (lo scontrino in corso è uno solo).</summary>
@@ -53,6 +59,14 @@ namespace PosTouch.App.Servizi
             ServizioVendita = new ServizioVendita(() => Impostazioni, Vendite);
             ServizioConto = new PosTouch.Core.Conti.ServizioConto(() => Impostazioni, Vendite);
             FunzioniCassa = new FunzioniCassa(() => Impostazioni);
+
+            Tavoli = new ArchivioTavoli(cartellaDati);
+            Spooler = new SpoolerComande(Tavoli);
+            Spooler.StampaInErrore += job => MainThread.BeginInvokeOnMainThread(async () =>
+                await PosTouch.App.Dialoghi.MessaggioBox.Avviso("🖨️ STAMPA NON RIUSCITA",
+                    $"{job.Descrizione}\n\nStampante {job.Stampante} ({job.IP}:{job.Porta}) non raggiungibile:\n{job.UltimoErrore}\n\n" +
+                    "La stampa resta in CODA e viene ritentata ogni 30 secondi.\nControlla la stampante o apri 🖨️ CODA."));
+            Spooler.Avvia();
         }
 
         public static void SalvaImpostazioni(Impostazioni nuove)
