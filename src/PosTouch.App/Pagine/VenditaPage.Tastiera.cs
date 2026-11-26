@@ -107,16 +107,18 @@ namespace PosTouch.App.Pagine
 
         private RigaScontrino PrimaSelezionata() => Carrello.Righe.FirstOrDefault(r => r.Selezionata);
 
-        private void OnPiu(object sender, EventArgs e)
+        private async void OnPiu(object sender, EventArgs e)
         {
             var riga = PrimaSelezionata();
-            if (riga?.Tipo == TipoRiga.Prodotto) Carrello.ImpostaQuantita(riga, riga.Quantita + 1);
+            if (riga?.Tipo == TipoRiga.Prodotto && !Carrello.ImpostaQuantita(riga, riga.Quantita + 1))
+                await MessaggioBox.Avviso("QUANTITÀ", Carrello.UltimoErrore);
         }
 
-        private void OnMeno(object sender, EventArgs e)
+        private async void OnMeno(object sender, EventArgs e)
         {
             var riga = PrimaSelezionata();
-            if (riga?.Tipo == TipoRiga.Prodotto && riga.Quantita > 1) Carrello.ImpostaQuantita(riga, riga.Quantita - 1);
+            if (riga?.Tipo == TipoRiga.Prodotto && riga.Quantita > 1 && !Carrello.ImpostaQuantita(riga, riga.Quantita - 1))
+                await MessaggioBox.Avviso("QUANTITÀ", Carrello.UltimoErrore);
         }
     }
 }

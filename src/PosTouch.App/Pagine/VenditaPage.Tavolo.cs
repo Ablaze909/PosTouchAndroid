@@ -105,9 +105,11 @@ namespace PosTouch.App.Pagine
         }
 
         /// <summary>Dopo scontrino o conto: il tavolo si libera e si torna alla sala.</summary>
-        private async Task DopoPagamentoAsync()
+        private async Task DopoPagamentoAsync(int restoCent = 0)
         {
             if (_sessione == null) return;
+            // al tavolo si torna subito alla sala: il resto lo mostro prima di uscire
+            if (restoCent > 0) await MessaggioBox.Info("💶 RESTO", $"Resto da dare:\n\n€ {restoCent / 100m:N2}");
             _timerBozza?.Stop();
             EsitoTavolo esito = null;
             try { esito = _sessione.ChiudiPagato(); }

@@ -170,7 +170,7 @@ namespace PosTouch.App.Pagine
             if (restoCent > 0) MostraRestoConTimer(restoCent);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
-            await DopoPagamentoAsync();
+            await DopoPagamentoAsync(restoCent);
         }
 
         /// <summary>Barra RESTO arancione per 3 secondi (MostraRestoConTimer del PC).</summary>
