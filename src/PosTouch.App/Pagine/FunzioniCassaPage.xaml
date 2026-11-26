@@ -6,7 +6,7 @@
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="#99000000">
     <Grid>
-        <Border WidthRequest="500" HeightRequest="680" HorizontalOptions="Center" VerticalOptions="Center"
+        <Border x:Name="Riquadro" WidthRequest="500" HeightRequest="680" HorizontalOptions="Center" VerticalOptions="Center"
                 BackgroundColor="#ECEFF1" StrokeThickness="0">
             <Grid RowDefinitions="Auto,*,Auto" Padding="20">
                 <Label Text="FUNZIONI FISCALI E GESTIONE CASSA" FontSize="20" FontAttributes="Bold" TextColor="#37474F"

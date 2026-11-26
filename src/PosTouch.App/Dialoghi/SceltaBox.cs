@@ -27,17 +27,18 @@ namespace PosTouch.App.Dialoghi
 
             var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, Padding = new Thickness(25), RowSpacing = 15 };
             corpo.Add(new Label { Text = titolo, FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"), HorizontalOptions = LayoutOptions.Center }, 0, 0);
-            corpo.Add(new ScrollView { Content = griglia, MaximumHeightRequest = 520 }, 0, 1);
+            corpo.Add(new ScrollView { Content = griglia }, 0, 1);
             corpo.Add(Ui.Tasto("ANNULLA", "#9E9E9E", altezza: 55, clic: (s, e) => Chiudi(-1)), 0, 2);
 
-            Content = new Border
+            var riquadro = new Border
             {
-                WidthRequest = Math.Min(760, 110 * colonne + 80),
                 HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
                 BackgroundColor = Colors.White, StrokeThickness = 0,
                 StrokeShape = new RoundRectangle { CornerRadius = 16 },
                 Content = corpo
             };
+            Content = riquadro;
+            Dimensiona(riquadro, Math.Min(760, 110 * colonne + 80));
         }
 
         public static Task<int> Testi(string titolo, IList<string> voci, int colonne = 3)

@@ -17,6 +17,24 @@ namespace PosTouch.App.Pagine
             _orologio.Tick += (s, e) => AggiornaOra();
         }
 
+        /// <summary>Le carte si ridimensionano con lo schermo (riferimento 1280×800 come il PC).</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (width <= 0 || height <= 0) return;
+            double scala = Math.Clamp(Math.Min(width / 1280, height / 800), 0.7, 1.4);
+            foreach (var carta in GrigliaTasti.Children.OfType<Border>())
+            {
+                carta.WidthRequest = 210 * scala;
+                carta.HeightRequest = 150 * scala;
+                carta.Margin = new Thickness(10 * scala);
+            }
+            GrigliaTasti.Margin = new Thickness(0, 0, 60 * scala, 0);
+            Titolo.Margin = new Thickness(80 * scala, 0, 0, 0);
+            NomePuntoVendita.FontSize = 52 * scala;
+            SottotitoloPuntoVendita.FontSize = 22 * scala;
+        }
+
         protected override void OnAppearing()
         {
             base.OnAppearing();

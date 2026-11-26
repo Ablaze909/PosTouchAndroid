@@ -45,7 +45,7 @@
         </Ellipse>
 
         <!-- Titolo e branding (sinistra) -->
-        <VerticalStackLayout HorizontalOptions="Start" VerticalOptions="Center" Margin="80,0,0,0">
+        <VerticalStackLayout x:Name="Titolo" HorizontalOptions="Start" VerticalOptions="Center" Margin="80,0,0,0">
             <Label Text="🛒" FontSize="64" Opacity="0.85" Margin="0,0,0,15" />
             <Label x:Name="NomePuntoVendita" Text="POS Touch" FontSize="52" FontAttributes="Bold" TextColor="White" Opacity="0.9" />
             <Label x:Name="SottotitoloPuntoVendita" Text="Punto Vendita" FontSize="22" TextColor="White" Opacity="0.5" Margin="4,5,0,0" />
@@ -60,7 +60,7 @@
         </VerticalStackLayout>
 
         <!-- Griglia tasti (destra) -->
-        <Grid HorizontalOptions="End" VerticalOptions="Center" Margin="0,0,60,0" ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+        <Grid x:Name="GrigliaTasti" HorizontalOptions="End" VerticalOptions="Center" Margin="0,0,60,0" ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto">
             <Border Style="{StaticResource TastoCard}">
                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnVendita" /></Border.GestureRecognizers>
                 <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">

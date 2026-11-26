@@ -31,7 +31,7 @@ namespace PosTouch.App.Dialoghi
                 b.BorderColor = Ui.C("#E0E0E0");
                 b.BorderWidth = t == "⌫" ? 0 : 1;
                 b.Margin = new Thickness(4);
-                b.HeightRequest = 64;
+                b.HeightRequest = 56;
                 tastiera.Add(b, i % 3, i / 3);
             }
 
@@ -53,14 +53,15 @@ namespace PosTouch.App.Dialoghi
             corpo.Add(_errore);
             corpo.Add(azioni);
 
-            Content = new Border
+            var riquadro = new Border
             {
-                WidthRequest = 400,
                 HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
                 BackgroundColor = Colors.White, StrokeThickness = 0,
                 StrokeShape = new RoundRectangle { CornerRadius = 16 },
-                Content = corpo
+                Content = new ScrollView { Content = corpo }
             };
+            Content = riquadro;
+            Dimensiona(riquadro, 400);
         }
 
         private void Premi(string t)

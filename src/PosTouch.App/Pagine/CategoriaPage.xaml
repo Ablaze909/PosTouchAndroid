@@ -21,7 +21,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Border WidthRequest="780" HeightRequest="560" HorizontalOptions="Center" VerticalOptions="Center"
+    <Border x:Name="Riquadro" WidthRequest="780" HeightRequest="560" HorizontalOptions="Center" VerticalOptions="Center"
             BackgroundColor="White" StrokeThickness="0" StrokeShape="RoundRectangle 16">
         <Grid RowDefinitions="Auto,*,Auto" Padding="30">
             <!-- titolo + interruttore ATTIVA -->
@@ -33,7 +33,8 @@
                 </HorizontalStackLayout>
             </Grid>
 
-            <Grid Grid.Row="1" ColumnDefinitions="*,25,*">
+            <ScrollView Grid.Row="1">
+            <Grid ColumnDefinitions="*,25,*">
                 <!-- sinistra -->
                 <VerticalStackLayout>
                     <Label Text="Icona (opzionale) e Nome *" Style="{StaticResource Etichetta}" />
@@ -108,6 +109,7 @@
                     </Border>
                 </VerticalStackLayout>
             </Grid>
+            </ScrollView>
 
             <Grid Grid.Row="2" ColumnDefinitions="Auto,*,140,10,140" Margin="0,15,0,0">
                 <Button x:Name="BtnElimina" Text="🗑️ ELIMINA" WidthRequest="140" HeightRequest="50" FontSize="16" BackgroundColor="#F44336"

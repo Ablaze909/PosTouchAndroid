@@ -9,6 +9,15 @@ namespace PosTouch.App.Pagine
     {
         private FunzioniCassa Funzioni => ContestoCassa.FunzioniCassa;
 
+        /// <summary>Riquadro alle misure del PC, ristretto se lo schermo è più piccolo.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (width <= 0 || height <= 0) return;
+            Riquadro.WidthRequest = Math.Min(500, width - 24);
+            Riquadro.HeightRequest = Math.Min(680, height - 24);
+        }
+
         public FunzioniCassaPage()
         {
             InitializeComponent();

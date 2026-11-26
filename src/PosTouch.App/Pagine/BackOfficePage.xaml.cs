@@ -35,6 +35,8 @@ namespace PosTouch.App.Pagine
         private List<VoceProdotto> _voci = new();
         private bool _soloPreferiti, _soloNascosti;
         private bool _schedaProdotti = true;
+        private DateTime _toccoFreccia = DateTime.MinValue;
+        private bool _apertura;
 
         public BackOfficePage()
         {
@@ -223,8 +225,8 @@ namespace PosTouch.App.Pagine
             var giu = Ui.Riquadro(new Label { Text = "▼", FontSize = 12, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center },
                                   "#FFFFFF", 5, new Thickness(0, 4));
             su.Margin = giu.Margin = new Thickness(2, 0);
-            Ui.Tocco(su, async () => await Sposta(c, -1));
-            Ui.Tocco(giu, async () => await Sposta(c, +1));
+            Ui.Tocco(su, async () => { _toccoFreccia = DateTime.Now; await Sposta(c, -1); });
+            Ui.Tocco(giu, async () => { _toccoFreccia = DateTime.Now; await Sposta(c, +1); });
             griglia.Add(su, 1, 0);
             griglia.Add(giu, 2, 0);
 
@@ -248,7 +250,16 @@ namespace PosTouch.App.Pagine
                 Opacity = c.Attiva ? 1.0 : 0.55,
                 Content = griglia
             };
-            Ui.Tocco(centro, async () => await Navigation.PushAsync(new CategoriaPage(c)));
+            // Tocco su tutta la tessera (non solo sul nome): apre subito la modifica
+            Ui.Tocco(tessera, async () =>
+            {
+                await Task.Delay(60); // lascia passare prima l'eventuale tocco su ▲▼
+                if ((DateTime.Now - _toccoFreccia).TotalMilliseconds < 400) return; // era una freccia ▲▼
+                if (_apertura) return;
+                _apertura = true;
+                try { await Navigation.PushAsync(new CategoriaPage(c)); }
+                finally { _apertura = false; }
+            });
             return tessera;
         }
 

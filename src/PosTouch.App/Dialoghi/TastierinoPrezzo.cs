@@ -61,14 +61,15 @@ namespace PosTouch.App.Dialoghi
             corpo.Add(tastiera, 0, 2);
             corpo.Add(azioni, 0, 3);
 
-            Content = new Border
+            var riquadro = new Border
             {
-                WidthRequest = 500, HeightRequest = 600,
                 HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
                 BackgroundColor = Colors.White, Stroke = new SolidColorBrush(Colors.Black), StrokeThickness = 3,
                 StrokeShape = new Rectangle(),
                 Content = corpo
             };
+            Content = riquadro;
+            Dimensiona(riquadro, 500, 600);
             Aggiorna();
         }
 

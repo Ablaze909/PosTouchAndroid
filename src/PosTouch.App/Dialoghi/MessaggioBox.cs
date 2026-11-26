@@ -41,10 +41,9 @@ namespace PosTouch.App.Dialoghi
             }
             g.Add(tasti, 0, 3);
 
-            Content = new Border
+            var riquadro = new Border
             {
-                WidthRequest = 480,
-                HorizontalOptions = LayoutOptions.Center,
+                                HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 BackgroundColor = Ui.C("#1e293b"),
                 Stroke = new SolidColorBrush(Ui.C("#334155")),
@@ -52,6 +51,8 @@ namespace PosTouch.App.Dialoghi
                 StrokeShape = new RoundRectangle { CornerRadius = 14 },
                 Content = g
             };
+            Content = riquadro;
+            Dimensiona(riquadro, 480);
         }
 
         public static Task Info(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "ℹ️", null, "OK", null, "#2196F3"));

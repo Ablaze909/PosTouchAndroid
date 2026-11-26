@@ -13,6 +13,15 @@ namespace PosTouch.App.Pagine
         private int _reparto;
 
         /// <param name="esistente">null = nuova categoria</param>
+        /// <summary>Riquadro alle misure del PC, ristretto se lo schermo è più piccolo.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (width <= 0 || height <= 0) return;
+            Riquadro.WidthRequest = Math.Min(780, width - 24);
+            Riquadro.HeightRequest = Math.Min(560, height - 24);
+        }
+
         public CategoriaPage(Categoria esistente)
         {
             InitializeComponent();

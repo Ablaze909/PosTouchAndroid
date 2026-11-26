@@ -42,7 +42,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="*,58" ColumnDefinitions="120,*,320">
+    <Grid x:Name="Radice" RowDefinitions="*,58" ColumnDefinitions="120,*,320">
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie → ▲▼ → 🏠 ═════════ -->
         <Grid Grid.Row="0" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
@@ -186,13 +186,13 @@
                     <Button Text="," Grid.Row="3" Grid.Column="2" Style="{StaticResource TastoNum}" FontSize="32" Clicked="OnCifra" />
                 </Grid>
 
-                <Grid Grid.Row="1" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,1.2*" ColumnSpacing="6">
+                <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,1.2*" ColumnSpacing="6">
                     <Button Text="€ SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoValore" />
                     <Button Grid.Column="1" Text="% SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoPercentuale" />
                     <Button Grid.Column="2" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
                 </Grid>
 
-                <Grid Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*" ColumnSpacing="4">
+                <Grid x:Name="RigaQuantita" Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*" ColumnSpacing="4">
                     <Button Text="＋" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnPiu" />
                     <Button Grid.Column="1" Text="﹣" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
                 </Grid>
@@ -205,7 +205,7 @@
         </Grid>
 
         <!-- ═════════ BARRA INFERIORE: CASSA, CASSETTO, BARCODE, reparti ═════════ -->
-        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" ColumnDefinitions="*,*,*,*,*">
+        <Grid x:Name="BarraInferiore" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" ColumnDefinitions="*,*,*,*,*">
             <Button Grid.ColumnSpan="2" Text="💰 CASSA" FontSize="18" BackgroundColor="#388E3C" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassa" />
             <Button Grid.Column="2" Text="📄 CONTO" FontSize="18" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button Grid.Column="3" Text="📂 CASSETTO" FontSize="18" BackgroundColor="#FF9800" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassetto" />

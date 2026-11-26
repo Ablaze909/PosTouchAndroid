@@ -176,15 +176,16 @@ namespace PosTouch.App.Dialoghi
             corpo.Add(centro, 1, 0);
             corpo.Add(destra, 2, 0);
 
-            Content = new Border
+            var riquadro = new Border
             {
-                WidthRequest = 820, HeightRequest = 700,
                 HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
                 BackgroundColor = Ui.C("#ECEFF1"),
                 Stroke = new SolidColorBrush(Ui.C("#90A4AE")), StrokeThickness = 1.5,
                 StrokeShape = new RoundRectangle { CornerRadius = 14 },
                 Content = corpo
             };
+            Content = riquadro;
+            Dimensiona(riquadro, 820, 700);
             Aggiorna();
         }
 

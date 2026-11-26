@@ -30,8 +30,10 @@
             <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
                 <Setter Property="BackgroundColor" Value="{StaticResource Sfondo}" />
             </Style>
+            <!-- FontAutoScalingEnabled=False: l'impostazione "dimensione testo" di Android non deve sformare le schermate -->
             <Style TargetType="Label">
                 <Setter Property="TextColor" Value="{StaticResource Testo}" />
+                <Setter Property="FontAutoScalingEnabled" Value="False" />
             </Style>
             <!-- Tasti piatti, senza arrotondamenti (stile PC) -->
             <Style TargetType="Button">
@@ -40,6 +42,7 @@
                 <Setter Property="FontAttributes" Value="Bold" />
                 <Setter Property="CornerRadius" Value="0" />
                 <Setter Property="BorderWidth" Value="0" />
+                <Setter Property="FontAutoScalingEnabled" Value="False" />
                 <Setter Property="Padding" Value="8,0" />
                 <Setter Property="MinimumHeightRequest" Value="44" />
                 <Setter Property="VisualStateManager.VisualStateGroups">
@@ -62,11 +65,13 @@
             </Style>
             <Style TargetType="Entry">
                 <Setter Property="FontSize" Value="18" />
+                <Setter Property="FontAutoScalingEnabled" Value="False" />
                 <Setter Property="TextColor" Value="{StaticResource Testo}" />
                 <Setter Property="BackgroundColor" Value="#F5F5F5" />
             </Style>
             <Style TargetType="Picker">
                 <Setter Property="FontSize" Value="18" />
+                <Setter Property="FontAutoScalingEnabled" Value="False" />
                 <Setter Property="TextColor" Value="{StaticResource Testo}" />
                 <Setter Property="BackgroundColor" Value="#F5F5F5" />
             </Style>

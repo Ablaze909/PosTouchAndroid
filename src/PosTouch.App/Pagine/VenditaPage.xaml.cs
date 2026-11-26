@@ -14,7 +14,7 @@ namespace PosTouch.App.Pagine
     public partial class VenditaPage : ContentPage
     {
         private const int IdPreferiti = -1;
-        private const int LatoTasto = 100;   // tasti articolo 100×100 come sul PC
+        private double _latoTasto = 100;     // 100×100 come sul PC; si adatta per riempire la riga
 
         private readonly Tastierino _tastierino = new Tastierino();
         private readonly IDispatcherTimer _orologio;
@@ -69,6 +69,48 @@ namespace PosTouch.App.Pagine
         {
             Orologio.Text = DateTime.Now.ToString("HH:mm:ss");
             Data.Text = DateTime.Now.ToString("dd/MM/yyyy");
+        }
+
+        // ══════════════ ADATTAMENTO ALLO SCHERMO ══════════════
+
+        /// <summary>
+        /// Stesse proporzioni del PC su qualsiasi tablet (da 8" in su): colonne, tastiera e barra
+        /// si ridimensionano con lo schermo; i tasti articolo si allargano per riempire la riga.
+        /// </summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (width <= 0 || height <= 0) return;
+
+            double sinistra = Math.Clamp(width * 0.095, 96, 150);
+            double destra = Math.Clamp(width * 0.26, 290, 420);
+            Radice.ColumnDefinitions[0].Width = new GridLength(sinistra);
+            Radice.ColumnDefinitions[2].Width = new GridLength(destra);
+
+            double barra = Math.Clamp(height * 0.075, 50, 72);
+            Radice.RowDefinitions[1].Height = new GridLength(barra);
+
+            // tastiera: righe alte quanto lo permette lo schermo, lasciando spazio alla lista
+            double riga = Math.Clamp((height - 380) / 4, 44, 72);
+            foreach (var rd in TastieraNumerica.RowDefinitions) rd.Height = new GridLength(riga);
+            foreach (var b in TastieraNumerica.Children.OfType<Button>())
+                b.FontSize = b.Text == "€" ? riga * 0.6 : b.Text == "," ? riga * 0.55 : riga * 0.4;
+            RigaSconti.HeightRequest = RigaQuantita.HeightRequest = Math.Clamp(riga * 0.7, 36, 52);
+
+            // barra inferiore: testo che entra nei tasti
+            double colonna = (width - destra - 12) / 5;
+            foreach (var b in BarraInferiore.Children.OfType<Button>())
+                b.FontSize = Math.Clamp(colonna / 7.5, 12, 20);
+
+            // tasti articolo: quanti ne entrano in una riga, poi allargati per riempirla
+            double area = width - sinistra - destra - 8;
+            int perRiga = Math.Max(3, (int)(area / 110));
+            double lato = Math.Clamp(Math.Floor(area / perRiga) - 6, 90, 150);
+            if (Math.Abs(lato - _latoTasto) > 1)
+            {
+                _latoTasto = lato;
+                MostraArticoli();
+            }
         }
 
         // ══════════════ COLONNA SINISTRA: CATEGORIE ══════════════
@@ -154,7 +196,7 @@ namespace PosTouch.App.Pagine
             griglia.Add(new Label
             {
                 Text = p.Descrizione,
-                FontSize = Math.Clamp(p.DimensioneFontTasto, 8, 20),
+                FontSize = Math.Clamp(p.DimensioneFontTasto, 8, 20) * Math.Clamp(_latoTasto / 100, 0.9, 1.3),
                 FontAttributes = FontAttributes.Bold,
                 TextColor = testo,
                 HorizontalTextAlignment = TextAlignment.Center,
@@ -175,8 +217,8 @@ namespace PosTouch.App.Pagine
 
             var tasto = new Border
             {
-                WidthRequest = LatoTasto,
-                HeightRequest = LatoTasto,
+                WidthRequest = _latoTasto,
+                HeightRequest = _latoTasto,
                 Margin = new Thickness(3),
                 StrokeThickness = 0,
                 BackgroundColor = Ui.ColoreSicuro(p.Colore, "#4CAF50"),
