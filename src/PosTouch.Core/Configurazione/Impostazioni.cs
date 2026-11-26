@@ -32,6 +32,10 @@ namespace PosTouch.Core.Configurazione
         public bool MostraStrumentiVendita { get; set; } = true;
         public bool RichiestaPrezzoArticoliZero { get; set; } = true;
         public bool BloccoModificaQuantita { get; set; } = false;
+        /// <summary>Blocco riga singola: un solo articolo per scontrino (come sul PC).</summary>
+        public bool BloccoRigaSingola { get; set; } = false;
+        /// <summary>Mostra la riga ＋/﹣ sotto la tastiera (MostraRigaVariantiVendita del PC).</summary>
+        public bool MostraRigaPiuMeno { get; set; } = true;
         /// <summary>Accorpa righe uguali a video (2× caffè → una riga).</summary>
         public bool AccorpaRigheVideo { get; set; } = true;
         /// <summary>Raggruppa righe identiche (reparto+descrizione+prezzo) prima dell'invio all'RT.</summary>

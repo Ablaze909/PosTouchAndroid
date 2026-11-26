@@ -139,6 +139,13 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("COMBINAZIONE", $"{p.Descrizione} è un articolo multi-gusto.\n\nLe combinazioni non sono ancora disponibili su Android.");
                 return;
             }
+            if (Cfg.BloccoRigaSingola && Carrello.HaArticoli)
+            {
+                _tastierino.Azzera();
+                await MessaggioBox.Avviso("RIGA SINGOLA",
+                    "È consentito un solo prodotto per scontrino.\n\nChiudi lo scontrino corrente prima di aggiungere un altro articolo.");
+                return;
+            }
             var (quantita, prezzoCent) = _tastierino.PrendiPerArticolo();
             if (p.VenditaAPeso)
             {

@@ -67,6 +67,8 @@ namespace PosTouch.App.Pagine
             ChkMostraStrumenti.IsChecked = i.MostraStrumentiVendita;
             ChkPrezzoZero.IsChecked = i.RichiestaPrezzoArticoliZero;
             ChkBloccoQuantita.IsChecked = i.BloccoModificaQuantita;
+            ChkRigaSingola.IsChecked = i.BloccoRigaSingola;
+            ChkRigaPiuMeno.IsChecked = i.MostraRigaPiuMeno;
             ChkAccorpaVideo.IsChecked = i.AccorpaRigheVideo;
             ChkAccorpaScontrino.IsChecked = i.AccorpaRigheScontrino;
             RbPiccola.IsChecked = i.DimensioniTastiCategorie == "Piccola";
@@ -119,6 +121,8 @@ namespace PosTouch.App.Pagine
             n.MostraStrumentiVendita = ChkMostraStrumenti.IsChecked;
             n.RichiestaPrezzoArticoliZero = ChkPrezzoZero.IsChecked;
             n.BloccoModificaQuantita = ChkBloccoQuantita.IsChecked;
+            n.BloccoRigaSingola = ChkRigaSingola.IsChecked;
+            n.MostraRigaPiuMeno = ChkRigaPiuMeno.IsChecked;
             n.AccorpaRigheVideo = ChkAccorpaVideo.IsChecked;
             n.AccorpaRigheScontrino = ChkAccorpaScontrino.IsChecked;
             n.DimensioniTastiCategorie = RbPiccola.IsChecked ? "Piccola" : RbGrande.IsChecked ? "Grande" : "Media";
@@ -133,7 +137,7 @@ namespace PosTouch.App.Pagine
         /// <summary>Riassunto dei campi per capire se ci sono modifiche non salvate.</summary>
         private string Firma() => string.Join("|", SceltaTipo.Indice, CampoIP.Text, CampoPorta.Text, CampoOperatore.Text, ChkCassetto.IsChecked,
             CampoNomePV.Text, CampoSottotitoloPV.Text, ChkSconti.IsChecked, ChkCambioPrezzo.IsChecked, ChkModificaVendita.IsChecked,
-            ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkAccorpaVideo.IsChecked,
+            ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkRigaSingola.IsChecked, ChkRigaPiuMeno.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked);
 

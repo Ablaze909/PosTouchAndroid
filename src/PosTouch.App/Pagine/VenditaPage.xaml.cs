@@ -55,6 +55,7 @@ namespace PosTouch.App.Pagine
             _orologio.Start();
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
+            RigaQuantita.IsVisible = Cfg.MostraRigaPiuMeno;
             // Ridisegna categorie e articoli solo se catalogo o impostazioni sono cambiati
             // (OnAppearing scatta anche alla chiusura di ogni finestra: niente ridisegni inutili)
             var versione = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni);
