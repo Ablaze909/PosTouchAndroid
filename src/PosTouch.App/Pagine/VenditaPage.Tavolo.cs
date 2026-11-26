@@ -52,7 +52,49 @@ namespace PosTouch.App.Pagine
             bool inSala = tavolo && !_sessione.IsContoCliente;   // come il PC: sposta/unisci solo per i tavoli delle sale
             BtnSposta.IsVisible = inSala && sale.AbilitaSpostaTavolo;
             BtnUnisci.IsVisible = inSala && sale.AbilitaUnisciConti;
+            SistemaBarraTavolo();
         }
+
+        // ══════════════ BARRA TAVOLO AUTODIMENSIONATA ══════════════
+
+        private double _larghezzaBarra;
+
+        /// <summary>
+        /// Tasti in basso al tavolo: si dividono lo spazio solo quelli visibili (niente buchi se CONTO/PRECONTO
+        /// o FUNZIONI/AVANZA sono spenti), CASSA un po' più larga; se stretti l'icona va sopra la scritta.
+        /// </summary>
+        private void SistemaBarraTavolo()
+        {
+            if (_larghezzaBarra <= 0) return;
+            var tasti = BarraTavolo.Children.OfType<Button>().Where(b => b.IsVisible).ToList();
+            if (tasti.Count == 0) return;
+            _etichetteBarra ??= BarraTavolo.Children.OfType<Button>().ToDictionary(b => b, b => b.Text);
+            BarraTavolo.ColumnDefinitions.Clear();
+            double pesoTot = 0;
+            for (int i = 0; i < tasti.Count; i++)
+            {
+                double peso = tasti[i].Text.Contains("CASSA") || _etichetteBarra[tasti[i]].Contains("CASSA") ? 1.6 : 1;
+                pesoTot += peso;
+                BarraTavolo.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(peso, GridUnitType.Star)));
+                Grid.SetColumn(tasti[i], i);
+                Grid.SetColumnSpan(tasti[i], 1);
+            }
+            double colonna = _larghezzaBarra / pesoTot;          // larghezza di un tasto "normale"
+            bool dueRighe = colonna < 110;                        // stretto: icona sopra, scritta sotto
+            foreach (var b in tasti)
+            {
+                var testo = _etichetteBarra[b];
+                int sp = testo.IndexOf(' ');
+                b.Text = dueRighe && sp > 0 ? testo[..sp] + "\n" + testo[(sp + 1)..] : testo;
+                b.LineBreakMode = LineBreakMode.WordWrap;
+                double lunghezza = (dueRighe && sp > 0 ? testo[(sp + 1)..] : testo).Length;
+                double larg = testo.Contains("CASSA") ? colonna * 1.6 : colonna;
+                b.FontSize = Math.Clamp(larg / (lunghezza * 0.62), 10, dueRighe ? 15 : 18);
+                b.Padding = new Thickness(2, 0);
+            }
+        }
+
+        private Dictionary<Button, string> _etichetteBarra;
 
         // ══════════════ DOVE SONO (banda in alto + totale colorato + tasto uscita) ══════════════
 
