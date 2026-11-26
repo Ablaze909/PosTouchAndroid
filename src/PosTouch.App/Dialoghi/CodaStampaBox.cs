@@ -46,8 +46,7 @@ namespace PosTouch.App.Dialoghi
                     testo.Add(Ui.Testo($"{d.NomeOrigine} ({d.IPOrigine}) → {d.NomeDestinazione} ({d.IPDestinazione})   dal {d.Attivata:dd/MM HH:mm}", 13, "#4A148C"));
                 var togli = Ui.Tasto("↩ RIPRISTINA", "#8E24AA", fontSize: 14, altezza: 48, clic: async (s, e) =>
                 {
-                    if (!await MessaggioBox.Conferma("RIPRISTINA STAMPANTI", "Togliere tutte le deviazioni?
-Le stampe torneranno alle stampanti normali.")) return;
+                    if (!await MessaggioBox.Conferma("RIPRISTINA STAMPANTI", "Togliere tutte le deviazioni?\nLe stampe torneranno alle stampanti normali.")) return;
                     ContestoCassa.Spooler.RimuoviDeviazioni();
                     Carica();
                 });
@@ -117,10 +116,7 @@ Le stampe torneranno alle stampanti normali.")) return;
                 NomeOrigine = da.Nome, IPOrigine = da.IP, PortaOrigine = da.Porta,
                 NomeDestinazione = a.Nome, IPDestinazione = a.IP, PortaDestinazione = a.Porta
             });
-            await MessaggioBox.Successo("DEVIAZIONE ATTIVA", $"Le stampe per {da.Nome} escono su {a.Nome},
-anche quelle già in coda.
-
-Ripristina da 🖨️ CODA quando la stampante è riparata.");
+            await MessaggioBox.Successo("DEVIAZIONE ATTIVA", $"Le stampe per {da.Nome} escono su {a.Nome},\nanche quelle già in coda.\n\nRipristina da 🖨️ CODA quando la stampante è riparata.");
         }
 
         public static Task Mostra() => Dialogo.Mostra(new CodaStampaBox());
