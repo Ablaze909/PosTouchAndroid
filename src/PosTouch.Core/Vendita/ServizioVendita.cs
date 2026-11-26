@@ -86,8 +86,11 @@ namespace PosTouch.Core.Vendita
         {
             if (Interlocked.CompareExchange(ref _inCorso, 1, 0) != 0)
                 return EsitoVendita.Errore("ATTENDERE", "Vendita in corso, attendere il completamento.");
+            bool rtPreso = false;
             try
             {
+                rtPreso = await AccessoRT.PrendiAsync(TimeSpan.FromSeconds(10));
+                if (!rtPreso) return EsitoVendita.Errore("REGISTRATORE OCCUPATO", AccessoRT.MessaggioOccupato);
                 return await EmettiInternoAsync(righe, pagamento);
             }
             catch (Exception ex)
@@ -116,6 +119,7 @@ namespace PosTouch.Core.Vendita
             }
             finally
             {
+                if (rtPreso) AccessoRT.Rilascia();
                 Interlocked.Exchange(ref _inCorso, 0);
             }
         }

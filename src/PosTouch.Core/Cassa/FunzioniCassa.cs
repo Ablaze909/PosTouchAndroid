@@ -33,6 +33,14 @@ namespace PosTouch.Core.Cassa
         /// <summary>Prova la connessione e legge lo stato del registratore.</summary>
         public async Task<EsitoOperazione> TestConnessioneAsync()
         {
+            if (!await AccessoRT.PrendiAsync(TimeSpan.FromSeconds(3)))
+                return new EsitoOperazione { Messaggio = AccessoRT.MessaggioOccupato };
+            try { return await TestConnessioneInterno(); }
+            finally { AccessoRT.Rilascia(); }
+        }
+
+        private async Task<EsitoOperazione> TestConnessioneInterno()
+        {
             var cfg = _impostazioni();
             try
             {
@@ -58,6 +66,14 @@ namespace PosTouch.Core.Cassa
         }
 
         private async Task<EsitoOperazione> Esegui(string nome, Func<IFiscalConnector, Task<bool>> azione)
+        {
+            if (!await AccessoRT.PrendiAsync(TimeSpan.FromSeconds(3)))
+                return new EsitoOperazione { Messaggio = AccessoRT.MessaggioOccupato };
+            try { return await EseguiInterno(nome, azione); }
+            finally { AccessoRT.Rilascia(); }
+        }
+
+        private async Task<EsitoOperazione> EseguiInterno(string nome, Func<IFiscalConnector, Task<bool>> azione)
         {
             var cfg = _impostazioni();
             try
