@@ -93,7 +93,7 @@ namespace PosTouch.Core.Sale
             {
                 using var c = Apri();
                 using var cmd = c.CreateCommand();
-                cmd.CommandText = $@"SELECT Id, DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, Stato, Tentativi, UltimoErrore, ControlloStato
+                cmd.CommandText = $@"SELECT Id, DataCreazione, Tipo, Descrizione, Stampante, IP, Porta, Dati, Stato, Tentativi, UltimoErrore, ControlloStato, SalaId, NumeroTavolo
                                      FROM CodaStampa WHERE Stato = 0 {(ancheInErrore ? "OR Stato = 1" : "")} ORDER BY Id";
                 var lista = new List<JobStampa>();
                 using var r = cmd.ExecuteReader();
@@ -106,7 +106,9 @@ namespace PosTouch.Core.Sale
                         IP = r.GetString(5), Porta = r.GetInt32(6), Dati = (byte[])r.GetValue(7),
                         Stato = (StatoJob)r.GetInt32(8), Tentativi = r.GetInt32(9),
                         UltimoErrore = r.IsDBNull(10) ? null : r.GetString(10),
-                        ControlloStato = !r.IsDBNull(11) && r.GetInt32(11) != 0
+                        ControlloStato = !r.IsDBNull(11) && r.GetInt32(11) != 0,
+                        SalaId = r.IsDBNull(12) ? 0 : r.GetInt32(12),
+                        NumeroTavolo = r.IsDBNull(13) ? 0 : r.GetInt32(13)
                     });
                 return lista;
             }
