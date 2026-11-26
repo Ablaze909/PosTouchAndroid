@@ -96,6 +96,7 @@ namespace PosTouch.Core.Vendita
         private async Task<EsitoVendita> EmettiInternoAsync(List<RigaScontrino> righe, Pagamento pag)
         {
             var cfg = _impostazioni();
+            righe = righe.Where(r => r.ContaNelTotale).ToList(); // subtotale e separatori sono solo visivi
             var prodotti = righe.Where(r => r.Tipo == TipoRiga.Prodotto).ToList();
             int totaleCent = righe.Sum(r => r.ImportoCentesimi);
 

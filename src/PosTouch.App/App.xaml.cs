@@ -13,7 +13,7 @@ namespace PosTouch.App
 
         protected override Window CreateWindow(IActivationState activationState)
         {
-            var nav = new NavigationPage(new VenditaPage())
+            var nav = new NavigationPage(new LauncherPage())
             {
                 BarBackgroundColor = Color.FromArgb("#1E3A5F"),
                 BarTextColor = Colors.White

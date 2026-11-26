@@ -1,66 +1,117 @@
+using PosTouch.App.Controlli;
+using PosTouch.App.Dialoghi;
 using PosTouch.App.Servizi;
 using PosTouch.Core.Modelli;
 
 namespace PosTouch.App.Pagine
 {
+    /// <summary>Copia di CategoriaDialogTouch del PC.</summary>
     public partial class CategoriaPage : ContentPage
     {
-        private static readonly int[] Aliquote = { 22, 10, 5, 4, 0 };
+        private static readonly int[] Aliquote = { 4, 5, 10, 22 };
         private readonly Categoria _cat;
+        private int _reparto;
 
         /// <param name="esistente">null = nuova categoria</param>
         public CategoriaPage(Categoria esistente)
         {
             InitializeComponent();
             _cat = esistente == null
-                ? new Categoria { RepartoFiscale = 1, AliquotaIVA = 22, ColoreTesto = "#FFFFFF", Ordine = ContestoCassa.Catalogo.Categorie.Count + 1 }
+                ? new Categoria { Colore = "#4CAF50", ColoreTesto = "#000000", AliquotaIVA = 10 }
                 : new Categoria
                 {
-                    Id = esistente.Id, Nome = esistente.Nome, RepartoFiscale = esistente.RepartoFiscale,
-                    AliquotaIVA = esistente.AliquotaIVA, Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto,
-                    Ordine = esistente.Ordine
+                    Id = esistente.Id, Nome = esistente.Nome, RepartoFiscale = esistente.RepartoFiscale, AliquotaIVA = esistente.AliquotaIVA,
+                    Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, Icona = esistente.Icona, Ordine = esistente.Ordine,
+                    Attiva = esistente.Attiva
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVA CATEGORIA" : "✏️ MODIFICA CATEGORIA";
-            BtnElimina.IsVisible = esistente != null;
-
+            PannelloAttiva.IsVisible = BtnElimina.IsVisible = esistente != null;
+            SwAttiva.IsToggled = _cat.Attiva;
             CampoNome.Text = _cat.Nome;
-            CampoReparto.Text = _cat.RepartoFiscale.ToString();
+            _reparto = _cat.RepartoFiscale;
             int iva = Array.IndexOf(Aliquote, _cat.AliquotaIVA);
-            SceltaIva.SelectedIndex = iva >= 0 ? iva : 0;
-            CampoOrdine.Text = _cat.Ordine.ToString();
-            Colore.Colore = _cat.Colore;
-            SceltaTesto.SelectedIndex = string.Equals(_cat.ColoreTesto, "#000000", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-            Colore.Cambiato += AggiornaAnteprima;
-            AggiornaAnteprima();
+            SceltaIva.SelectedIndex = iva >= 0 ? iva : 2;
+            AggiornaTutto();
         }
 
-        private string ColoreTesto => SceltaTesto.SelectedIndex == 1 ? "#000000" : "#FFFFFF";
-
-        private void OnAnteprima(object sender, EventArgs e) => AggiornaAnteprima();
-
-        private void AggiornaAnteprima()
+        private void AggiornaTutto()
         {
-            Anteprima.BackgroundColor = Color.TryParse(Colore.Colore, out var c) ? c : Colors.Gray;
-            AnteprimaTesto.TextColor = Color.FromArgb(ColoreTesto);
-            AnteprimaTesto.Text = string.IsNullOrWhiteSpace(CampoNome.Text) ? "CATEGORIA" : CampoNome.Text.ToUpperInvariant();
+            TestoIcona.Text = string.IsNullOrWhiteSpace(_cat.Icona) ? "—" : _cat.Icona;
+            TestoIcona.TextColor = Ui.C(string.IsNullOrWhiteSpace(_cat.Icona) ? "#BDBDBD" : "#111111");
+            TestoReparto.Text = _reparto > 0 ? _reparto.ToString() : "Tocca per scegliere";
+            TestoReparto.TextColor = Ui.C(_reparto > 0 ? "#111111" : "#BDBDBD");
+            TestoColore.Text = _cat.Colore;
+            TestoColoreTesto.Text = _cat.ColoreTesto;
+            AnteprimaColore.BackgroundColor = Ui.ColoreSicuro(_cat.Colore, "#4CAF50");
+            AnteprimaColoreTesto.BackgroundColor = Ui.ColoreSicuro(_cat.ColoreTesto, "#000000");
+            OnAnteprima(null, null);
+        }
+
+        private void OnAnteprima(object sender, EventArgs e)
+        {
+            AnteprimaTasto.BackgroundColor = Ui.ColoreSicuro(_cat.Colore, "#4CAF50");
+            AnteprimaNome.TextColor = Ui.ColoreSicuro(_cat.ColoreTesto, "#000000");
+            string nome = string.IsNullOrWhiteSpace(CampoNome.Text) ? "CATEGORIA" : CampoNome.Text.ToUpperInvariant();
+            AnteprimaNome.Text = string.IsNullOrWhiteSpace(_cat.Icona) ? nome : $"{_cat.Icona} {nome}";
+        }
+
+        private void OnAttivaCambiata(object sender, ToggledEventArgs e)
+        {
+            TestoAttiva.Text = e.Value ? "ATTIVA" : "NASCOSTA";
+            TestoAttiva.TextColor = Ui.C(e.Value ? "#4CAF50" : "#F44336");
+        }
+
+        private async void OnIcona(object sender, TappedEventArgs e)
+        {
+            var icone = SceltaBox.IconeCategorie.Select(i => i.Length == 0 ? "—" : i).ToList();
+            int i = await SceltaBox.Icone("Icona categoria", icone);
+            if (i < 0) return;
+            _cat.Icona = SceltaBox.IconeCategorie[i];
+            AggiornaTutto();
+        }
+
+        private async void OnReparto(object sender, TappedEventArgs e)
+        {
+            string r = await TastierinoPrezzo.ChiediCodice("🧾 REPARTO FISCALE (1-99)", _reparto > 0 ? _reparto.ToString() : null);
+            if (r == null) return;
+            if (int.TryParse(r, out int rep) && rep >= 1 && rep <= 99) _reparto = rep;
+            else await MessaggioBox.Avviso("REPARTO NON VALIDO", "Il reparto deve essere un numero da 1 a 99.");
+            AggiornaTutto();
+        }
+
+        private async void OnColore(object sender, TappedEventArgs e)
+        {
+            int i = await SceltaBox.Colori("Colore Sfondo", SceltaBox.Tavolozza);
+            if (i < 0) return;
+            _cat.Colore = SceltaBox.Tavolozza[i];
+            AggiornaTutto();
+        }
+
+        private async void OnColoreTesto(object sender, TappedEventArgs e)
+        {
+            int i = await SceltaBox.Colori("Colore Testo", SceltaBox.Tavolozza);
+            if (i < 0) return;
+            _cat.ColoreTesto = SceltaBox.Tavolozza[i];
+            AggiornaTutto();
         }
 
         private async void OnSalva(object sender, EventArgs e)
         {
-            if (!int.TryParse(CampoReparto.Text, out int reparto) || reparto < 1 || reparto > 99)
+            if (string.IsNullOrWhiteSpace(CampoNome.Text))
             {
-                await DisplayAlert("Categoria", "Reparto RT non valido (1-99).", "OK");
+                await MessaggioBox.Avviso("CAMPO OBBLIGATORIO", "Inserire il nome della categoria.");
                 return;
             }
-            int.TryParse(CampoOrdine.Text, out int ordine);
-
-            _cat.Nome = (CampoNome.Text ?? "").Trim().ToUpperInvariant();
-            _cat.RepartoFiscale = reparto;
+            if (_reparto < 1 || _reparto > 99)
+            {
+                await MessaggioBox.Avviso("CAMPO OBBLIGATORIO", "Scegliere il reparto fiscale (1-99).");
+                return;
+            }
+            _cat.Nome = CampoNome.Text.Trim().ToUpperInvariant();
+            _cat.RepartoFiscale = _reparto;
             _cat.AliquotaIVA = Aliquote[Math.Max(0, SceltaIva.SelectedIndex)];
-            _cat.Ordine = ordine;
-            _cat.Colore = Colore.Colore;
-            _cat.ColoreTesto = ColoreTesto;
+            _cat.Attiva = SwAttiva.IsToggled || _cat.Id == 0;
             try
             {
                 await Task.Run(() => ContestoCassa.GestioneCatalogo.SalvaCategoria(_cat));
@@ -68,7 +119,7 @@ namespace PosTouch.App.Pagine
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Categoria", ex.Message, "OK");
+                await MessaggioBox.Errore("ERRORE", ex.Message);
             }
         }
 
@@ -76,7 +127,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnElimina(object sender, EventArgs e)
         {
-            if (!await DisplayAlert("Elimina", $"Eliminare la categoria {_cat.Nome}?", "Elimina", "Annulla")) return;
+            if (!await MessaggioBox.Conferma("🗑️ ELIMINA CATEGORIA", $"Eliminare la categoria {_cat.Nome}?")) return;
             try
             {
                 await Task.Run(() => ContestoCassa.GestioneCatalogo.EliminaCategoria(_cat.Id));
@@ -84,7 +135,7 @@ namespace PosTouch.App.Pagine
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Categoria", ex.Message, "OK");
+                await MessaggioBox.Avviso("NON ELIMINABILE", ex.Message + "\n\nIn alternativa disattivala (NASCOSTA).");
             }
         }
     }

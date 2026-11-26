@@ -23,14 +23,25 @@ namespace PosTouch.Core.Diagnostica
             _percorso = Path.Combine(cartella, "debug.log");
         }
 
-        public static void Debug(string msg) => Scrivi("DEBUG", msg);
-        public static void Info(string msg) => Scrivi("INFO ", msg);
-        public static void Warning(string msg) => Scrivi("WARN ", msg);
-        public static void Error(string msg) => Scrivi("ERROR", msg);
+        private static int _livelloMinimo;
 
-        private static void Scrivi(string livello, string msg)
+        /// <summary>Livello minimo: "DEBUG" (tutto), "INFO", "WARN", "ERROR" (come Config.LivelloLog del PC).</summary>
+        public static void SetLivelloMinimo(string livello) => _livelloMinimo = livello switch
         {
-            if (_percorso == null) return;
+            "INFO" => 1,
+            "WARN" => 2,
+            "ERROR" => 3,
+            _ => 0
+        };
+
+        public static void Debug(string msg) => Scrivi(0, "DEBUG", msg);
+        public static void Info(string msg) => Scrivi(1, "INFO ", msg);
+        public static void Warning(string msg) => Scrivi(2, "WARN ", msg);
+        public static void Error(string msg) => Scrivi(3, "ERROR", msg);
+
+        private static void Scrivi(int livelloNum, string livello, string msg)
+        {
+            if (_percorso == null || livelloNum < _livelloMinimo) return;
             lock (_lock)
             {
                 try

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using PosTouch.Core.Diagnostica;
@@ -7,58 +6,66 @@ using PosTouch.Core.Fiscale;
 
 namespace PosTouch.Core.Configurazione
 {
-    /// <summary>Impostazioni della cassa Android, salvate in impostazioni.json nella cartella dati.</summary>
+    /// <summary>
+    /// Impostazioni della cassa Android (impostazioni.json). Stessi nomi e default di Config.cs del PC
+    /// per le voci già portate su Android.
+    /// </summary>
     public class Impostazioni
     {
-        // ── Registratore telematico ──
+        // ── 🖨️ CONNESSIONI: registratore telematico ──
         public TipoCassaFiscale TipoCassa { get; set; } = TipoCassaFiscale.RT3i;
         public string IP_RT { get; set; } = "192.168.1.100";
         public int Porta_RT { get; set; } = 1723;
-        public int TimeoutConnessioneRT_ms { get; set; } = 5000;
-        public int TimeoutRispostaRT_ms { get; set; } = 10000;
-
-        // ── Comportamento vendita ──
-        /// <summary>Raggruppa righe identiche (reparto+descrizione+prezzo) prima dell'invio all'RT.</summary>
-        public bool AccorpaRigheScontrino { get; set; } = true;
-        /// <summary>Apre il cassetto dopo ogni scontrino.</summary>
+        /// <summary>Apri cassetto dopo ogni vendita.</summary>
         public bool ApriCassetto { get; set; } = false;
         /// <summary>Numero operatore selezionato sull'RT a inizio scontrino.</summary>
         public int OperatoreRT { get; set; } = 1;
 
-        /// <summary>
-        /// Tasti reparto nella barra sotto, formato "numero=nome" separati da ";".
-        /// Esempio: "1=BAR;2=PASTICCERIA;3=VARIE".
-        /// </summary>
-        public string TastiReparto { get; set; } = "1=REP 1;2=REP 2;3=REP 3;4=REP 4";
+        // ── 📋 Identità punto vendita (schermata iniziale) ──
+        public string NomePuntoVendita { get; set; } = "POS Touch";
+        public string SottotitoloPuntoVendita { get; set; } = "Punto Vendita";
 
-        public List<TastoReparto> ElencoTastiReparto()
-        {
-            var lista = new List<TastoReparto>();
-            foreach (var parte in (TastiReparto ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var kv = parte.Split('=', 2);
-                if (!int.TryParse(kv[0].Trim(), out int n) || n < 1 || n > 99) continue;
-                string nome = kv.Length > 1 && !string.IsNullOrWhiteSpace(kv[1]) ? kv[1].Trim() : $"REP {n}";
-                lista.Add(new TastoReparto { Numero = n, Nome = nome });
-            }
-            return lista;
-        }
+        // ── 💰 VENDITA: regole ──
+        public bool AbilitaSconti { get; set; } = true;
+        public bool AbilitaCambioPrezzo { get; set; } = true;
+        public bool AbilitaModificaVendita { get; set; } = true;
+        public bool MostraStrumentiVendita { get; set; } = true;
+        public bool RichiestaPrezzoArticoliZero { get; set; } = true;
+        public bool BloccoModificaQuantita { get; set; } = false;
+        /// <summary>Accorpa righe uguali a video (2× caffè → una riga).</summary>
+        public bool AccorpaRigheVideo { get; set; } = true;
+        /// <summary>Raggruppa righe identiche (reparto+descrizione+prezzo) prima dell'invio all'RT.</summary>
+        public bool AccorpaRigheScontrino { get; set; } = true;
 
-        // ── Sicurezza ──
-        /// <summary>PIN per entrare nelle impostazioni (vuoto = nessun PIN).</summary>
+        // ── 🖥️ VENDITA: interfaccia ──
+        /// <summary>"Piccola" (38), "Media" (52), "Grande" (68): altezza tasti categorie.</summary>
+        public string DimensioniTastiCategorie { get; set; } = "Media";
+        public int FontSizeCategorie { get; set; } = 10;
+
+        // ── 🔒 SICUREZZA ──
+        /// <summary>Password amministratore (solo cifre): richiesta per Strumenti, Back office e Impostazioni. Vuota = nessuna.</summary>
         public string PinImpostazioni { get; set; } = "";
+
+        // ── ⚙️ AVANZATE ──
+        public int TimeoutConnessioneRT_ms { get; set; } = 5000;
+        public int TimeoutRispostaRT_ms { get; set; } = 10000;
+        /// <summary>DEBUG, INFO, WARN, ERROR.</summary>
+        public string LivelloLog { get; set; } = "DEBUG";
+
+        public int AltezzaCategoria => DimensioniTastiCategorie switch
+        {
+            "Piccola" => 38,
+            "Grande" => 68,
+            _ => 52
+        };
 
         public ImpostazioniFiscali ComeImpostazioniFiscali() => new ImpostazioniFiscali
         {
             TimeoutConnessioneRT_ms = TimeoutConnessioneRT_ms,
             TimeoutRispostaRT_ms = TimeoutRispostaRT_ms
         };
-    }
 
-    public class TastoReparto
-    {
-        public int Numero { get; set; }
-        public string Nome { get; set; } = "";
+        public Impostazioni Copia() => (Impostazioni)MemberwiseClone();
     }
 
     /// <summary>Lettura/scrittura di impostazioni.json.</summary>
@@ -92,6 +99,7 @@ namespace PosTouch.Core.Configurazione
             File.WriteAllText(tmp, JsonSerializer.Serialize(imp, JsonContesto.Default.Impostazioni));
             File.Move(tmp, _percorso, overwrite: true);
             ImpostazioniFiscali.Correnti = imp.ComeImpostazioniFiscali();
+            LogManager.SetLivelloMinimo(imp.LivelloLog);
         }
     }
 }

@@ -1,5 +1,8 @@
+using PosTouch.App.Dialoghi;
+
 namespace PosTouch.App.Pagine
 {
+    /// <summary>Copia di StrumentiDialog del PC.</summary>
     public partial class StrumentiPage : ContentPage
     {
         public StrumentiPage()
@@ -7,8 +10,14 @@ namespace PosTouch.App.Pagine
             InitializeComponent();
         }
 
-        private async void OnBackOffice(object sender, EventArgs e) => await Navigation.PushAsync(new CatalogoPage());
-        private async void OnImpostazioni(object sender, EventArgs e) => await Navigation.PushAsync(new ImpostazioniPage());
+        private async void OnBackOffice(object sender, TappedEventArgs e) => await Navigation.PushAsync(new BackOfficePage());
+        private async void OnImpostazioni(object sender, TappedEventArgs e) => await Navigation.PushAsync(new ImpostazioniPage());
+        private async void OnStatistiche(object sender, TappedEventArgs e) => await ProssimaVersione("📊 STATISTICHE");
+        private async void OnDocumenti(object sender, TappedEventArgs e) => await ProssimaVersione("📄 DOCUMENTI");
+        private async void OnDatabase(object sender, TappedEventArgs e) => await ProssimaVersione("🗄️ DATABASE");
+        private async void OnContiClienti(object sender, TappedEventArgs e) => await ProssimaVersione("👥 CONTI CLIENTI");
         private async void OnChiudi(object sender, EventArgs e) => await Navigation.PopAsync();
+
+        private static Task ProssimaVersione(string titolo) => MessaggioBox.Info(titolo, "Funzione disponibile nella prossima versione.");
     }
 }

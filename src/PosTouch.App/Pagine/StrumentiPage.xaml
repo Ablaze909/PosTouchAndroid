@@ -1,19 +1,61 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Come StrumentiDialog del PC -->
+<!-- Copia di StrumentiDialog del PC -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PosTouch.App.Pagine.StrumentiPage"
              NavigationPage.HasNavigationBar="False"
-             BackgroundColor="#ECEFF1">
-    <Grid RowDefinitions="Auto,*,Auto" WidthRequest="500" Padding="0,20">
-        <Label Text="🔧 STRUMENTI" FontSize="20" FontAttributes="Bold" TextColor="#37474F"
-               HorizontalOptions="Center" Margin="0,0,0,20" />
-        <VerticalStackLayout Grid.Row="1" Spacing="0">
-            <Button Text="📦 BACK OFFICE&#10;categorie, reparti e articoli" Style="{StaticResource TastoFunzione}" HeightRequest="80"
-                    BackgroundColor="#37474F" Clicked="OnBackOffice" />
-            <Button Text="⚙️ IMPOSTAZIONI" Style="{StaticResource TastoFunzione}" HeightRequest="80"
-                    BackgroundColor="#FF9800" Clicked="OnImpostazioni" />
-        </VerticalStackLayout>
-        <Button Grid.Row="2" Text="✖ CHIUDI" Style="{StaticResource TastoFunzione}" BackgroundColor="#607D8B" Clicked="OnChiudi" />
+             BackgroundColor="#F5F5F5">
+    <ContentPage.Resources>
+        <Style x:Key="Menu" TargetType="Border">
+            <Setter Property="Margin" Value="10" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 15" />
+        </Style>
+        <Style x:Key="MenuIcona" TargetType="Label">
+            <Setter Property="FontSize" Value="40" />
+            <Setter Property="HorizontalOptions" Value="Center" />
+        </Style>
+        <Style x:Key="MenuTesto" TargetType="Label">
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="HorizontalOptions" Value="Center" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="80,*,80" Padding="20">
+        <Border BackgroundColor="#37474F" StrokeThickness="0" StrokeShape="RoundRectangle 10" Margin="0,0,0,10">
+            <Label Text="🔧 STRUMENTI E CONFIGURAZIONE" FontSize="32" FontAttributes="Bold" TextColor="White"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" RowDefinitions="*,*,*">
+            <Border Style="{StaticResource Menu}" BackgroundColor="#2196F3">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBackOffice" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center"><Label Text="📦" Style="{StaticResource MenuIcona}" /><Label Text="BACK OFFICE" Style="{StaticResource MenuTesto}" /></VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource Menu}" BackgroundColor="#4CAF50">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnStatistiche" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center"><Label Text="📊" Style="{StaticResource MenuIcona}" /><Label Text="STATISTICHE" Style="{StaticResource MenuTesto}" /></VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="1" Style="{StaticResource Menu}" BackgroundColor="#FF9800">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnImpostazioni" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center"><Label Text="⚙️" Style="{StaticResource MenuIcona}" /><Label Text="IMPOSTAZIONI" Style="{StaticResource MenuTesto}" /></VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Menu}" BackgroundColor="#673AB7">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnDocumenti" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center"><Label Text="📄" Style="{StaticResource MenuIcona}" /><Label Text="DOCUMENTI" Style="{StaticResource MenuTesto}" /></VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="2" Style="{StaticResource Menu}" BackgroundColor="#00ACC1">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnDatabase" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center"><Label Text="🗄️" Style="{StaticResource MenuIcona}" /><Label Text="DATABASE" Style="{StaticResource MenuTesto}" /></VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource Menu}" BackgroundColor="#6D4C41">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnContiClienti" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center"><Label Text="👥" Style="{StaticResource MenuIcona}" /><Label Text="CONTI CLIENTI" Style="{StaticResource MenuTesto}" /></VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <Button Grid.Row="2" Text="✖ CHIUDI" HeightRequest="60" FontSize="20" BackgroundColor="#E53935" CornerRadius="10" Clicked="OnChiudi" />
     </Grid>
 </ContentPage>

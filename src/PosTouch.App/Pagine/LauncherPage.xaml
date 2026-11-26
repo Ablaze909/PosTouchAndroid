@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copia di LauncherDialog del PC: sfondo blu scuro, titolo a sinistra, 6 tasti a destra, Esci in basso a sinistra -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PosTouch.App.Pagine.LauncherPage"
+             NavigationPage.HasNavigationBar="False">
+    <ContentPage.Resources>
+        <Style x:Key="TastoCard" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="Opacity" Value="0.92" />
+            <Setter Property="WidthRequest" Value="210" />
+            <Setter Property="HeightRequest" Value="150" />
+            <Setter Property="Margin" Value="10" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="*,Auto">
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#0D1B2A" Offset="0" />
+                <GradientStop Color="#1B2838" Offset="0.3" />
+                <GradientStop Color="#1A365D" Offset="0.6" />
+                <GradientStop Color="#2D3748" Offset="1" />
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Cerchi decorativi -->
+        <Ellipse WidthRequest="800" HeightRequest="800" HorizontalOptions="Start" VerticalOptions="Start" Margin="-250,-200,0,0" Opacity="0.06">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#4299E1" Offset="0" />
+                    <GradientStop Color="Transparent" Offset="1" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse WidthRequest="600" HeightRequest="600" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,-150,-150" Opacity="0.05">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#9F7AEA" Offset="0" />
+                    <GradientStop Color="Transparent" Offset="1" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <!-- Titolo e branding (sinistra) -->
+        <VerticalStackLayout HorizontalOptions="Start" VerticalOptions="Center" Margin="80,0,0,0">
+            <Label Text="🛒" FontSize="64" Opacity="0.85" Margin="0,0,0,15" />
+            <Label x:Name="NomePuntoVendita" Text="POS Touch" FontSize="52" FontAttributes="Bold" TextColor="White" Opacity="0.9" />
+            <Label x:Name="SottotitoloPuntoVendita" Text="Punto Vendita" FontSize="22" TextColor="White" Opacity="0.5" Margin="4,5,0,0" />
+            <BoxView WidthRequest="120" HeightRequest="3" CornerRadius="2" HorizontalOptions="Start" Margin="4,20,0,0" Opacity="0.6">
+                <BoxView.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#4299E1" Offset="0" />
+                        <GradientStop Color="#9F7AEA" Offset="1" />
+                    </LinearGradientBrush>
+                </BoxView.Background>
+            </BoxView>
+        </VerticalStackLayout>
+
+        <!-- Griglia tasti (destra) -->
+        <Grid HorizontalOptions="End" VerticalOptions="Center" Margin="0,0,60,0" ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+            <Border Style="{StaticResource TastoCard}">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnVendita" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="🛒" FontSize="38" HorizontalOptions="Center" Margin="0,0,0,8" />
+                    <Label Text="Vendita" FontSize="20" FontAttributes="Bold" TextColor="#333333" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource TastoCard}">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBackOffice" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="📦" FontSize="38" HorizontalOptions="Center" Margin="0,0,0,8" />
+                    <Label Text="BackOffice" FontSize="20" FontAttributes="Bold" TextColor="#333333" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="1" Style="{StaticResource TastoCard}">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnStatistiche" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="📊" FontSize="38" HorizontalOptions="Center" Margin="0,0,0,8" />
+                    <Label Text="Statistiche" FontSize="20" FontAttributes="Bold" TextColor="#333333" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource TastoCard}">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnDocumenti" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="📄" FontSize="38" HorizontalOptions="Center" Margin="0,0,0,8" />
+                    <Label Text="Documenti" FontSize="20" FontAttributes="Bold" TextColor="#333333" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="2" Style="{StaticResource TastoCard}">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnFunzioniCassa" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="🧾" FontSize="38" HorizontalOptions="Center" Margin="0,0,0,8" />
+                    <Label Text="Funzioni Cassa" FontSize="20" FontAttributes="Bold" TextColor="#333333" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource TastoCard}">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnImpostazioni" /></Border.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="⚙️" FontSize="38" HorizontalOptions="Center" Margin="0,0,0,8" />
+                    <Label Text="Impostazioni" FontSize="20" FontAttributes="Bold" TextColor="#333333" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- Esci: piccolo, in basso a sinistra -->
+        <Border WidthRequest="130" HeightRequest="110" HorizontalOptions="Start" VerticalOptions="End" Margin="30,0,0,30"
+                BackgroundColor="#D32F2F" Opacity="0.92" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnEsci" /></Border.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                <Label Text="🚪" FontSize="30" HorizontalOptions="Center" Margin="0,0,0,5" />
+                <Label Text="Esci" FontSize="17" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Footer -->
+        <Grid Grid.Row="1" BackgroundColor="#99000000" Padding="15,10">
+            <Label x:Name="Versione" Text="POS Touch" FontSize="13" TextColor="White" VerticalOptions="Center" />
+            <Label x:Name="OraData" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="End" VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentPage>

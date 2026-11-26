@@ -3,105 +3,125 @@ using System.Globalization;
 
 namespace PosTouch.Core.Vendita
 {
+    public enum EsitoTastoEuro { Impostato, Vuoto, NonValido }
+
     /// <summary>
-    /// Stato del tastierino numerico della vendita, come sul PC:
-    /// - cifre digitate poi prodotto  → quantità
-    /// - cifre, X, poi prodotto/reparto → quantità bloccata (poi si può digitare il prezzo)
-    /// - cifre poi tasto reparto, €, CONTANTI, sconto → importo
+    /// Tastiera numerica della vendita, stessa logica di MainWindow (PC):
+    /// - cifre → quantità del prossimo articolo ("Qta: 3")
+    /// - cifre con virgola o ≥ 10 → mostrate come importo ("€ 12,00")
+    /// - X → blocca la quantità ("Qta: 3 ×"), poi si può digitare il prezzo
+    /// - € → il numero digitato diventa il prezzo del prossimo articolo ("Qta: 1 × € 1,50")
+    /// - C → azzera
     /// </summary>
     public class Tastierino
     {
-        private string _testo = "";
+        private string _input = "";
 
-        /// <summary>Quantità fissata con il tasto X (null = nessuna).</summary>
-        public decimal? QuantitaBloccata { get; private set; }
+        public decimal QuantitaCorrente { get; private set; } = 1;
+        public bool QuantitaBloccata { get; private set; }
+        public decimal? PrezzoPersonalizzato { get; private set; }
+        /// <summary>Impostazione "Blocco modifica quantità": le cifre valgono solo come prezzo.</summary>
+        public bool BloccoModificaQuantita { get; set; }
 
-        public string Testo => _testo;
-        public bool Vuoto => _testo.Length == 0;
+        public string Display { get; private set; } = "";
+        /// <summary>Colore display: nero normale, arancio dopo X, verde con prezzo €.</summary>
+        public string ColoreDisplay { get; private set; } = "#666666";
+
+        /// <summary>true se c'è qualcosa digitato o impostato (C allora azzera invece di cancellare righe).</summary>
+        public bool Attivo => _input.Length > 0 || PrezzoPersonalizzato.HasValue || QuantitaBloccata;
+        public string Input => _input;
 
         public event Action Cambiato;
 
-        /// <summary>Testo da mostrare sul display.</summary>
-        public string Display
-        {
-            get
-            {
-                // Come sul PC: vuoto se non si sta digitando, "Qta: 3 ×" dopo il tasto X
-                string q = QuantitaBloccata.HasValue ? $"Qta: {QuantitaBloccata.Value:0.###} ×  " : "";
-                return q + _testo;
-            }
-        }
-
         public void Premi(string tasto)
         {
-            if (tasto == "," || tasto == ".")
+            if (tasto == "," || tasto == "." || tasto == "•")
             {
-                if (!_testo.Contains(",")) _testo = (_testo.Length == 0 ? "0" : _testo) + ",";
+                if (!_input.Contains(",")) _input += ",";
             }
-            else if (_testo.Length < 9)
+            else if (_input.Length < 9)
             {
-                _testo += tasto;
+                _input += tasto;
             }
-            Cambiato?.Invoke();
+
+            if (ProvaNumero(_input, out decimal q))
+            {
+                if (!QuantitaBloccata && !BloccoModificaQuantita)
+                    QuantitaCorrente = q;
+
+                if (PrezzoPersonalizzato.HasValue)
+                    Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(PrezzoPersonalizzato.Value)}", "#2E7D32");
+                else if (QuantitaBloccata)
+                    Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(q)}", "#FF9800");
+                else if (BloccoModificaQuantita || _input.Contains(",") || q >= 10)
+                    Mostra($"€ {Euro(q)}", "#111111");
+                else
+                    Mostra($"Qta: {Num(q)}", "#111111");
+            }
+            else Cambiato?.Invoke();
         }
 
-        /// <summary>Tasto C: azzera tutto.</summary>
-        public void Cancella()
-        {
-            _testo = "";
-            QuantitaBloccata = null;
-            Cambiato?.Invoke();
-        }
-
-        /// <summary>Tasto X: il numero digitato diventa la quantità del prossimo articolo.</summary>
+        /// <summary>Tasto X: la quantità digitata resta fissa per il prossimo articolo.</summary>
         public bool Moltiplica()
         {
-            if (!ProvaNumero(out decimal q) || q <= 0) return false;
-            QuantitaBloccata = q;
-            _testo = "";
-            Cambiato?.Invoke();
+            if (!ProvaNumero(_input, out decimal q) || q <= 0) return false;
+            QuantitaCorrente = q;
+            QuantitaBloccata = true;
+            _input = "";
+            Mostra($"Qta: {Num(QuantitaCorrente)} ×", "#FF9800");
             return true;
         }
 
-        /// <summary>Quantità per un articolo a prezzo fisso: quella bloccata, altrimenti il numero digitato, altrimenti 1.</summary>
-        public decimal PrendiQuantita()
+        /// <summary>Tasto €: il numero digitato diventa il prezzo del prossimo articolo.</summary>
+        public EsitoTastoEuro Euro()
         {
-            decimal q = 1;
-            if (QuantitaBloccata.HasValue) q = QuantitaBloccata.Value;
-            else if (ProvaNumero(out decimal digitata) && digitata > 0) q = digitata;
-            Cancella();
-            return q;
+            if (_input.Length == 0) return EsitoTastoEuro.Vuoto;
+            if (!ProvaNumero(_input, out decimal prezzo) || prezzo <= 0) return EsitoTastoEuro.NonValido;
+            PrezzoPersonalizzato = prezzo;
+            _input = "";
+            if (!QuantitaBloccata) QuantitaCorrente = 1;
+            Mostra($"Qta: {Num(QuantitaCorrente)} × € {Euro(prezzo)}", "#2E7D32");
+            return EsitoTastoEuro.Impostato;
         }
 
-        /// <summary>Importo digitato in centesimi (false se non c'è). Non consuma la quantità bloccata.</summary>
-        public bool PrendiImporto(out int centesimi)
+        /// <summary>Quantità e prezzo da usare per l'articolo toccato; poi la tastiera si azzera (ResetQuantita).</summary>
+        public (decimal quantita, int? prezzoCent) PrendiPerArticolo()
         {
-            centesimi = 0;
-            if (!ProvaNumero(out decimal euro) || euro <= 0) return false;
-            centesimi = (int)Math.Round(euro * 100, MidpointRounding.AwayFromZero);
-            _testo = "";
+            decimal qta = QuantitaCorrente > 0 ? QuantitaCorrente : 1;
+            int? prezzo = null;
+            if (PrezzoPersonalizzato.HasValue)
+                prezzo = Cent(PrezzoPersonalizzato.Value);
+            else if (QuantitaBloccata && ProvaNumero(_input, out decimal p) && p > 0)
+                prezzo = Cent(p);            // "3 X 1,50" e poi l'articolo
+            else if (BloccoModificaQuantita && ProvaNumero(_input, out decimal pb) && pb > 0)
+                prezzo = Cent(pb);
+            if (BloccoModificaQuantita) qta = 1;
+            Azzera();
+            return (qta, prezzo);
+        }
+
+        /// <summary>ResetQuantita del PC.</summary>
+        public void Azzera()
+        {
+            _input = "";
+            QuantitaCorrente = 1;
+            PrezzoPersonalizzato = null;
+            QuantitaBloccata = false;
+            Mostra("", "#111111");
+        }
+
+        private void Mostra(string testo, string colore)
+        {
+            Display = testo;
+            ColoreDisplay = colore;
             Cambiato?.Invoke();
-            return true;
         }
 
-        /// <summary>Numero digitato come valore (es. percentuale sconto).</summary>
-        public bool PrendiValore(out decimal valore)
-        {
-            if (!ProvaNumero(out valore) || valore <= 0) return false;
-            _testo = "";
-            Cambiato?.Invoke();
-            return true;
-        }
+        private static int Cent(decimal euro) => (int)Math.Round(euro * 100, MidpointRounding.AwayFromZero);
+        private static string Euro(decimal v) => v.ToString("F2", CultureInfo.InvariantCulture).Replace('.', ',');
+        private static string Num(decimal v) => v.ToString("0.###", CultureInfo.InvariantCulture).Replace('.', ',');
 
-        /// <summary>Quantità bloccata (o 1) per un articolo di cui si sta battendo il prezzo; poi azzera.</summary>
-        public decimal PrendiQuantitaBloccata()
-        {
-            decimal q = QuantitaBloccata ?? 1;
-            Cancella();
-            return q;
-        }
-
-        private bool ProvaNumero(out decimal valore) =>
-            decimal.TryParse(_testo.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out valore);
+        private static bool ProvaNumero(string s, out decimal valore) =>
+            decimal.TryParse((s ?? "").Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out valore);
     }
 }

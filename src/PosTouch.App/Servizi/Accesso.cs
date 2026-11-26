@@ -1,17 +1,19 @@
+using PosTouch.App.Dialoghi;
+
 namespace PosTouch.App.Servizi
 {
-    /// <summary>Protezione con PIN delle pagine di gestione (Impostazioni, Articoli).</summary>
+    /// <summary>Password amministratore (solo cifre) per Strumenti, Back office e Impostazioni.</summary>
     public static class Accesso
     {
-        public static async Task<bool> VerificaPinAsync(Page pagina, string titolo)
+        public static async Task<bool> VerificaPinAsync(string titolo)
         {
             string pin = ContestoCassa.Impostazioni.PinImpostazioni;
             if (string.IsNullOrEmpty(pin)) return true;
 
-            string inserito = await pagina.DisplayPromptAsync(titolo, "Inserire il PIN", "OK", "Annulla", keyboard: Keyboard.Numeric);
+            string inserito = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPassword amministratore", nascondi: true);
             if (inserito == null) return false;
             if (inserito == pin) return true;
-            await pagina.DisplayAlert(titolo, "PIN errato.", "OK");
+            await MessaggioBox.Errore("PASSWORD ERRATA", "La password inserita non è corretta.");
             return false;
         }
     }

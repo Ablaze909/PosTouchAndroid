@@ -1,34 +1,45 @@
+using PosTouch.App.Controlli;
+using PosTouch.App.Dialoghi;
 using PosTouch.App.Servizi;
+using PosTouch.Core.Configurazione;
 using PosTouch.Core.Modelli;
 using PosTouch.Core.Vendita;
 
 namespace PosTouch.App.Pagine
 {
     /// <summary>
-    /// Vendita al banco, stesso layout e comportamento di MainWindow (POS Touch Windows).
-    /// La pagina mostra e raccoglie i tocchi: la logica sta in Carrello, Tastierino e ServizioVendita (Core).
+    /// Vendita al banco: stesso layout, stessi tasti e stessi gesti di MainWindow (POS Touch Windows).
+    /// La logica sta in Carrello, Tastierino e ServizioVendita (libreria Core).
     /// </summary>
     public partial class VenditaPage : ContentPage
     {
         private const int IdPreferiti = -1;
-        private const int LatoTasto = 100;        // tasti articolo 100x100 come sul PC
-        private const int AltezzaCategoria = 64;
+        private const int LatoTasto = 100;   // tasti articolo 100×100 come sul PC
 
         private readonly Tastierino _tastierino = new Tastierino();
         private readonly IDispatcherTimer _orologio;
         private IDispatcherTimer _timerResto;
-        private IDispatcherTimer _timerMessaggio;
         private int _categoriaCorrente = IdPreferiti;
         private bool _modalitaModifica;
+        private bool _scontrinoEspanso;
+
+        // doppio tocco sulle righe
+        private RigaScontrino _ultimaRigaToccata;
+        private DateTime _ultimoTocco = DateTime.MinValue;
 
         private Carrello Carrello => ContestoCassa.Carrello;
+        private Impostazioni Cfg => ContestoCassa.Impostazioni;
 
         public VenditaPage()
         {
             InitializeComponent();
             ListaRighe.ItemsSource = Carrello.Righe;
             Carrello.Cambiato += AggiornaTotale;
-            _tastierino.Cambiato += AggiornaDisplay;
+            _tastierino.Cambiato += () =>
+            {
+                DisplayTastierino.Text = _tastierino.Display;
+                DisplayTastierino.TextColor = Ui.C(_tastierino.ColoreDisplay);
+            };
 
             _orologio = Dispatcher.CreateTimer();
             _orologio.Interval = TimeSpan.FromSeconds(1);
@@ -41,8 +52,9 @@ namespace PosTouch.App.Pagine
         {
             base.OnAppearing();
             _orologio.Start();
-            CaricaCategorie();   // il catalogo può essere cambiato in Back office / modifica
-            CreaBarraPagamento();
+            _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
+            BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
+            CaricaCategorie();   // il catalogo o le impostazioni possono essere cambiati
             LettoreBarcode.Destinatario = AggiungiDaBarcode;
         }
 
@@ -72,60 +84,47 @@ namespace PosTouch.App.Pagine
             ListaCategorie.Children.Clear();
             foreach (var c in categorie)
                 ListaCategorie.Children.Add(CreaTastoCategoria(c));
-
-            if (_modalitaModifica)
-                ListaCategorie.Children.Add(CreaTastoNuovo("➕\nCATEGORIA", AltezzaCategoria, -1, async () =>
-                    await Navigation.PushAsync(new CategoriaPage(null))));
-
             MostraArticoli();
         }
 
         private View CreaTastoCategoria(Categoria c)
         {
-            bool selezionata = c.Id == _categoriaCorrente;
             var tasto = new Border
             {
-                HeightRequest = AltezzaCategoria,
-                StrokeThickness = selezionata ? 3 : 0,
-                Stroke = new SolidColorBrush(Colors.Black),
-                BackgroundColor = Colore(c.Colore, "#2196F3"),
+                HeightRequest = Cfg.AltezzaCategoria,
+                StrokeThickness = 0,
+                BackgroundColor = Ui.ColoreSicuro(c.Colore, "#2196F3"),
                 Padding = new Thickness(4),
                 Content = new Label
                 {
-                    Text = c.Nome,
-                    FontSize = 13,
+                    Text = c.TestoTasto,
+                    FontSize = Math.Clamp(Cfg.FontSizeCategorie, 8, 20) + 2,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Colore(c.ColoreTesto, "#000000"),
+                    TextColor = Ui.ColoreSicuro(c.ColoreTesto, "#000000"),
                     HorizontalTextAlignment = TextAlignment.Center,
                     VerticalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap,
-                    MaxLines = 3
+                    LineBreakMode = LineBreakMode.WordWrap
                 }
             };
-            Tocco(tasto, async () =>
+            Tocco(tasto, () =>
             {
-                // In modifica: secondo tocco sulla categoria già aperta = modifica categoria
-                if (_modalitaModifica && c.Id == _categoriaCorrente)
-                {
-                    await Navigation.PushAsync(new CategoriaPage(c));
-                    return;
-                }
                 _categoriaCorrente = c.Id;
-                CaricaCategorie();
+                MostraArticoli();
+                return Task.CompletedTask;
             });
             return tasto;
         }
 
         private async void OnCategorieSu(object sender, EventArgs e)
-            => await ScrollCategorie.ScrollToAsync(0, Math.Max(0, ScrollCategorie.ScrollY - AltezzaCategoria * 4), true);
+            => await ScrollCategorie.ScrollToAsync(0, Math.Max(0, ScrollCategorie.ScrollY - Cfg.AltezzaCategoria * 4), true);
 
         private async void OnCategorieGiu(object sender, EventArgs e)
-            => await ScrollCategorie.ScrollToAsync(0, ScrollCategorie.ScrollY + AltezzaCategoria * 4, true);
+            => await ScrollCategorie.ScrollToAsync(0, ScrollCategorie.ScrollY + Cfg.AltezzaCategoria * 4, true);
 
         private void OnPreferiti(object sender, EventArgs e)
         {
             _categoriaCorrente = IdPreferiti;
-            CaricaCategorie();
+            MostraArticoli();
         }
 
         // ══════════════ COLONNA CENTRO: ARTICOLI ══════════════
@@ -141,49 +140,36 @@ namespace PosTouch.App.Pagine
             foreach (var p in articoli)
                 GrigliaArticoli.Children.Add(CreaTastoArticolo(p));
 
-            if (_modalitaModifica && _categoriaCorrente != IdPreferiti)
-                GrigliaArticoli.Children.Add(CreaTastoNuovo("➕\nNUOVO\nARTICOLO", LatoTasto, LatoTasto, async () =>
-                    await Navigation.PushAsync(new ProdottoPage(null, _categoriaCorrente))));
-
-            MessaggioVuoto.IsVisible = GrigliaArticoli.Children.Count == 0;
-            if (catalogo.Categorie.Count == 0)
-                MessaggioVuoto.Text = "Nessuna categoria.\n\nCreale con ✏️ (modalità modifica) o da 🔧 → BACK OFFICE,\noppure importa il pos.db del PC da 🔧 → IMPOSTAZIONI.\n\nIntanto puoi vendere con i tasti reparto in basso.";
-            else if (_categoriaCorrente == IdPreferiti)
-                MessaggioVuoto.Text = "Nessun preferito.\nScegli una categoria a sinistra.";
-            else
-                MessaggioVuoto.Text = "Nessun articolo in questa categoria.\nAggiungili con ✏️.";
+            MessaggioVuoto.IsVisible = articoli.Count == 0;
+            MessaggioVuoto.Text = catalogo.Categorie.Count == 0
+                ? "Nessuna categoria.\n\nCrea categorie e articoli da 🔧 → BACK OFFICE,\noppure importa il pos.db del PC da 🔧 → IMPOSTAZIONI → AVANZATE."
+                : _categoriaCorrente == IdPreferiti ? "Nessun preferito.\nScegli una categoria a sinistra."
+                : "Nessun articolo in questa categoria.";
         }
 
         private View CreaTastoArticolo(Prodotto p)
         {
-            var testo = Colore(p.ColoreTesto, "#FFFFFF");
+            var testo = Ui.ColoreSicuro(p.ColoreTesto, "#FFFFFF");
             var griglia = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
             griglia.Add(new Label
             {
                 Text = p.Descrizione,
-                FontSize = 13,
+                FontSize = Math.Clamp(p.DimensioneFontTasto, 8, 20),
                 FontAttributes = FontAttributes.Bold,
                 TextColor = testo,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
                 LineBreakMode = LineBreakMode.WordWrap,
-                MaxLines = 4,
                 Margin = new Thickness(4)
             }, 0, 0);
             griglia.Add(new Grid
             {
-                BackgroundColor = Color.FromArgb("#40000000"),
+                BackgroundColor = Ui.C("#40000000"),
                 Padding = new Thickness(4, 2),
                 Children =
                 {
-                    new Label
-                    {
-                        Text = $"€ {p.PrezzoEuro:F2}".Replace('.', ','),
-                        FontSize = 14,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = testo,
-                        HorizontalTextAlignment = TextAlignment.Center
-                    }
+                    new Label { Text = p.PrezzoDisplay, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = testo,
+                                HorizontalTextAlignment = TextAlignment.Center }
                 }
             }, 0, 1);
 
@@ -193,161 +179,299 @@ namespace PosTouch.App.Pagine
                 HeightRequest = LatoTasto,
                 Margin = new Thickness(3),
                 StrokeThickness = 0,
-                BackgroundColor = Colore(p.Colore, "#455A64"),
+                BackgroundColor = Ui.ColoreSicuro(p.Colore, "#4CAF50"),
                 Content = griglia
             };
             Tocco(tasto, async () =>
             {
                 if (_modalitaModifica) await Navigation.PushAsync(new ProdottoPage(p, p.CategoriaId));
-                else await AggiungiArticoloAsync(p);
+                else await AggiungiProdottoAsync(p);
             });
             return tasto;
         }
 
-        private View CreaTastoNuovo(string testo, int altezza, int larghezza, Func<Task> azione)
+        /// <summary>AggiungiProdotto del PC: quantità e prezzo € dalla tastiera, richiesta prezzo per articoli a 0.</summary>
+        private async Task AggiungiProdottoAsync(Prodotto p)
         {
-            var tasto = new Border
-            {
-                HeightRequest = altezza,
-                Margin = larghezza > 0 ? new Thickness(3) : new Thickness(0),
-                StrokeThickness = 2,
-                Stroke = new SolidColorBrush(Color.FromArgb("#FF9800")),
-                StrokeDashArray = new DoubleCollection { 4, 2 },
-                BackgroundColor = Color.FromArgb("#FFF3E0"),
-                Content = new Label
-                {
-                    Text = testo,
-                    FontSize = 13,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#E65100"),
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center
-                }
-            };
-            if (larghezza > 0) tasto.WidthRequest = larghezza;
-            Tocco(tasto, azione);
-            return tasto;
-        }
+            NascondiResto();
+            var (quantita, prezzoCent) = _tastierino.PrendiPerArticolo();
+            int prezzo = prezzoCent ?? p.PrezzoCentesimi;
 
-        /// <summary>
-        /// Articolo a prezzo fisso: le cifre digitate sono la quantità.
-        /// Articolo a prezzo zero (o cifre dopo X): le cifre digitate sono il prezzo.
-        /// </summary>
-        private async Task AggiungiArticoloAsync(Prodotto p)
-        {
-            if (p.PrezzoCentesimi > 0 && !(_tastierino.QuantitaBloccata.HasValue && !_tastierino.Vuoto))
+            if (prezzo == 0)
             {
-                Carrello.Aggiungi(p, _tastierino.PrendiQuantita());
-                SelezionaUltima();
-                return;
-            }
-
-            if (!_tastierino.PrendiImporto(out int prezzo))
-            {
-                string v = await DisplayPromptAsync(p.Descrizione, "Prezzo", "Aggiungi", "Annulla", "0,00", keyboard: Keyboard.Numeric);
-                if (v == null) return;
-                if (!Importi.ProvaCentesimi(v, out prezzo))
+                if (!Cfg.RichiestaPrezzoArticoliZero)
                 {
-                    Messaggio("Prezzo non valido");
+                    await MessaggioBox.Avviso("PREZZO ZERO", $"L'articolo {p.Descrizione} ha prezzo € 0,00.\n\nDigita il prezzo, premi € e poi l'articolo.");
                     return;
                 }
+                var v = await TastierinoPrezzo.ChiediEuro($"💶 PREZZO — {p.Descrizione}");
+                if (v == null || v <= 0) return;
+                prezzo = (int)Math.Round(v.Value * 100, MidpointRounding.AwayFromZero);
             }
-            Carrello.Aggiungi(p, _tastierino.PrendiQuantitaBloccata(), prezzo);
-            SelezionaUltima();
+
+            bool accorpa = Cfg.AccorpaRigheVideo && !Cfg.BloccoModificaQuantita;
+            var riga = Carrello.Aggiungi(p, quantita, prezzo, accorpa);
+            if (riga != null) ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
         }
 
         private void AggiungiDaBarcode(string codice)
         {
             var p = ContestoCassa.Catalogo.CercaBarcode(codice);
-            if (p == null) Messaggio($"Codice {codice} non trovato");
-            else _ = AggiungiArticoloAsync(p);
+            if (p == null) _ = MessaggioBox.Avviso("ARTICOLO NON TROVATO", $"Nessun articolo con codice:\n{codice}");
+            else _ = AggiungiProdottoAsync(p);
         }
 
         // ══════════════ TOOLBAR ══════════════
 
         private async void OnStrumenti(object sender, EventArgs e)
         {
-            if (await Accesso.VerificaPinAsync(this, "Strumenti"))
+            if (await Accesso.VerificaPinAsync("🔧 STRUMENTI"))
                 await Navigation.PushAsync(new StrumentiPage());
         }
 
         private async void OnModifica(object sender, EventArgs e)
         {
-            if (!_modalitaModifica && !await Accesso.VerificaPinAsync(this, "Modalità modifica")) return;
+            if (!Cfg.AbilitaModificaVendita)
+            {
+                await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
+                return;
+            }
             _modalitaModifica = !_modalitaModifica;
-            BtnModifica.BackgroundColor = Color.FromArgb(_modalitaModifica ? "#FF9800" : "#757575");
+            BtnModifica.BackgroundColor = Ui.C(_modalitaModifica ? "#FF9800" : "#757575");
             OverlayModifica.IsVisible = _modalitaModifica;
-            CaricaCategorie();
         }
 
         private async void OnFunzioniCassa(object sender, EventArgs e)
             => await Navigation.PushAsync(new FunzioniCassaPage());
 
+        /// <summary>🚪: torna alla schermata iniziale (come TornaAlLauncher del PC).</summary>
         private async void OnEsci(object sender, EventArgs e)
         {
             if (!Carrello.Vuoto)
             {
-                await DisplayAlert("ESCI", "Lo scontrino non è vuoto.\nChiuderlo o annullarlo prima di uscire.", "OK");
+                await MessaggioBox.Avviso("SCONTRINO APERTO", "Chiudi o svuota lo scontrino prima di uscire.");
                 return;
             }
-            if (await DisplayAlert("ESCI", "Chiudere POS Touch?", "Esci", "Annulla"))
-                Application.Current?.Quit();
+            await Navigation.PopAsync();
+        }
+
+        // ══════════════ TASTIERA ══════════════
+
+        private void OnCifra(object sender, EventArgs e) => _tastierino.Premi(((Button)sender).Text);
+
+        /// <summary>C del PC: azzera la tastiera; se non c'è nulla digitato cancella le righe selezionate, altrimenti l'ultima.</summary>
+        private void OnCancella(object sender, EventArgs e)
+        {
+            if (_tastierino.Attivo)
+            {
+                _tastierino.Azzera();
+                return;
+            }
+            var selezionate = Carrello.Righe.Where(r => r.Selezionata).ToList();
+            if (selezionate.Count > 0)
+            {
+                Carrello.Rimuovi(selezionate);
+            }
+            else
+            {
+                if (_scontrinoEspanso) return; // lista espansa: C senza selezione non fa nulla
+                var ultima = Carrello.Righe.LastOrDefault();
+                if (ultima != null) Carrello.Rimuovi(new[] { ultima });
+            }
+        }
+
+        private void OnPer(object sender, EventArgs e) => _tastierino.Moltiplica();
+
+        private async void OnEuro(object sender, EventArgs e)
+        {
+            if (!Cfg.AbilitaCambioPrezzo)
+            {
+                await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
+                return;
+            }
+            switch (_tastierino.Euro())
+            {
+                case EsitoTastoEuro.NonValido:
+                    await MessaggioBox.Errore("PREZZO NON VALIDO", "Digita un importo valido!\n\nEsempio: 1,50 o 12,00");
+                    break;
+                case EsitoTastoEuro.Vuoto:
+                    await MessaggioBox.Info("COME USARE IL TASTO €",
+                        "Per impostare un prezzo personalizzato:\n\n1. Digita il prezzo (es: 1,50)\n2. Premi il tasto €\n3. Seleziona l'articolo");
+                    break;
+            }
+        }
+
+        private async void OnScontoValore(object sender, EventArgs e) => await ScontoAsync(percentuale: false);
+        private async void OnScontoPercentuale(object sender, EventArgs e) => await ScontoAsync(percentuale: true);
+
+        private async Task ScontoAsync(bool percentuale)
+        {
+            if (ContestoCassa.ServizioVendita.InCorso) return;
+            if (!Cfg.AbilitaSconti)
+            {
+                await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
+                return;
+            }
+            if (Carrello.Vuoto)
+            {
+                await MessaggioBox.Avviso("SCONTRINO VUOTO", "Aggiungi prima dei prodotti!");
+                return;
+            }
+            decimal subtotale = Carrello.SubtotaleProdottiCent / 100m;
+            if (subtotale <= 0)
+            {
+                await MessaggioBox.Avviso("SUBTOTALE ZERO", "Non ci sono prodotti da scontare!");
+                return;
+            }
+            if (Carrello.HaSconto)
+            {
+                await MessaggioBox.Avviso("SCONTO GIÀ PRESENTE", "È già presente uno sconto nello scontrino!\n\nRimuovilo prima di applicarne un altro.");
+                return;
+            }
+            var valore = await ScontoBox.Chiedi(percentuale, subtotale);
+            if (valore == null) return;
+            if (percentuale) Carrello.ScontoPercentuale(valore.Value);
+            else Carrello.ScontoValore((int)Math.Round(valore.Value * 100, MidpointRounding.AwayFromZero));
+            ListaRighe.ScrollTo(Carrello.Righe.Count - 1, position: ScrollToPosition.End, animate: false);
+        }
+
+        private async void OnAnnulla(object sender, EventArgs e)
+        {
+            if (Carrello.Righe.Count == 0) return;
+            if (await MessaggioBox.Conferma("ANNULLA SCONTRINO", "Vuoi annullare tutto lo scontrino?\n\nQuesta operazione non può essere annullata."))
+                SvuotaScontrino();
+        }
+
+        private RigaScontrino PrimaSelezionata() => Carrello.Righe.FirstOrDefault(r => r.Selezionata);
+
+        private void OnPiu(object sender, EventArgs e)
+        {
+            var riga = PrimaSelezionata();
+            if (riga?.Tipo == TipoRiga.Prodotto) Carrello.ImpostaQuantita(riga, riga.Quantita + 1);
+        }
+
+        private void OnMeno(object sender, EventArgs e)
+        {
+            var riga = PrimaSelezionata();
+            if (riga?.Tipo == TipoRiga.Prodotto && riga.Quantita > 1) Carrello.ImpostaQuantita(riga, riga.Quantita - 1);
+        }
+
+        // ══════════════ LISTA SCONTRINO: gesti ══════════════
+
+        /// <summary>
+        /// Tocco = seleziona/deseleziona (selezione multipla, come la ListView del PC).
+        /// Doppio tocco sulla quantità = 🔢 QUANTITÀ; doppio tocco sull'importo = 💶 PREZZO UNITARIO.
+        /// </summary>
+        private async void OnRigaToccata(object sender, TappedEventArgs e)
+        {
+            if (sender is not View vista || vista.BindingContext is not RigaScontrino riga) return;
+
+            bool doppio = ReferenceEquals(riga, _ultimaRigaToccata) && (DateTime.Now - _ultimoTocco).TotalMilliseconds < 400;
+            _ultimaRigaToccata = riga;
+            _ultimoTocco = DateTime.Now;
+
+            if (!doppio)
+            {
+                riga.Selezionata = !riga.Selezionata;
+                return;
+            }
+
+            // doppio tocco: annulla il cambio di selezione del primo tocco
+            riga.Selezionata = !riga.Selezionata;
+            _ultimaRigaToccata = null;
+            if (riga.Tipo != TipoRiga.Prodotto) return;
+
+            double x = e.GetPosition(vista)?.X ?? -1;
+            double larghezza = vista.Width;
+            if (x >= 0 && x <= 40) await ModificaQuantitaAsync(riga);
+            else if (x >= larghezza - 80) await ModificaPrezzoAsync(riga);
+        }
+
+        private async Task ModificaQuantitaAsync(RigaScontrino riga)
+        {
+            if (!Cfg.AbilitaModificaVendita)
+            {
+                await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
+                return;
+            }
+            var q = await TastierinoPrezzo.ChiediQuantita("🔢 QUANTITÀ", riga.Quantita);
+            if (q == null) return;
+            if (q > 0 && q <= 999) Carrello.ImpostaQuantita(riga, q.Value);
+            else await MessaggioBox.Avviso("QUANTITÀ NON VALIDA", "La quantità deve essere tra 1 e 999");
+        }
+
+        private async Task ModificaPrezzoAsync(RigaScontrino riga)
+        {
+            if (!Cfg.AbilitaCambioPrezzo)
+            {
+                await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
+                return;
+            }
+            var p = await TastierinoPrezzo.ChiediEuro("💶 PREZZO UNITARIO", riga.PrezzoEuro);
+            if (p == null) return;
+            if (p > 0) Carrello.CambiaPrezzo(riga, (int)Math.Round(p.Value * 100, MidpointRounding.AwayFromZero));
+            else await MessaggioBox.Avviso("PREZZO NON VALIDO", "Il prezzo deve essere maggiore di zero");
+        }
+
+        /// <summary>Tocco su 📋 SCONTRINO: lista espansa (nasconde la tastiera) / normale.</summary>
+        private void OnIntestazioneScontrino(object sender, TappedEventArgs e) => ApplicaModalitaEspansa(!_scontrinoEspanso);
+        private void OnChiudiLista(object sender, EventArgs e) => ApplicaModalitaEspansa(false);
+
+        private void ApplicaModalitaEspansa(bool espanso)
+        {
+            _scontrinoEspanso = espanso;
+            TastieraNumerica.IsVisible = !espanso;
+            BtnChiudiLista.IsVisible = espanso;
+        }
+
+        private void OnScrollSu(object sender, EventArgs e) => ScorriLista(-3);
+        private void OnScrollGiu(object sender, EventArgs e) => ScorriLista(+3);
+
+        private int _primaVisibile, _ultimaVisibile;
+
+        private void ScorriLista(int righe)
+        {
+            if (Carrello.Righe.Count == 0) return;
+            int indice = Math.Clamp(righe < 0 ? _primaVisibile + righe : _ultimaVisibile + righe, 0, Carrello.Righe.Count - 1);
+            ListaRighe.ScrollTo(indice, position: righe < 0 ? ScrollToPosition.Start : ScrollToPosition.End, animate: true);
+        }
+
+        private void OnListaScrolled(object sender, ItemsViewScrolledEventArgs e)
+        {
+            _primaVisibile = e.FirstVisibleItemIndex;
+            _ultimaVisibile = e.LastVisibleItemIndex;
+            AggiornaFrecce();
+        }
+
+        private void AggiornaFrecce()
+        {
+            int n = Carrello.Righe.Count;
+            BtnScrollSu.IsVisible = n > 0 && _primaVisibile > 0;
+            BtnScrollGiu.IsVisible = n > 0 && _ultimaVisibile < n - 1 && _ultimaVisibile >= 0;
+        }
+
+        private void AggiornaTotale()
+        {
+            EtichettaTotale.Text = $"€ {Carrello.TotaleEuro:F2}".Replace('.', ',');
+            EtichettaPezzi.Text = $"{Carrello.Pezzi} pz";
+            if (Carrello.Righe.Count == 0) { _primaVisibile = 0; _ultimaVisibile = 0; }
+            AggiornaFrecce();
+        }
+
+        private void SvuotaScontrino()
+        {
+            if (_scontrinoEspanso) ApplicaModalitaEspansa(false);
+            Carrello.Svuota();
+            _tastierino.Azzera();
         }
 
         // ══════════════ BARRA INFERIORE ══════════════
 
-        /// <summary>💰 CASSA (doppia), 📂 CASSETTO, 🔍 BARCODE e i tasti reparto configurati.</summary>
-        private void CreaBarraPagamento()
-        {
-            BarraPagamento.Children.Clear();
-            BarraPagamento.ColumnDefinitions.Clear();
-
-            var tasti = new List<(Button tasto, int colonne)>
-            {
-                (TastoBarra("💰 CASSA", "#388E3C", (s, e) => OnCassa()), 2),
-                (TastoBarra("📂 CASSETTO", "#FF9800", OnCassetto), 1),
-                (TastoBarra("🔍 BARCODE", "#795548", OnBarcode), 1)
-            };
-            foreach (var t in ContestoCassa.Impostazioni.ElencoTastiReparto())
-            {
-                var rep = t;
-                tasti.Add((TastoBarra(rep.Nome, "#37474F", async (s, e) => await VendiRepartoAsync(rep.Numero, rep.Nome)), 1));
-            }
-            tasti.Add((TastoBarra("REP…", "#546E7A", OnAltroReparto), 1));
-
-            int col = 0;
-            foreach (var (tasto, colonne) in tasti)
-            {
-                for (int i = 0; i < colonne; i++) BarraPagamento.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-                BarraPagamento.Add(tasto, col, 0);
-                Grid.SetColumnSpan(tasto, colonne);
-                col += colonne;
-            }
-        }
-
-        private static Button TastoBarra(string testo, string colore, EventHandler azione)
-        {
-            var b = new Button
-            {
-                Text = testo,
-                FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
-                BackgroundColor = Color.FromArgb(colore),
-                CornerRadius = 0,
-                Padding = new Thickness(2, 0),
-                Margin = new Thickness(2),
-                LineBreakMode = LineBreakMode.TailTruncation
-            };
-            b.Clicked += azione;
-            return b;
-        }
-
-        private void OnCassa()
+        private async void OnCassa(object sender, EventArgs e)
         {
             if (Carrello.Vuoto)
             {
-                DisplayAlert("ATTENZIONE", "Lo scontrino è vuoto!", "OK");
+                await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!");
                 return;
             }
             OverlayPagamento.IsVisible = true;
@@ -355,234 +479,58 @@ namespace PosTouch.App.Pagine
 
         private void OnChiudiPagamento(object sender, EventArgs e) => OverlayPagamento.IsVisible = false;
 
+        private async void OnConto(object sender, EventArgs e)
+            => await MessaggioBox.Info("📄 CONTO", "La gestione dei conti (parcheggio e conti clienti) arriverà nella prossima versione.");
+
         private async void OnCassetto(object sender, EventArgs e)
         {
             var esito = await Task.Run(() => ContestoCassa.FunzioniCassa.ApriCassettoAsync());
-            if (!esito.Ok) await DisplayAlert("CASSETTO", esito.Messaggio, "OK");
+            if (!esito.Ok) await MessaggioBox.Errore("CASSETTO", esito.Messaggio);
         }
 
         private async void OnBarcode(object sender, EventArgs e)
         {
-            string codice = await DisplayPromptAsync("🔍 BARCODE", "Codice o barcode dell'articolo", "Cerca", "Annulla", keyboard: Keyboard.Numeric);
+            string codice = await TastierinoPrezzo.ChiediCodice("🔍 BARCODE");
             if (!string.IsNullOrWhiteSpace(codice)) AggiungiDaBarcode(codice.Trim());
-        }
-
-        /// <summary>Importo digitato sul tastierino (o chiesto) venduto sul reparto.</summary>
-        private async Task VendiRepartoAsync(int reparto, string nome)
-        {
-            if (!_tastierino.PrendiImporto(out int cent))
-            {
-                string v = await DisplayPromptAsync(nome, $"Importo sul reparto {reparto}", "Aggiungi", "Annulla", "0,00", keyboard: Keyboard.Numeric);
-                if (v == null) return;
-                if (!Importi.ProvaCentesimi(v, out cent))
-                {
-                    Messaggio("Importo non valido");
-                    return;
-                }
-            }
-            Carrello.AggiungiLibero(nome, reparto, cent, _tastierino.PrendiQuantitaBloccata());
-            SelezionaUltima();
-        }
-
-        private async void OnAltroReparto(object sender, EventArgs e)
-        {
-            string r = await DisplayPromptAsync("REPARTO", "Numero reparto del registratore", "Avanti", "Annulla",
-                maxLength: 2, keyboard: Keyboard.Numeric, initialValue: "1");
-            if (r == null) return;
-            if (!int.TryParse(r, out int reparto) || reparto <= 0)
-            {
-                Messaggio("Reparto non valido");
-                return;
-            }
-            await VendiRepartoAsync(reparto, $"REPARTO {reparto}");
-        }
-
-        // ══════════════ TASTIERA ══════════════
-
-        private void OnCifra(object sender, EventArgs e) => _tastierino.Premi(((Button)sender).Text);
-        private void OnCancella(object sender, EventArgs e) => _tastierino.Cancella();
-
-        private void OnPer(object sender, EventArgs e)
-        {
-            if (!_tastierino.Moltiplica()) Messaggio("Digita la quantità, poi X");
-        }
-
-        /// <summary>Tasto €: il numero digitato diventa il prezzo della riga selezionata (o dell'ultima).</summary>
-        private async void OnEuro(object sender, EventArgs e)
-        {
-            var riga = RigaSelezionata() ?? Carrello.UltimaRigaProdotto;
-            if (riga == null || riga.Tipo != TipoRiga.Prodotto)
-            {
-                Messaggio("Nessuna riga a cui cambiare prezzo");
-                return;
-            }
-            if (!_tastierino.PrendiImporto(out int cent))
-            {
-                string v = await DisplayPromptAsync("CAMBIA PREZZO", riga.Descrizione, "OK", "Annulla",
-                    initialValue: (riga.PrezzoCentesimi / 100m).ToString("0.00"), keyboard: Keyboard.Numeric);
-                if (v == null) return;
-                if (!Importi.ProvaCentesimi(v, out cent))
-                {
-                    Messaggio("Prezzo non valido");
-                    return;
-                }
-            }
-            Carrello.CambiaPrezzo(riga, cent);
-        }
-
-        private async void OnScontoValore(object sender, EventArgs e)
-        {
-            if (Carrello.Vuoto) return;
-            if (!_tastierino.PrendiImporto(out int cent))
-            {
-                string v = await DisplayPromptAsync("€ SCONTO", "Importo da scontare sul totale", "OK", "Annulla", "1,00", keyboard: Keyboard.Numeric);
-                if (v == null) return;
-                Importi.ProvaCentesimi(v, out cent);
-            }
-            if (cent <= 0 || cent >= Carrello.SubtotaleProdottiCent)
-            {
-                Messaggio("Sconto non valido");
-                return;
-            }
-            Carrello.ScontoValore(cent);
-        }
-
-        private async void OnScontoPercentuale(object sender, EventArgs e)
-        {
-            if (Carrello.Vuoto) return;
-            if (!_tastierino.PrendiValore(out decimal perc))
-            {
-                string v = await DisplayPromptAsync("% SCONTO", "Percentuale sul totale", "OK", "Annulla", "10", keyboard: Keyboard.Numeric);
-                if (v == null) return;
-                Importi.ProvaDecimale(v, out perc);
-            }
-            if (perc <= 0 || perc >= 100)
-            {
-                Messaggio("Percentuale non valida");
-                return;
-            }
-            Carrello.ScontoPercentuale(perc);
-        }
-
-        private async void OnAnnulla(object sender, EventArgs e)
-        {
-            _tastierino.Cancella();
-            if (Carrello.Righe.Count == 0) return;
-            if (await DisplayAlert("🗑️ ANNULLA", "Annullare lo scontrino in corso?", "Annulla scontrino", "No"))
-                Carrello.Svuota();
-        }
-
-        // ══════════════ RIGHE SCONTRINO ══════════════
-
-        private RigaScontrino RigaSelezionata() => ListaRighe.SelectedItem as RigaScontrino;
-
-        private void SelezionaUltima()
-        {
-            var ultima = Carrello.UltimaRigaProdotto;
-            ListaRighe.SelectedItem = ultima;
-            if (ultima != null) ListaRighe.ScrollTo(ultima, position: ScrollToPosition.End, animate: false);
-        }
-
-        private void OnRigaScelta(object sender, SelectionChangedEventArgs e)
-        {
-            // La selezione serve a ＋ ﹣ ed €: nessuna azione al tocco, come sul PC
-        }
-
-        private void OnPiu(object sender, EventArgs e)
-        {
-            var riga = RigaSelezionata() ?? Carrello.UltimaRigaProdotto;
-            if (riga?.Tipo == TipoRiga.Prodotto) Carrello.CambiaQuantita(riga, 1);
-        }
-
-        /// <summary>﹣ sulla riga selezionata: a quantità zero la riga viene eliminata. Sulla riga sconto la rimuove.</summary>
-        private void OnMeno(object sender, EventArgs e)
-        {
-            var riga = RigaSelezionata() ?? Carrello.UltimaRigaProdotto;
-            if (riga == null) return;
-            if (riga.Tipo == TipoRiga.Sconto)
-            {
-                Carrello.RimuoviSconto();
-                return;
-            }
-            bool sparisce = riga.Quantita <= 1;
-            Carrello.CambiaQuantita(riga, -1);
-            if (sparisce) ListaRighe.SelectedItem = null;
-        }
-
-        private void AggiornaTotale()
-        {
-            EtichettaTotale.Text = Importi.Euro(Carrello.TotaleCent);
-            EtichettaPezzi.Text = $"Pz: {Carrello.Pezzi:0.###}";
-            if (!Carrello.Vuoto) NascondiResto();
-        }
-
-        private void AggiornaDisplay()
-        {
-            _timerMessaggio?.Stop();
-            DisplayTastierino.Text = _tastierino.Display;
-            DisplayTastierino.TextColor = Color.FromArgb(_tastierino.QuantitaBloccata.HasValue ? "#FF9800" : "#666666");
-        }
-
-        /// <summary>Messaggio breve nel display (al posto delle finestre di avviso), sparisce dopo 3 secondi.</summary>
-        private void Messaggio(string testo)
-        {
-            DisplayTastierino.Text = testo;
-            DisplayTastierino.TextColor = Color.FromArgb("#D32F2F");
-            _timerMessaggio?.Stop();
-            _timerMessaggio = Dispatcher.CreateTimer();
-            _timerMessaggio.Interval = TimeSpan.FromSeconds(3);
-            _timerMessaggio.IsRepeating = false;
-            _timerMessaggio.Tick += (s, e) => AggiornaDisplay();
-            _timerMessaggio.Start();
         }
 
         // ══════════════ PAGAMENTO ══════════════
 
-        /// <summary>CONTANTI: se è stato digitato un importo è il contante ricevuto (calcolo resto).</summary>
+        /// <summary>CONTANTI dal popup CASSA: chiusura immediata, importo esatto (come il PC).</summary>
         private async void OnContanti(object sender, EventArgs e)
         {
             OverlayPagamento.IsVisible = false;
-            int versato = 0;
-            if (!_tastierino.Vuoto)
-            {
-                _tastierino.PrendiImporto(out versato);
-                if (versato < Carrello.TotaleCent)
-                {
-                    await DisplayAlert("IMPORTO INSUFFICIENTE",
-                        $"Richiesto: {Importi.Euro(Carrello.TotaleCent)}\nVersato: {Importi.Euro(versato)}", "OK");
-                    return;
-                }
-            }
-            await EmettiAsync(Pagamento.Contanti(versato));
+            if (Carrello.Vuoto) { await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!"); return; }
+            if (Carrello.TotaleCent <= 0) return;
+            await EseguiVenditaAsync(Pagamento.Contanti(), 0);
         }
 
+        /// <summary>PAG. ELETTRONICO dal popup CASSA: chiusura immediata su carta.</summary>
         private async void OnCarta(object sender, EventArgs e)
         {
             OverlayPagamento.IsVisible = false;
-            await EmettiAsync(Pagamento.Carta());
+            if (Carrello.Vuoto) { await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!"); return; }
+            if (Carrello.TotaleCent <= 0) return;
+            await EseguiVenditaAsync(Pagamento.Carta(), 0);
         }
 
-        /// <summary>MISTO: importo digitato (o chiesto) = parte in contanti, il resto su carta.</summary>
-        private async void OnMisto(object sender, EventArgs e)
+        /// <summary>Tocco sulla barra TOTALE: calcolo resto con banconote/monete, carta o misto.</summary>
+        private async void OnTotaleToccato(object sender, TappedEventArgs e)
         {
-            OverlayPagamento.IsVisible = false;
-            int totale = Carrello.TotaleCent;
-            if (!_tastierino.PrendiImporto(out int contanti))
+            if (Carrello.TotaleCent <= 0 || ContestoCassa.ServizioVendita.InCorso) return;
+            var esito = await CalcoloResto.Mostra(Carrello.TotaleEuro);
+            if (esito == null) return;
+
+            var pagamento = esito.Metodo switch
             {
-                string v = await DisplayPromptAsync("PAGAMENTO MISTO", $"Totale {Importi.Euro(totale)}\nParte pagata in CONTANTI (il resto su carta):",
-                    "Conferma", "Annulla", keyboard: Keyboard.Numeric);
-                if (v == null) return;
-                Importi.ProvaCentesimi(v, out contanti);
-            }
-            if (contanti <= 0 || contanti >= totale)
-            {
-                await DisplayAlert("PAGAMENTO MISTO", "La parte in contanti deve essere maggiore di zero e minore del totale.", "OK");
-                return;
-            }
-            await EmettiAsync(Pagamento.Misto(contanti));
+                MetodiPagamento.Misto => Pagamento.Misto(esito.ContantiCent),
+                MetodiPagamento.Carta => Pagamento.Carta(),
+                _ => Pagamento.Contanti(esito.RicevutoCent > Carrello.TotaleCent ? esito.RicevutoCent : 0)
+            };
+            await EseguiVenditaAsync(pagamento, esito.RestoCent);
         }
 
-        private async Task EmettiAsync(Pagamento pagamento)
+        private async Task EseguiVenditaAsync(Pagamento pagamento, int restoCent)
         {
             if (Carrello.Vuoto || ContestoCassa.ServizioVendita.InCorso) return;
 
@@ -601,25 +549,24 @@ namespace PosTouch.App.Pagine
 
             if (esito.Stato == StatoEsito.Fallito)
             {
-                await DisplayAlert(esito.Titolo, esito.Messaggio, "OK");
-                return; // carrello intatto: l'operatore può riprovare
+                await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
+                return; // scontrino intatto: l'operatore può riprovare
             }
 
-            Carrello.Svuota();
-            _tastierino.Cancella();
-            if (esito.RestoCent > 0) MostraResto(esito.RestoCent);
+            SvuotaScontrino();
+            if (restoCent > 0) MostraRestoConTimer(restoCent);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
-                await DisplayAlert("ATTENZIONE", esito.Messaggio, "OK");
+                await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
         }
 
-        /// <summary>Barra RESTO arancione per 15 secondi o fino al prossimo articolo (come sul PC).</summary>
-        private void MostraResto(int restoCent)
+        /// <summary>Barra RESTO arancione per 3 secondi (MostraRestoConTimer del PC).</summary>
+        private void MostraRestoConTimer(int restoCent)
         {
-            EtichettaResto.Text = Importi.Euro(restoCent);
+            EtichettaResto.Text = $"€ {restoCent / 100m:N2}";
             BarraResto.IsVisible = true;
             _timerResto?.Stop();
             _timerResto = Dispatcher.CreateTimer();
-            _timerResto.Interval = TimeSpan.FromSeconds(15);
+            _timerResto.Interval = TimeSpan.FromSeconds(3);
             _timerResto.IsRepeating = false;
             _timerResto.Tick += (s, e) => NascondiResto();
             _timerResto.Start();
@@ -636,11 +583,6 @@ namespace PosTouch.App.Pagine
             if (testo != null) TestoAttesa.Text = testo;
             Attesa.IsVisible = visibile;
         }
-
-        // ══════════════ UTILITÀ ══════════════
-
-        private static Color Colore(string hex, string predefinito)
-            => !string.IsNullOrWhiteSpace(hex) && Color.TryParse(hex.Trim(), out var c) ? c : Color.FromArgb(predefinito);
 
         private static void Tocco(View vista, Func<Task> azione)
         {

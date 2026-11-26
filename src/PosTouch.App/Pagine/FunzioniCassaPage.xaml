@@ -1,52 +1,34 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Come FunzioniCassaDialog del PC -->
+<!-- Copia di FunzioniCassaDialog del PC (500×600, sfondo #ECEFF1) -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PosTouch.App.Pagine.FunzioniCassaPage"
              NavigationPage.HasNavigationBar="False"
-             BackgroundColor="#ECEFF1">
+             BackgroundColor="#99000000">
     <Grid>
-        <Grid ColumnDefinitions="500,320" ColumnSpacing="30" HorizontalOptions="Center" Padding="0,20">
-            <Grid RowDefinitions="Auto,*,Auto">
+        <Border WidthRequest="500" HeightRequest="680" HorizontalOptions="Center" VerticalOptions="Center"
+                BackgroundColor="#ECEFF1" StrokeThickness="0">
+            <Grid RowDefinitions="Auto,*,Auto" Padding="20">
                 <Label Text="FUNZIONI FISCALI E GESTIONE CASSA" FontSize="20" FontAttributes="Bold" TextColor="#37474F"
-                       HorizontalOptions="Center" Margin="0,0,0,10" />
+                       HorizontalOptions="Center" Margin="0,0,0,20" />
                 <ScrollView Grid.Row="1">
                     <VerticalStackLayout>
-                        <Label Text="📊 RAPPORTI FISCALI" Style="{StaticResource Sezione}" Margin="0,0,0,6" />
-                        <Button Text="✅ CHIUSURA FISCALE (Z)" Style="{StaticResource TastoFunzione}" BackgroundColor="#4CAF50" Clicked="OnChiusura" />
-                        <Button Text="📋 LETTURA GIORNALIERA (X)" Style="{StaticResource TastoFunzione}" Clicked="OnLettura" />
-                        <Button Text="📊 RAPPORTO REPARTI (Lettura)" Style="{StaticResource TastoFunzione}" Clicked="OnRapportoReparti" />
+                        <Label Text="📊 RAPPORTI FISCALI" FontSize="16" FontAttributes="Bold" TextColor="#37474F" Margin="10,0,0,10" />
+                        <Button Text="✅ CHIUSURA FISCALE (Z)" Style="{StaticResource TastoFunzione}" BackgroundColor="#4CAF50" Margin="10" Clicked="OnChiusura" />
+                        <Button Text="📋 LETTURA GIORNALIERA (X)" Style="{StaticResource TastoFunzione}" Margin="10" Clicked="OnLettura" />
+                        <Button Text="📊 RAPPORTO REPARTI (Lettura)" Style="{StaticResource TastoFunzione}" Margin="10" Clicked="OnRapportoReparti" />
 
-                        <Label Text="🖨️ RISTAMPE" Style="{StaticResource Sezione}" />
-                        <Button Text="📄 ULTIMO SCONTRINO" Style="{StaticResource TastoFunzione}" Clicked="OnRistampa" />
-                        <Button Text="📄 PENULTIMO SCONTRINO" Style="{StaticResource TastoFunzione}" Clicked="OnRistampaPenultimo" />
+                        <Label Text="🖨️ RISTAMPE" FontSize="16" FontAttributes="Bold" TextColor="#37474F" Margin="10,20,0,10" />
+                        <Button Text="📄 ULTIMO SCONTRINO" Style="{StaticResource TastoFunzione}" Margin="10" Clicked="OnRistampa" />
+                        <Button Text="📄 PENULTIMO SCONTRINO" Style="{StaticResource TastoFunzione}" Margin="10" Clicked="OnRistampaPenultimo" />
 
-                        <Label Text="🔧 MANUTENZIONE RT" Style="{StaticResource Sezione}" />
-                        <Button Text="🔄 RESET RT (Sblocca scontrino aperto)" Style="{StaticResource TastoFunzione}" BackgroundColor="#F44336" Clicked="OnSblocca" />
+                        <Label Text="🔧 MANUTENZIONE RT" FontSize="16" FontAttributes="Bold" TextColor="#37474F" Margin="10,20,0,10" />
+                        <Button Text="🔄 RESET RT (Sblocca scontrino aperto)" Style="{StaticResource TastoFunzione}" BackgroundColor="#F44336" Margin="10" Clicked="OnSblocca" />
                     </VerticalStackLayout>
                 </ScrollView>
-                <Button Grid.Row="2" Text="CHIUDI" Style="{StaticResource TastoFunzione}" BackgroundColor="#607D8B" Margin="0,16,0,0" Clicked="OnChiudi" />
+                <Button Grid.Row="2" Text="CHIUDI" Style="{StaticResource TastoFunzione}" BackgroundColor="#607D8B" Margin="10,20,10,0" Clicked="OnChiudi" />
             </Grid>
-
-            <!-- Incassi registrati su questo tablet -->
-            <VerticalStackLayout Grid.Column="1" Margin="0,44,0,0">
-                <Label Text="💶 INCASSI DI OGGI" Style="{StaticResource Sezione}" Margin="0,0,0,6" />
-                <Border BackgroundColor="White" StrokeThickness="0" Padding="16">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
-                        <Label Text="Scontrini" FontSize="17" />
-                        <Label x:Name="TotScontrini" Grid.Column="1" FontSize="17" FontAttributes="Bold" />
-                        <Label Grid.Row="1" Text="Contanti" FontSize="17" />
-                        <Label x:Name="TotContanti" Grid.Row="1" Grid.Column="1" FontSize="17" FontAttributes="Bold" />
-                        <Label Grid.Row="2" Text="Pag. elettronico" FontSize="17" />
-                        <Label x:Name="TotCarta" Grid.Row="2" Grid.Column="1" FontSize="17" FontAttributes="Bold" />
-                        <Label Grid.Row="3" Text="TOTALE" FontSize="20" FontAttributes="Bold" />
-                        <Label x:Name="TotTotale" Grid.Row="3" Grid.Column="1" FontSize="20" FontAttributes="Bold" />
-                    </Grid>
-                </Border>
-                <Label Text="Vendite registrate su questo dispositivo." FontSize="12" TextColor="#666666" Margin="0,6,0,0" />
-            </VerticalStackLayout>
-        </Grid>
+        </Border>
 
         <Grid x:Name="Attesa" IsVisible="False" BackgroundColor="#99000000">
             <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="12">

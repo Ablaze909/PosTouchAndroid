@@ -1,65 +1,144 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Come ProdottoDialogTouch del PC -->
+<!-- Copia di ProdottoDialogTouch del PC (a tutto schermo, bordo nero 3px, form a 3 colonne) -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.ProdottoPage"
-             NavigationPage.HasNavigationBar="False">
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="White">
+    <ContentPage.Resources>
+        <Style x:Key="Etichetta" TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextColor" Value="#1A1A1A" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="Campo" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="#F5F5F5" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 4" />
+            <Setter Property="HeightRequest" Value="44" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style x:Key="TastoScelta" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="#F5F5F5" />
+            <Setter Property="TextColor" Value="#333333" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HeightRequest" Value="44" />
+            <Setter Property="BorderColor" Value="#E0E0E0" />
+            <Setter Property="BorderWidth" Value="2" />
+            <Setter Property="Padding" Value="2,0" />
+        </Style>
+    </ContentPage.Resources>
+
     <Border Stroke="Black" StrokeThickness="3" BackgroundColor="White">
         <Grid RowDefinitions="Auto,*,Auto" Padding="30,20,30,15">
-            <Label x:Name="Titolo" Text="➕ NUOVO PRODOTTO" Style="{StaticResource TitoloDialog}" Margin="0,0,0,10" />
+            <!-- titolo + ATTIVO -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,15">
+                <Label x:Name="Titolo" Text="➕ NUOVO PRODOTTO" FontSize="26" FontAttributes="Bold" TextColor="Black" />
+                <HorizontalStackLayout x:Name="PannelloAttivo" Grid.Column="1" VerticalOptions="Center" Spacing="8" IsVisible="False">
+                    <Label x:Name="TestoAttivo" Text="ATTIVO" FontSize="13" FontAttributes="Bold" TextColor="#4CAF50" VerticalOptions="Center" />
+                    <Switch x:Name="SwAttivo" OnColor="#4CAF50" Toggled="OnAttivoCambiato" />
+                </HorizontalStackLayout>
+            </Grid>
 
             <ScrollView Grid.Row="1">
-                <Grid ColumnDefinitions="*,20,*">
+                <Grid ColumnDefinitions="*,20,*,20,280">
+                    <!-- ═══ COLONNA 1: dati principali ═══ -->
                     <VerticalStackLayout>
-                        <Label Text="Descrizione (stampata sullo scontrino)" Style="{StaticResource Campo}" />
-                        <Entry x:Name="CampoDescrizione" MaxLength="38" TextTransform="Uppercase" TextChanged="OnAnteprima" />
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Label Text="Descrizione *" Style="{StaticResource Etichetta}" />
+                        <Border Style="{StaticResource Campo}">
+                            <Entry x:Name="CampoDescrizione" FontSize="16" MaxLength="38" TextTransform="Uppercase" BackgroundColor="Transparent" TextChanged="OnAnteprima" />
+                        </Border>
+                        <Grid ColumnDefinitions="*,12,*">
                             <VerticalStackLayout>
-                                <Label Text="Prezzo €" Style="{StaticResource Campo}" />
-                                <Entry x:Name="CampoPrezzo" Keyboard="Numeric" TextChanged="OnAnteprima" />
+                                <Label Text="Prezzo vendita (€) *" Style="{StaticResource Etichetta}" />
+                                <Border Style="{StaticResource Campo}">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnPrezzo" /></Border.GestureRecognizers>
+                                    <Label x:Name="TestoPrezzo" Text="Tocca per digitare" FontSize="16" TextColor="#BDBDBD" VerticalOptions="Center" />
+                                </Border>
                             </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Categoria" Style="{StaticResource Campo}" />
-                                <Picker x:Name="SceltaCategoria" ItemDisplayBinding="{Binding Nome}" />
+                            <VerticalStackLayout Grid.Column="2">
+                                <Label Text="Costo acquisto (€)" Style="{StaticResource Etichetta}" />
+                                <Border Style="{StaticResource Campo}">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCosto" /></Border.GestureRecognizers>
+                                    <Label x:Name="TestoCosto" Text="Per margini" FontSize="16" TextColor="#BDBDBD" VerticalOptions="Center" />
+                                </Border>
                             </VerticalStackLayout>
                         </Grid>
-                        <Label Text="Barcode (si può leggere con lo scanner)" Style="{StaticResource Campo}" />
-                        <Entry x:Name="CampoBarcode" Keyboard="Numeric" />
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
-                            <Label Text="⭐ Mostra nei PREFERITI (🏠)" FontSize="15" FontAttributes="Bold" VerticalOptions="Center" />
-                            <Switch x:Name="SwPreferito" Grid.Column="1" OnColor="#4CAF50" />
+                        <Label x:Name="TestoMargine" Text="💎 Margine: -- €" FontSize="14" FontAttributes="Bold" TextColor="#2E7D32" Margin="0,0,0,12" />
+
+                        <Label Text="Barcode / EAN (opzionale)" Style="{StaticResource Etichetta}" />
+                        <Grid ColumnDefinitions="*,6,50">
+                            <Border Style="{StaticResource Campo}">
+                                <Entry x:Name="CampoBarcode" FontSize="16" Keyboard="Numeric" BackgroundColor="Transparent" />
+                            </Border>
+                            <Button Grid.Column="2" Text="🔢" FontSize="20" BackgroundColor="#2196F3" CornerRadius="4" HeightRequest="44" VerticalOptions="Start" Clicked="OnTastieraBarcode" />
                         </Grid>
                     </VerticalStackLayout>
 
+                    <!-- ═══ COLONNA 2: categoria e aspetto ═══ -->
                     <VerticalStackLayout Grid.Column="2">
-                        <Label Text="Colore tasto" Style="{StaticResource Campo}" />
-                        <ctl:SceltaColore x:Name="Colore" />
-                        <Label Text="Colore testo" Style="{StaticResource Campo}" />
-                        <Picker x:Name="SceltaTesto" SelectedIndexChanged="OnAnteprima">
-                            <Picker.Items>
-                                <x:String>Bianco</x:String>
-                                <x:String>Nero</x:String>
-                            </Picker.Items>
-                        </Picker>
-                        <Label Text="Anteprima" Style="{StaticResource Campo}" Margin="0,14,0,4" />
-                        <Border x:Name="Anteprima" StrokeThickness="0" HeightRequest="100" WidthRequest="100" HorizontalOptions="Start">
+                        <Label Text="Categoria *" Style="{StaticResource Etichetta}" />
+                        <Border Style="{StaticResource Campo}">
+                            <Picker x:Name="SceltaCategoria" FontSize="16" ItemDisplayBinding="{Binding Nome}" BackgroundColor="Transparent" />
+                        </Border>
+
+                        <Label Text="Colore bottone" Style="{StaticResource Etichetta}" />
+                        <Grid ColumnDefinitions="*,8,60" Margin="0,0,0,12">
+                            <Border Style="{StaticResource Campo}" Margin="0">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColore" /></Border.GestureRecognizers>
+                                <Label x:Name="TestoColore" FontSize="16" VerticalOptions="Center" />
+                            </Border>
+                            <Border x:Name="AnteprimaColore" Grid.Column="2" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 4">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColore" /></Border.GestureRecognizers>
+                            </Border>
+                        </Grid>
+
+                        <Label Text="Colore testo tasto" Style="{StaticResource Etichetta}" />
+                        <Grid ColumnDefinitions="*,6,*,6,*,6,*" Margin="0,0,0,12">
+                            <Button x:Name="BtnBianco" Text="⬜ Bianco" Style="{StaticResource TastoScelta}" Clicked="OnColoreTestoBianco" />
+                            <Button x:Name="BtnNero" Grid.Column="2" Text="⬛ Nero" Style="{StaticResource TastoScelta}" Clicked="OnColoreTestoNero" />
+                            <Button x:Name="BtnGiallo" Grid.Column="4" Text="🟡 Giallo" Style="{StaticResource TastoScelta}" Clicked="OnColoreTestoGiallo" />
+                            <Button x:Name="BtnAltro" Grid.Column="6" Text="🎨 Altro" Style="{StaticResource TastoScelta}" Clicked="OnColoreTestoAltro" />
+                        </Grid>
+
+                        <Label Text="Dimensione testo tasto" Style="{StaticResource Etichetta}" />
+                        <Grid ColumnDefinitions="*,6,*,6,*,6,*" Margin="0,0,0,12">
+                            <Button x:Name="BtnFont10" Text="A  Piccolo" FontSize="10" Style="{StaticResource TastoScelta}" HeightRequest="54" Clicked="OnFont10" />
+                            <Button x:Name="BtnFont12" Grid.Column="2" Text="A  Medio" FontSize="13" Style="{StaticResource TastoScelta}" HeightRequest="54" Clicked="OnFont12" />
+                            <Button x:Name="BtnFont14" Grid.Column="4" Text="A  Grande" FontSize="16" Style="{StaticResource TastoScelta}" HeightRequest="54" Clicked="OnFont14" />
+                            <Button x:Name="BtnFont16" Grid.Column="6" Text="A  XL" FontSize="19" Style="{StaticResource TastoScelta}" HeightRequest="54" Clicked="OnFont16" />
+                        </Grid>
+
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox x:Name="ChkPreferito" Color="#FF9800" CheckedChanged="OnAnteprima" />
+                            <Label Text="⭐ Aggiungi ai preferiti" FontSize="15" FontAttributes="Bold" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- ═══ COLONNA 3: anteprima ═══ -->
+                    <VerticalStackLayout Grid.Column="4">
+                        <Label Text="Anteprima Tasto POS" FontSize="12" TextColor="#757575" Margin="0,0,0,4" />
+                        <Border x:Name="Anteprima" WidthRequest="100" HeightRequest="100" StrokeThickness="0" HorizontalOptions="Start">
                             <Grid RowDefinitions="*,Auto">
-                                <Label x:Name="AnteprimaTesto" FontAttributes="Bold" FontSize="13" MaxLines="4" LineBreakMode="WordWrap"
+                                <Label x:Name="AnteprimaNome" Text="PRODOTTO" FontSize="12" FontAttributes="Bold" LineBreakMode="WordWrap"
                                        HorizontalTextAlignment="Center" VerticalTextAlignment="Center" Margin="4" />
                                 <Grid Grid.Row="1" BackgroundColor="#40000000" Padding="4,2">
-                                    <Label x:Name="AnteprimaPrezzo" FontSize="14" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                    <Label x:Name="AnteprimaPrezzo" Text="€ 0,00" FontSize="14" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                                 </Grid>
                             </Grid>
                         </Border>
+                        <Label Text="Così apparirà&#10;nel POS cassa" FontSize="11" TextColor="#999999" Margin="0,6,0,0" />
                     </VerticalStackLayout>
                 </Grid>
             </ScrollView>
 
-            <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="12" Margin="0,15,0,0">
-                <Button x:Name="BtnElimina" Text="🗑️ ELIMINA" BackgroundColor="#F44336" FontSize="18" HeightRequest="60" Clicked="OnElimina" />
-                <Button Grid.Column="1" Text="✖ ANNULLA" Style="{StaticResource TastoAnnulla}" Clicked="OnAnnulla" />
-                <Button Grid.Column="2" Text="✔ SALVA" Style="{StaticResource TastoSalva}" Clicked="OnSalva" />
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,140,10,140" Margin="0,15,0,0">
+                <Button x:Name="BtnElimina" Text="🗑️ ELIMINA" WidthRequest="140" HeightRequest="50" FontSize="16" BackgroundColor="#F44336"
+                        CornerRadius="8" IsVisible="False" Clicked="OnElimina" />
+                <Button Grid.Column="2" Text="❌ ANNULLA" HeightRequest="50" FontSize="16" BackgroundColor="#9E9E9E" CornerRadius="8" Clicked="OnAnnulla" />
+                <Button Grid.Column="4" Text="✓ SALVA" HeightRequest="50" FontSize="16" BackgroundColor="#4CAF50" CornerRadius="8" Clicked="OnSalva" />
             </Grid>
         </Grid>
     </Border>

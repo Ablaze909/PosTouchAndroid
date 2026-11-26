@@ -2,12 +2,13 @@ using System.ComponentModel;
 
 namespace PosTouch.Core.Modelli
 {
-    public enum TipoRiga { Prodotto, Sconto }
+    /// <summary>Stessi tipi di riga del PC. Subtotale e Separatore sono solo visivi (blocco sconto).</summary>
+    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore }
 
     /// <summary>
     /// Riga del carrello. Stessa semantica della versione Windows:
-    /// PrezzoCentesimi = prezzo unitario; per una riga Sconto è negativo (sconto a valore)
-    /// oppure calcolato dalla percentuale (ScontoPercentualeCent, es. 1050 = 10,50%).
+    /// PrezzoCentesimi = prezzo unitario; per una riga Sconto è negativo.
+    /// ScontoPercentualeCent: percentuale × 100 (es. 1050 = 10,50%) per gli sconti percentuali.
     /// </summary>
     public class RigaScontrino : INotifyPropertyChanged
     {
@@ -36,37 +37,44 @@ namespace PosTouch.Core.Modelli
             set { _quantita = value; Notifica(); }
         }
 
+        // ── stato visivo della lista (impostato da Carrello / pagina) ──
         private bool _alternata;
-        /// <summary>Riga dispari della lista (sfondo alternato come sul PC). Impostata dal Carrello.</summary>
         public bool Alternata
         {
             get => _alternata;
-            set
-            {
-                if (_alternata == value) return;
-                _alternata = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Alternata)));
-            }
+            set { if (_alternata != value) { _alternata = value; Notifica(); } }
         }
 
-        public bool IsSconto => Tipo == TipoRiga.Sconto;
-        public bool IsProdotto => Tipo == TipoRiga.Prodotto;
+        private bool _selezionata;
+        public bool Selezionata
+        {
+            get => _selezionata;
+            set { if (_selezionata != value) { _selezionata = value; Notifica(); } }
+        }
 
-        /// <summary>Importo totale della riga in euro (prezzo × quantità).</summary>
+        /// <summary>Sfondo come sul PC: alternato bianco/#EEEEEE, selezionata #E0E0E0.</summary>
+        public string ColoreSfondo => Selezionata ? "#E0E0E0" : (Alternata ? "#EEEEEE" : "#FFFFFF");
+
+        public bool IsProdotto => Tipo == TipoRiga.Prodotto;
+        public bool IsSconto => Tipo == TipoRiga.Sconto;
+        public bool IsSubtotale => Tipo == TipoRiga.Subtotale;
+        public bool IsSeparatore => Tipo == TipoRiga.Separatore;
+        /// <summary>Conta nel totale (articoli e sconti; subtotale e separatori no).</summary>
+        public bool ContaNelTotale => Tipo == TipoRiga.Prodotto || Tipo == TipoRiga.Sconto;
+
         public decimal ImportoEuro => PrezzoCentesimi * Quantita / 100m;
         public int ImportoCentesimi => (int)System.Math.Round(PrezzoCentesimi * Quantita, System.MidpointRounding.AwayFromZero);
+        public decimal PrezzoEuro => PrezzoCentesimi / 100m;
 
-        public string QuantitaDisplay => Tipo == TipoRiga.Sconto ? "" :
+        public string QuantitaDisplay => Tipo != TipoRiga.Prodotto ? "" :
             (Quantita == decimal.Truncate(Quantita) ? Quantita.ToString("0") : Quantita.ToString("0.###"));
-        public string ImportoDisplay => $"€ {ImportoEuro:N2}";
+        public string ImportoDisplay => Tipo == TipoRiga.Separatore ? "" : $"€ {ImportoEuro:F2}".Replace('.', ',');
 
         private void Notifica()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PrezzoCentesimi)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Quantita)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ImportoEuro)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ImportoDisplay)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QuantitaDisplay)));
+            foreach (var p in new[] { nameof(PrezzoCentesimi), nameof(Quantita), nameof(ImportoEuro), nameof(ImportoDisplay),
+                                      nameof(QuantitaDisplay), nameof(Alternata), nameof(Selezionata), nameof(ColoreSfondo) })
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
         }
 
         public RigaScontrino Copia()

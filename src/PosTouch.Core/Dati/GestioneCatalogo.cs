@@ -9,7 +9,7 @@ namespace PosTouch.Core.Dati
     /// <summary>
     /// Creazione e modifica di categorie (con reparto RT) e articoli, direttamente sul tablet.
     /// Scrive nel catalogo con lo schema di pos.db; se il catalogo non esiste lo crea vuoto.
-    /// "Elimina" nasconde (Attiva/Attivo = 0) come fa il PC, così lo storico vendite resta coerente.
+    /// "Nascondi" = Attiva/Attivo a 0 (come il PC); "Elimina" cancella davvero.
     /// Dopo ogni modifica ricarica il <see cref="Catalogo"/> in memoria.
     /// </summary>
     public class GestioneCatalogo
@@ -40,54 +40,77 @@ namespace PosTouch.Core.Dati
                     using var r = chk.ExecuteReader();
                     if (r.Read())
                     {
-                        if (c.Id == 0 && r.GetInt32(1) == 0)
-                        {
-                            // Esiste nascosta con lo stesso nome: la riattivo invece di crearne un'altra
-                            c.Id = r.GetInt32(0);
-                        }
-                        else throw new ArgumentException($"Esiste già una categoria \"{c.Nome.Trim()}\".");
+                        throw new ArgumentException($"Esiste già una categoria \"{c.Nome.Trim()}\"" +
+                            (r.GetInt32(1) == 0 ? " (nascosta)." : "."));
                     }
                 }
 
                 using var cmd = conn.CreateCommand();
                 if (c.Id == 0)
                 {
-                    cmd.CommandText = @"INSERT INTO Categorie (Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Ordine, Attiva)
-                                        VALUES ($n, $rep, $iva, $col, $colT, $ord, 1)";
+                    cmd.CommandText = @"INSERT INTO Categorie (Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva)
+                                        VALUES ($n, $rep, $iva, $col, $colT, $ico, (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie), $att)";
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Categorie SET Nome=$n, RepartoFiscale=$rep, AliquotaIVA=$iva, Colore=$col,
-                                        ColoreTestoCategoria=$colT, Ordine=$ord, Attiva=1 WHERE Id=$id";
+                                        ColoreTestoCategoria=$colT, Icona=$ico, Attiva=$att WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", c.Id);
                 }
                 cmd.Parameters.AddWithValue("$n", c.Nome.Trim());
                 cmd.Parameters.AddWithValue("$rep", c.RepartoFiscale);
                 cmd.Parameters.AddWithValue("$iva", c.AliquotaIVA);
                 cmd.Parameters.AddWithValue("$col", c.Colore ?? "#2196F3");
-                cmd.Parameters.AddWithValue("$colT", c.ColoreTesto ?? "#FFFFFF");
-                cmd.Parameters.AddWithValue("$ord", c.Ordine);
+                cmd.Parameters.AddWithValue("$colT", c.ColoreTesto ?? "#000000");
+                cmd.Parameters.AddWithValue("$ico", c.Icona ?? "");
+                cmd.Parameters.AddWithValue("$att", c.Attiva ? 1 : 0);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Categoria salvata: {c.Nome} (reparto {c.RepartoFiscale}, IVA {c.AliquotaIVA}%)");
         }
 
-        /// <summary>Nasconde la categoria. Rifiuta se contiene articoli attivi.</summary>
+        /// <summary>Elimina la categoria. Rifiuta se contiene articoli (anche nascosti).</summary>
         public void EliminaCategoria(int id)
         {
             Esegui(conn =>
             {
                 using (var chk = conn.CreateCommand())
                 {
-                    chk.CommandText = "SELECT COUNT(*) FROM Prodotti WHERE CategoriaId=$id AND IFNULL(Attivo,1)=1";
+                    chk.CommandText = "SELECT COUNT(*) FROM Prodotti WHERE CategoriaId=$id";
                     chk.Parameters.AddWithValue("$id", id);
                     long n = (long)chk.ExecuteScalar();
                     if (n > 0) throw new InvalidOperationException($"La categoria contiene {n} articoli: eliminarli o spostarli prima.");
                 }
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "UPDATE Categorie SET Attiva=0 WHERE Id=$id";
+                cmd.CommandText = "DELETE FROM Categorie WHERE Id=$id";
                 cmd.Parameters.AddWithValue("$id", id);
                 cmd.ExecuteNonQuery();
+            });
+        }
+
+        /// <summary>Sposta la categoria su (-1) o giù (+1) nell'ordine (frecce ▲▼ del Back office).</summary>
+        public void SpostaCategoria(int id, int direzione)
+        {
+            Esegui(conn =>
+            {
+                var ordine = new List<int>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT Id FROM Categorie WHERE Id < 9000 ORDER BY IFNULL(Ordine,0), Nome";
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read()) ordine.Add(r.GetInt32(0));
+                }
+                int i = ordine.IndexOf(id), j = i + direzione;
+                if (i < 0 || j < 0 || j >= ordine.Count) return;
+                (ordine[i], ordine[j]) = (ordine[j], ordine[i]);
+                for (int k = 0; k < ordine.Count; k++)
+                {
+                    using var up = conn.CreateCommand();
+                    up.CommandText = "UPDATE Categorie SET Ordine=$o WHERE Id=$id";
+                    up.Parameters.AddWithValue("$o", k + 1);
+                    up.Parameters.AddWithValue("$id", ordine[k]);
+                    up.ExecuteNonQuery();
+                }
             });
         }
 
@@ -105,7 +128,7 @@ namespace PosTouch.Core.Dati
                 if (barcode.Length > 0)
                 {
                     using var chk = conn.CreateCommand();
-                    chk.CommandText = "SELECT Descrizione FROM Prodotti WHERE Barcode=$b AND Id<>$id AND IFNULL(Attivo,1)=1";
+                    chk.CommandText = "SELECT Descrizione FROM Prodotti WHERE Barcode=$b AND Id<>$id";
                     chk.Parameters.AddWithValue("$b", barcode);
                     chk.Parameters.AddWithValue("$id", p.Id);
                     if (chk.ExecuteScalar() is string altro)
@@ -116,14 +139,14 @@ namespace PosTouch.Core.Dati
                 if (p.Id == 0)
                 {
                     p.Codice = ProssimoCodice(conn);
-                    cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CategoriaId, Colore, ColoreTestoTasto, IsPreferito, Attivo)
-                                        VALUES ($cod, $b, $d, $pr, $cat, $col, $colT, $pref, 1)";
+                    cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo)
+                                        VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att)";
                     cmd.Parameters.AddWithValue("$cod", p.Codice);
                 }
                 else
                 {
-                    cmd.CommandText = @"UPDATE Prodotti SET Barcode=$b, Descrizione=$d, PrezzoCentesimi=$pr, CategoriaId=$cat,
-                                        Colore=$col, ColoreTestoTasto=$colT, IsPreferito=$pref, Attivo=1 WHERE Id=$id";
+                    cmd.CommandText = @"UPDATE Prodotti SET Barcode=$b, Descrizione=$d, PrezzoCentesimi=$pr, CostoCentesimi=$costo, CategoriaId=$cat,
+                                        Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", p.Id);
                 }
                 cmd.Parameters.AddWithValue("$b", barcode);
@@ -133,9 +156,61 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$col", p.Colore ?? "");
                 cmd.Parameters.AddWithValue("$colT", p.ColoreTesto ?? "#FFFFFF");
                 cmd.Parameters.AddWithValue("$pref", p.IsPreferito ? 1 : 0);
+                cmd.Parameters.AddWithValue("$costo", p.CostoCentesimi);
+                cmd.Parameters.AddWithValue("$font", p.DimensioneFontTasto);
+                cmd.Parameters.AddWithValue("$att", p.Attivo ? 1 : 0);
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Articolo salvato: {p.Descrizione} €{p.PrezzoCentesimi / 100m:F2} cat {p.CategoriaId}");
+        }
+
+        /// <summary>👁 Nascondi / 👁 Mostra di più articoli insieme (barra azioni del Back office).</summary>
+        public void ImpostaAttivo(IEnumerable<int> ids, bool attivo)
+        {
+            var lista = new List<int>(ids);
+            Esegui(conn =>
+            {
+                foreach (int id in lista)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "UPDATE Prodotti SET Attivo=$a WHERE Id=$id";
+                    cmd.Parameters.AddWithValue("$a", attivo ? 1 : 0);
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            });
+        }
+
+        /// <summary>📂 Sposta più articoli in un'altra categoria.</summary>
+        public void SpostaProdotti(IEnumerable<int> ids, int categoriaId)
+        {
+            var lista = new List<int>(ids);
+            Esegui(conn =>
+            {
+                foreach (int id in lista)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "UPDATE Prodotti SET CategoriaId=$c WHERE Id=$id";
+                    cmd.Parameters.AddWithValue("$c", categoriaId);
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            });
+        }
+
+        public void EliminaProdotti(IEnumerable<int> ids)
+        {
+            var lista = new List<int>(ids);
+            Esegui(conn =>
+            {
+                foreach (int id in lista)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "DELETE FROM Prodotti WHERE Id=$id";
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            });
         }
 
         public void EliminaProdotto(int id)
@@ -143,7 +218,7 @@ namespace PosTouch.Core.Dati
             Esegui(conn =>
             {
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "UPDATE Prodotti SET Attivo=0 WHERE Id=$id";
+                cmd.CommandText = "DELETE FROM Prodotti WHERE Id=$id";
                 cmd.Parameters.AddWithValue("$id", id);
                 cmd.ExecuteNonQuery();
             });
@@ -218,6 +293,9 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Prodotti", "Barcode", "TEXT");
             AggiungiColonna(conn, "Prodotti", "ColoreTestoTasto", "TEXT DEFAULT '#FFFFFF'");
             AggiungiColonna(conn, "Prodotti", "Attivo", "INTEGER DEFAULT 1");
+            AggiungiColonna(conn, "Prodotti", "CostoCentesimi", "INTEGER DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "DimensioneFontTasto", "INTEGER DEFAULT 12");
+            AggiungiColonna(conn, "Categorie", "Icona", "TEXT DEFAULT ''");
         }
 
         private static void AggiungiColonna(SqliteConnection conn, string tabella, string colonna, string tipo)

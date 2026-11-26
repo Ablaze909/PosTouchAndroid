@@ -33,6 +33,7 @@ namespace PosTouch.App.Servizi
             ArchivioImpostazioni = new ArchivioImpostazioni(cartellaDati);
             Impostazioni = ArchivioImpostazioni.Carica();
             ImpostazioniFiscali.Correnti = Impostazioni.ComeImpostazioniFiscali();
+            LogManager.SetLivelloMinimo(Impostazioni.LivelloLog);
 
             Catalogo = new Catalogo(cartellaDati);
             try { Catalogo.Carica(); }

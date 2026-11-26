@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copia di BackOffice.xaml del PC: schede PRODOTTI e CATEGORIE -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:PosTouch.App.Pagine"
+             xmlns:conv="clr-namespace:PosTouch.App.Convertitori"
+             x:Class="PosTouch.App.Pagine.BackOfficePage"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="#F5F5F5">
+    <ContentPage.Resources>
+        <conv:ColoreConverter x:Key="Colore" />
+        <Style x:Key="Intest" TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="#555555" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+        <Style x:Key="Cella" TargetType="Label">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="LineBreakMode" Value="TailTruncation" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="70,Auto,*">
+        <!-- HEADER -->
+        <Grid BackgroundColor="#2196F3" Padding="20,0" ColumnDefinitions="*,Auto">
+            <HorizontalStackLayout VerticalOptions="Center" Spacing="15">
+                <Label Text="📊 BACK OFFICE" FontSize="28" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                <Border BackgroundColor="#1976D2" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,4" VerticalOptions="Center">
+                    <Label x:Name="Contatori" Text="0 Prodotti • 0 Categorie" FontSize="14" TextColor="White" />
+                </Border>
+            </HorizontalStackLayout>
+            <Button Grid.Column="1" Text="CHIUDI" WidthRequest="120" HeightRequest="45" FontSize="16" BackgroundColor="#1976D2"
+                    CornerRadius="8" VerticalOptions="Center" Clicked="OnChiudi" />
+        </Grid>
+
+        <!-- SCHEDE -->
+        <HorizontalStackLayout Grid.Row="1" Padding="5,10,5,0" Spacing="0">
+            <Border x:Name="SchedaProdotti" StrokeThickness="0" StrokeShape="RoundRectangle 8,8,0,0" Padding="25,15" Margin="5,0">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSchedaProdotti" /></Border.GestureRecognizers>
+                <Label x:Name="TestoSchedaProdotti" Text="🛍️ PRODOTTI" FontSize="16" FontAttributes="Bold" />
+            </Border>
+            <Border x:Name="SchedaCategorie" StrokeThickness="0" StrokeShape="RoundRectangle 8,8,0,0" Padding="25,15" Margin="5,0">
+                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSchedaCategorie" /></Border.GestureRecognizers>
+                <Label x:Name="TestoSchedaCategorie" Text="🏷️ CATEGORIE" FontSize="16" FontAttributes="Bold" />
+            </Border>
+        </HorizontalStackLayout>
+
+        <!-- ═══ PRODOTTI ═══ -->
+        <Grid x:Name="PannelloProdotti" Grid.Row="2" BackgroundColor="White" Margin="5,0,5,5" RowDefinitions="Auto,Auto,Auto,Auto,*">
+            <!-- filtri -->
+            <Grid Padding="15,15,15,8" ColumnDefinitions="260,*,Auto" ColumnSpacing="10">
+                <Border BackgroundColor="#E3F2FD" StrokeThickness="0" StrokeShape="RoundRectangle 8" Padding="10,0">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Text="📂 Categoria" FontSize="13" TextColor="#1565C0" FontAttributes="Bold" VerticalOptions="Center" Margin="0,0,8,0" />
+                        <Picker x:Name="FiltroCategoria" Grid.Column="1" BackgroundColor="Transparent" ItemDisplayBinding="{Binding Nome}"
+                                SelectedIndexChanged="OnFiltroCambiato" />
+                    </Grid>
+                </Border>
+                <Border Grid.Column="1" BackgroundColor="#F5F5F5" StrokeThickness="0" StrokeShape="RoundRectangle 8" Padding="10,0">
+                    <Entry x:Name="CampoRicerca" Placeholder="🔍 Cerca prodotto..." BackgroundColor="Transparent" TextChanged="OnFiltroCambiato" />
+                </Border>
+                <Button Grid.Column="2" Text="➕ NUOVO" WidthRequest="130" HeightRequest="50" FontSize="18" BackgroundColor="#4CAF50"
+                        CornerRadius="8" Clicked="OnNuovoProdotto" />
+            </Grid>
+            <!-- chip -->
+            <HorizontalStackLayout Grid.Row="1" Padding="15,0,15,8" Spacing="10">
+                <Border x:Name="ChipPreferiti" BackgroundColor="#FFF8E1" StrokeThickness="2" Stroke="Transparent" StrokeShape="RoundRectangle 20" Padding="14,6">
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnChipPreferiti" /></Border.GestureRecognizers>
+                    <Label Text="⭐ Preferiti" FontSize="13" FontAttributes="Bold" TextColor="#F57F17" />
+                </Border>
+                <Border x:Name="ChipNascosti" BackgroundColor="#FFEBEE" StrokeThickness="2" Stroke="Transparent" StrokeShape="RoundRectangle 20" Padding="14,6">
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnChipNascosti" /></Border.GestureRecognizers>
+                    <Label Text="🚫 Nascosti" FontSize="13" FontAttributes="Bold" TextColor="#C62828" />
+                </Border>
+                <Border BackgroundColor="#FFF3E0" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,0" WidthRequest="240">
+                    <Entry x:Name="CampoBarcode" Placeholder="📦 Cerca barcode..." FontSize="14" BackgroundColor="Transparent" TextChanged="OnFiltroCambiato" />
+                </Border>
+            </HorizontalStackLayout>
+            <!-- azioni sulle righe selezionate -->
+            <Grid x:Name="BarraAzioni" Grid.Row="2" BackgroundColor="#E3F2FD" Margin="15,0,15,6" Padding="12,6" IsVisible="False"
+                  ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                <Label x:Name="TestoSelezionati" Text="0 selezionati" FontSize="14" FontAttributes="Bold" TextColor="#1565C0" VerticalOptions="Center" />
+                <Button Grid.Column="1" Text="📂 Sposta" BackgroundColor="#1976D2" CornerRadius="6" FontSize="14" Clicked="OnSposta" />
+                <Button Grid.Column="2" Text="👁 Nascondi" BackgroundColor="#757575" CornerRadius="6" FontSize="14" Clicked="OnNascondi" />
+                <Button Grid.Column="3" Text="👁 Mostra" BackgroundColor="#43A047" CornerRadius="6" FontSize="14" Clicked="OnMostra" />
+                <Button Grid.Column="4" Text="🗑️ Elimina" BackgroundColor="#E53935" CornerRadius="6" FontSize="14" Clicked="OnElimina" />
+            </Grid>
+            <!-- intestazione colonne -->
+            <Grid Grid.Row="3" BackgroundColor="#FAFAFA" Padding="15,10" ColumnDefinitions="40,80,*,90,90,150,50,55,140" ColumnSpacing="6">
+                <Label Text="☐" Style="{StaticResource Intest}" HorizontalTextAlignment="Center">
+                    <Label.GestureRecognizers><TapGestureRecognizer Tapped="OnSelezionaTutti" /></Label.GestureRecognizers>
+                </Label>
+                <Label Grid.Column="1" Text="Codice" Style="{StaticResource Intest}" />
+                <Label Grid.Column="2" Text="Descrizione" Style="{StaticResource Intest}" />
+                <Label Grid.Column="3" Text="Prezzo" Style="{StaticResource Intest}" HorizontalTextAlignment="End" />
+                <Label Grid.Column="4" Text="Margine" Style="{StaticResource Intest}" HorizontalTextAlignment="End" />
+                <Label Grid.Column="5" Text="Categoria" Style="{StaticResource Intest}" />
+                <Label Grid.Column="6" Text="Rep" Style="{StaticResource Intest}" HorizontalTextAlignment="Center" />
+                <Label Grid.Column="7" Text="IVA" Style="{StaticResource Intest}" HorizontalTextAlignment="Center" />
+                <Label Grid.Column="8" Text="Barcode" Style="{StaticResource Intest}" />
+            </Grid>
+            <CollectionView x:Name="ListaProdotti" Grid.Row="4" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="Nessun prodotto" HorizontalTextAlignment="Center" VerticalOptions="Center" TextColor="#999999" FontSize="16" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:VoceProdotto">
+                        <Grid Padding="15,12" ColumnDefinitions="40,80,*,90,90,150,50,55,140" ColumnSpacing="6"
+                              BackgroundColor="{Binding Sfondo, Converter={StaticResource Colore}}" Opacity="{Binding Opacita}">
+                            <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnProdottoToccato" /></Grid.GestureRecognizers>
+                            <Label Text="{Binding Spunta}" FontSize="18" HorizontalTextAlignment="Center" VerticalOptions="Center">
+                                <Label.GestureRecognizers><TapGestureRecognizer Tapped="OnSpuntaToccata" /></Label.GestureRecognizers>
+                            </Label>
+                            <Label Grid.Column="1" Text="{Binding P.Codice}" Style="{StaticResource Cella}" TextColor="#757575" />
+                            <Label Grid.Column="2" Text="{Binding Titolo}" Style="{StaticResource Cella}" FontAttributes="Bold" />
+                            <Label Grid.Column="3" Text="{Binding P.PrezzoDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                            <Label Grid.Column="4" Text="{Binding P.MargineDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" TextColor="#2E7D32" />
+                            <Label Grid.Column="5" Text="{Binding P.CategoriaNome}" Style="{StaticResource Cella}" />
+                            <Label Grid.Column="6" Text="{Binding P.RepartoFiscale}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="7" Text="{Binding Iva}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="8" Text="{Binding P.Barcode}" Style="{StaticResource Cella}" FontSize="13" TextColor="#757575" />
+                            <BoxView Grid.ColumnSpan="9" HeightRequest="1" Color="#EEEEEE" VerticalOptions="End" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- ═══ CATEGORIE ═══ -->
+        <Grid x:Name="PannelloCategorie" Grid.Row="2" BackgroundColor="White" Margin="5,0,5,5" RowDefinitions="Auto,*" IsVisible="False">
+            <Grid Padding="15,15,15,10" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Border BackgroundColor="#F5F5F5" StrokeThickness="0" StrokeShape="RoundRectangle 8" Padding="10,0">
+                    <Entry x:Name="CampoRicercaCategorie" Placeholder="🔍 Cerca categoria..." BackgroundColor="Transparent" TextChanged="OnFiltroCategorie" />
+                </Border>
+                <Button Grid.Column="1" Text="➕ NUOVA" WidthRequest="140" HeightRequest="50" FontSize="18" BackgroundColor="#FF9800"
+                        CornerRadius="8" Clicked="OnNuovaCategoria" />
+            </Grid>
+            <ScrollView Grid.Row="1" Padding="10,0,10,10">
+                <FlexLayout x:Name="GrigliaCategorie" Wrap="Wrap" AlignContent="Start" AlignItems="Start" />
+            </ScrollView>
+        </Grid>
+    </Grid>
+</ContentPage>

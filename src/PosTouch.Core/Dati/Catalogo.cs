@@ -29,24 +29,31 @@ namespace PosTouch.Core.Dati
 
         public bool Presente => File.Exists(_percorso);
         internal string Percorso => _percorso;
-        public IReadOnlyList<Categoria> Categorie => _categorie;
+        /// <summary>Categorie visibili nel POS (attive), in ordine.</summary>
+        public IReadOnlyList<Categoria> Categorie => _categorie.Where(c => c.Attiva).ToList();
+        /// <summary>Tutte le categorie, anche nascoste (Back office).</summary>
+        public IReadOnlyList<Categoria> TutteCategorie => _categorie;
+        /// <summary>Tutti gli articoli, anche nascosti (Back office).</summary>
+        public IReadOnlyList<Prodotto> TuttiProdotti => _prodotti;
 
-        public IEnumerable<Prodotto> ProdottiDi(int categoriaId) => _prodotti.Where(p => p.CategoriaId == categoriaId);
-        public IEnumerable<Prodotto> Preferiti() => _prodotti.Where(p => p.IsPreferito);
+        private bool Vendibile(Prodotto p) => p.Attivo && _categorie.Any(c => c.Id == p.CategoriaId && c.Attiva);
+
+        public IEnumerable<Prodotto> ProdottiDi(int categoriaId) => _prodotti.Where(p => p.CategoriaId == categoriaId && Vendibile(p));
+        public IEnumerable<Prodotto> Preferiti() => _prodotti.Where(p => p.IsPreferito && Vendibile(p));
 
         public Prodotto CercaBarcode(string codice)
         {
             if (string.IsNullOrWhiteSpace(codice)) return null;
             codice = codice.Trim();
-            return _prodotti.FirstOrDefault(p => p.Barcode == codice || p.Codice == codice);
+            return _prodotti.FirstOrDefault(p => Vendibile(p) && (p.Barcode == codice || p.Codice == codice));
         }
 
-        /// <summary>Carica in memoria categorie e prodotti attivi. Restituisce il numero di prodotti.</summary>
+        /// <summary>Carica in memoria categorie e prodotti (anche nascosti). Restituisce il numero di prodotti.</summary>
         public int Carica()
         {
-            _categorie = new List<Categoria>();
-            _prodotti = new List<Prodotto>();
-            if (!Presente) return 0;
+            var categorie = new List<Categoria>();
+            var prodotti = new List<Prodotto>();
+            if (!Presente) { _categorie = categorie; _prodotti = prodotti; return 0; }
 
             using var conn = Apri(_percorso);
 
@@ -57,23 +64,24 @@ namespace PosTouch.Core.Dati
                 var l = new LettoreRiga(r);
                 while (l.Prossima())
                 {
-                    if (!l.Bool("Attiva", true)) continue;
                     int id = l.Int("Id");
                     if (id >= PrimaCategoriaTabacchi) continue;
-                    _categorie.Add(new Categoria
+                    categorie.Add(new Categoria
                     {
                         Id = id,
                         Nome = l.Testo("Nome"),
                         RepartoFiscale = l.Int("RepartoFiscale", 1),
-                        AliquotaIVA = l.Int("AliquotaIVA"),
+                        AliquotaIVA = l.Int("AliquotaIVA", 10),
                         Colore = l.Testo("Colore", "#2196F3"),
                         ColoreTesto = l.Testo("ColoreTestoCategoria", "#000000"),
-                        Ordine = l.Int("Ordine")
+                        Icona = l.Testo("Icona", ""),
+                        Ordine = l.Int("Ordine"),
+                        Attiva = l.Bool("Attiva", true)
                     });
                 }
             }
-            _categorie = _categorie.OrderBy(c => c.Ordine).ThenBy(c => c.Nome).ToList();
-            var repartoPerCategoria = _categorie.ToDictionary(c => c.Id, c => c.RepartoFiscale);
+            categorie = categorie.OrderBy(c => c.Ordine).ThenBy(c => c.Nome).ToList();
+            var perId = categorie.ToDictionary(c => c.Id);
 
             using (var cmd = conn.CreateCommand())
             {
@@ -82,27 +90,36 @@ namespace PosTouch.Core.Dati
                 var l = new LettoreRiga(r);
                 while (l.Prossima())
                 {
-                    if (!l.Bool("Attivo", true)) continue;
                     int cat = l.Int("CategoriaId");
-                    if (!repartoPerCategoria.TryGetValue(cat, out int reparto)) continue; // categoria nascosta o tabacchi
-                    _prodotti.Add(new Prodotto
+                    if (!perId.TryGetValue(cat, out var c)) continue; // tabacchi o categoria inesistente
+                    prodotti.Add(new Prodotto
                     {
                         Id = l.Int("Id"),
                         Codice = l.Testo("Codice"),
                         Barcode = l.Testo("Barcode"),
                         Descrizione = l.Testo("Descrizione"),
                         PrezzoCentesimi = l.Int("PrezzoCentesimi"),
+                        CostoCentesimi = l.Int("CostoCentesimi"),
                         CategoriaId = cat,
-                        RepartoFiscale = reparto,
+                        CategoriaNome = c.Nome,
+                        RepartoFiscale = c.RepartoFiscale,
+                        AliquotaIVA = c.AliquotaIVA,
                         Colore = l.Testo("Colore", ""),
                         ColoreTesto = l.Testo("ColoreTestoTasto", "#FFFFFF"),
-                        IsPreferito = l.Bool("IsPreferito")
+                        DimensioneFontTasto = l.Int("DimensioneFontTasto", 12),
+                        IsPreferito = l.Bool("IsPreferito"),
+                        Attivo = l.Bool("Attivo", true)
                     });
                 }
             }
-            _prodotti = _prodotti.OrderBy(p => p.Descrizione).ToList();
-            LogManager.Info($"Catalogo caricato: {_categorie.Count} categorie, {_prodotti.Count} prodotti");
-            return _prodotti.Count;
+            prodotti = prodotti.OrderBy(p => p.Descrizione).ToList();
+            foreach (var c in categorie)
+                c.NumeroProdotti = prodotti.Count(p => p.CategoriaId == c.Id && p.Attivo);
+
+            _categorie = categorie;
+            _prodotti = prodotti;
+            LogManager.Info($"Catalogo caricato: {categorie.Count} categorie, {prodotti.Count} prodotti");
+            return prodotti.Count;
         }
 
         /// <summary>

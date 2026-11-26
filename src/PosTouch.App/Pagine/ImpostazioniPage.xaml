@@ -1,84 +1,231 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- Copia di ImpostazioniDialog del PC: intestazione arancione, schede, riquadri bianchi, ✖ CHIUDI in fondo -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PosTouch.App.Pagine.ImpostazioniPage"
-             NavigationPage.HasNavigationBar="False">
-    <Border Stroke="Black" StrokeThickness="3" BackgroundColor="White">
-        <Grid RowDefinitions="Auto,*,Auto" Padding="30,20,30,15">
-            <Label Text="⚙️ IMPOSTAZIONI" Style="{StaticResource TitoloDialog}" Margin="0,0,0,10" />
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="#F0F0F0">
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="Padding" Value="25" />
+            <Setter Property="Margin" Value="15" />
+        </Style>
+        <Style x:Key="TitoloCard" TargetType="Label">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="#333333" />
+            <Setter Property="Margin" Value="0,0,0,15" />
+        </Style>
+        <Style x:Key="Voce" TargetType="Label">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="Margin" Value="0,15,0,8" />
+        </Style>
+        <Style x:Key="Box" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="#F5F5F5" />
+            <Setter Property="Stroke" Value="#E0E0E0" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="HeightRequest" Value="55" />
+            <Setter Property="Padding" Value="15,0" />
+        </Style>
+        <Style x:Key="Spunta" TargetType="Label">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+        <Style x:Key="Scheda" TargetType="Button">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="HeightRequest" Value="55" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Margin" Value="2,0" />
+        </Style>
+        <Style x:Key="TastoTouch" TargetType="Button">
+            <Setter Property="HeightRequest" Value="60" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Margin" Value="0,15,0,0" />
+        </Style>
+    </ContentPage.Resources>
 
-            <ScrollView Grid.Row="1">
-                <Grid ColumnDefinitions="*,20,*">
+    <Grid RowDefinitions="70,Auto,*,65" Padding="10">
+        <!-- HEADER -->
+        <Border BackgroundColor="#FF9800" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="0,0,0,5">
+            <Label Text="⚙️ CONFIGURAZIONE SISTEMA" FontSize="26" FontAttributes="Bold" TextColor="White"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+        </Border>
 
-                    <!-- ═══ REGISTRATORE TELEMATICO ═══ -->
+        <!-- SCHEDE -->
+        <HorizontalStackLayout Grid.Row="1" Margin="0,5,0,0">
+            <Button x:Name="TabConnessioni" Text="🖨️ CONNESSIONI" Style="{StaticResource Scheda}" Clicked="OnTabConnessioni" />
+            <Button x:Name="TabVendita" Text="💰 VENDITA" Style="{StaticResource Scheda}" Clicked="OnTabVendita" />
+            <Button x:Name="TabSicurezza" Text="🔒 SICUREZZA" Style="{StaticResource Scheda}" Clicked="OnTabSicurezza" />
+            <Button x:Name="TabAvanzate" Text="⚙️ AVANZATE" Style="{StaticResource Scheda}" Clicked="OnTabAvanzate" />
+        </HorizontalStackLayout>
+
+        <!-- ═══ 🖨️ CONNESSIONI ═══ -->
+        <ScrollView x:Name="PannelloConnessioni" Grid.Row="2" Padding="10">
+            <Grid ColumnDefinitions="*,*">
+                <Border Style="{StaticResource Card}">
                     <VerticalStackLayout>
-                        <Label Text="🧾 REGISTRATORE TELEMATICO" Style="{StaticResource Sezione}" Margin="0,0,0,4" />
-                        <Label Text="Tipo" Style="{StaticResource Campo}" />
-                        <Picker x:Name="SceltaTipo" SelectedIndexChanged="OnTipoCambiato">
-                            <Picker.Items>
-                                <x:String>3i (XON/XOFF)</x:String>
-                                <x:String>Epson</x:String>
-                            </Picker.Items>
-                        </Picker>
-                        <Grid ColumnDefinitions="2*,*" ColumnSpacing="12">
-                            <VerticalStackLayout>
-                                <Label Text="Indirizzo IP" Style="{StaticResource Campo}" />
-                                <Entry x:Name="CampoIP" Keyboard="Url" Placeholder="192.168.1.100" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Porta" Style="{StaticResource Campo}" />
-                                <Entry x:Name="CampoPorta" Keyboard="Numeric" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <Label Text="Operatore RT" Style="{StaticResource Campo}" />
-                        <Entry x:Name="CampoOperatore" Keyboard="Numeric" />
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                            <VerticalStackLayout>
-                                <Label Text="Timeout connessione (ms)" Style="{StaticResource Campo}" />
-                                <Entry x:Name="CampoTimeoutConn" Keyboard="Numeric" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Timeout risposta (ms)" Style="{StaticResource Campo}" />
-                                <Entry x:Name="CampoTimeoutRisp" Keyboard="Numeric" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <Button Text="🔌 PROVA CONNESSIONE" BackgroundColor="#2196F3" HeightRequest="54" Margin="0,14,0,0" Clicked="OnProva" />
+                        <Label Text="🖨️ REGISTRATORE TELEMATICO" Style="{StaticResource TitoloCard}" />
+                        <Label Text="Tipo Cassa Fiscale:" Style="{StaticResource Voce}" Margin="0,0,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Picker x:Name="SceltaTipo" FontSize="20" BackgroundColor="Transparent" SelectedIndexChanged="OnTipoCambiato">
+                                <Picker.Items>
+                                    <x:String>3i (XON/XOFF)</x:String>
+                                    <x:String>Epson (Communication Protocol)</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </Border>
+                        <Label Text="Indirizzo IP:" Style="{StaticResource Voce}" Margin="0,20,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoIP" FontSize="18" Keyboard="Url" Placeholder="192.168.1.100" BackgroundColor="Transparent" />
+                        </Border>
+                        <Label Text="Porta TCP:" Style="{StaticResource Voce}" Margin="0,20,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoPorta" FontSize="18" Keyboard="Numeric" BackgroundColor="Transparent" />
+                        </Border>
+                        <Label Text="Operatore RT:" Style="{StaticResource Voce}" Margin="0,20,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoOperatore" FontSize="18" Keyboard="Numeric" BackgroundColor="Transparent" />
+                        </Border>
+                        <HorizontalStackLayout Margin="0,25,0,0">
+                            <CheckBox x:Name="ChkCassetto" Color="#4CAF50" />
+                            <Label Text="Apri cassetto dopo ogni vendita" Style="{StaticResource Spunta}" />
+                        </HorizontalStackLayout>
+                        <Button x:Name="BtnTest" Text="🔌 TEST CONNESSIONE RT" BackgroundColor="#2196F3" Style="{StaticResource TastoTouch}" Clicked="OnProva" />
                     </VerticalStackLayout>
+                </Border>
 
-                    <!-- ═══ VENDITA / CATALOGO / SISTEMA ═══ -->
-                    <VerticalStackLayout Grid.Column="2">
-                        <Label Text="🛒 VENDITA" Style="{StaticResource Sezione}" Margin="0,0,0,4" />
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Accorpa righe uguali sullo scontrino" FontSize="15" VerticalOptions="Center" />
-                            <Switch x:Name="SwAccorpa" Grid.Column="1" OnColor="#4CAF50" />
-                        </Grid>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Apri cassetto dopo lo scontrino" FontSize="15" VerticalOptions="Center" />
-                            <Switch x:Name="SwCassetto" Grid.Column="1" OnColor="#4CAF50" />
-                        </Grid>
-                        <Label Text="Tasti reparto nella barra in basso" Style="{StaticResource Campo}" />
-                        <Entry x:Name="CampoTastiReparto" Placeholder="1=BAR;2=PASTICCERIA;3=VARIE" />
-                        <Label Text="Formato numero=nome, separati da punto e virgola." FontSize="12" TextColor="#666666" />
-                        <Label Text="PIN per Strumenti e modalità modifica (vuoto = nessuno)" Style="{StaticResource Campo}" />
-                        <Entry x:Name="CampoPin" Keyboard="Numeric" IsPassword="True" MaxLength="8" />
-
-                        <Label Text="📦 CATALOGO" Style="{StaticResource Sezione}" />
-                        <Label x:Name="InfoCatalogo" FontSize="14" TextColor="#666666" />
-                        <Label Text="Per riprendere gli articoli del PC: chiudere POS Touch, copiare pos.db sul tablet e sceglierlo qui."
-                               FontSize="12" TextColor="#666666" />
-                        <Button Text="📥 IMPORTA CATALOGO (pos.db)" BackgroundColor="#37474F" HeightRequest="54" Margin="0,8,0,0" Clicked="OnImportaCatalogo" />
-
-                        <Label Text="ℹ️ SISTEMA" Style="{StaticResource Sezione}" />
-                        <Label x:Name="InfoVersione" FontSize="14" TextColor="#666666" />
-                        <Button Text="📤 CONDIVIDI LOG" BackgroundColor="#607D8B" HeightRequest="54" Margin="0,8,0,0" Clicked="OnCondividiLog" />
+                <Border Grid.Column="1" Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="📋 IDENTITÀ PUNTO VENDITA" Style="{StaticResource TitoloCard}" TextColor="#673AB7" Margin="0,0,0,5" />
+                        <Label Text="Appare nella schermata iniziale e nei report." FontSize="13" TextColor="#999999" Margin="0,0,0,15" />
+                        <Label Text="Nome Punto Vendita:" Style="{StaticResource Voce}" Margin="0,0,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoNomePV" FontSize="18" BackgroundColor="Transparent" />
+                        </Border>
+                        <Label Text="Sottotitolo:" Style="{StaticResource Voce}" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoSottotitoloPV" FontSize="18" BackgroundColor="Transparent" />
+                        </Border>
                     </VerticalStackLayout>
-                </Grid>
-            </ScrollView>
-
-            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,15,0,0">
-                <Button Text="✖ ANNULLA" Style="{StaticResource TastoAnnulla}" Clicked="OnAnnulla" />
-                <Button Grid.Column="1" Text="✔ SALVA" Style="{StaticResource TastoSalva}" Clicked="OnSalva" />
+                </Border>
             </Grid>
-        </Grid>
-    </Border>
+        </ScrollView>
+
+        <!-- ═══ 💰 VENDITA ═══ -->
+        <ScrollView x:Name="PannelloVendita" Grid.Row="2" Padding="10" IsVisible="False">
+            <Grid ColumnDefinitions="*,*">
+                <Border Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="🛒 REGOLE VENDITA" Style="{StaticResource TitoloCard}" />
+                        <HorizontalStackLayout><CheckBox x:Name="ChkSconti" Color="#4CAF50" /><Label Text="✅ Abilita Sconti" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkCambioPrezzo" Color="#4CAF50" /><Label Text="💰 Abilita Cambio Prezzo (€ e importo)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkModificaVendita" Color="#4CAF50" /><Label Text="✏️ Abilita Modifica Articoli in Vendita" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkMostraStrumenti" Color="#4CAF50" /><Label Text="🔧 Mostra tasto Strumenti in vendita" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkPrezzoZero" Color="#4CAF50" /><Label Text="💶 Richiesta prezzo per articoli a €0,00" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkBloccoQuantita" Color="#4CAF50" /><Label Text="🔒 Blocco modifica quantità (sempre Qta 1)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkAccorpaVideo" Color="#4CAF50" /><Label Text="🔗 Accorpa righe uguali a video (es. 2× caffè → una riga)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <Label Text="Se disattivo: ogni tap crea una riga separata." FontSize="13" TextColor="#999999" Margin="38,0,0,6" />
+                        <HorizontalStackLayout><CheckBox x:Name="ChkAccorpaScontrino" Color="#4CAF50" /><Label Text="🔗 Accorpa righe uguali su scontrino fiscale" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <Label Text="Se disattivo: ogni riga viene inviata all'RT separatamente." FontSize="13" TextColor="#999999" Margin="38,0,0,0" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="🖥️ INTERFACCIA" Style="{StaticResource TitoloCard}" />
+                        <Label Text="Dimensione tasti categorie:" Style="{StaticResource Voce}" Margin="0,0,0,12" />
+                        <RadioButton x:Name="RbPiccola" GroupName="DimTasti" Content="Piccola (più categorie visibili)" FontSize="16" />
+                        <RadioButton x:Name="RbMedia" GroupName="DimTasti" Content="Media (bilanciata)" FontSize="16" />
+                        <RadioButton x:Name="RbGrande" GroupName="DimTasti" Content="Grande (tasti più grandi)" FontSize="16" />
+                        <Label Text="Dimensione font nome categoria:" Style="{StaticResource Voce}" Margin="0,20,0,8" />
+                        <HorizontalStackLayout Spacing="10">
+                            <Button Text="−" WidthRequest="55" HeightRequest="50" FontSize="22" BackgroundColor="#607D8B" CornerRadius="8" Clicked="OnFontMeno" />
+                            <Border BackgroundColor="#F5F5F5" StrokeThickness="0" WidthRequest="60" HeightRequest="50" StrokeShape="RoundRectangle 8">
+                                <Label x:Name="TestoFontCategorie" Text="10" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <Button Text="+" WidthRequest="55" HeightRequest="50" FontSize="22" BackgroundColor="#607D8B" CornerRadius="8" Clicked="OnFontPiu" />
+                            <Label x:Name="EsempioCategoria" Text="Esempio categoria" FontSize="16" TextColor="#666666" VerticalOptions="Center" Margin="10,0,0,0" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </ScrollView>
+
+        <!-- ═══ 🔒 SICUREZZA ═══ -->
+        <ScrollView x:Name="PannelloSicurezza" Grid.Row="2" Padding="10" IsVisible="False">
+            <Border Style="{StaticResource Card}" VerticalOptions="Start" MaximumWidthRequest="700" HorizontalOptions="Start">
+                <VerticalStackLayout>
+                    <Label Text="🔑 PASSWORD" Style="{StaticResource TitoloCard}" TextColor="#9C27B0" />
+                    <Label Text="Password Amministratore:" FontSize="16" FontAttributes="Bold" />
+                    <Border BackgroundColor="#F5F5F5" Stroke="#E0E0E0" StrokeThickness="2" HeightRequest="55" Padding="15,0" Margin="0,8,0,8">
+                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCambiaPassword" /></Border.GestureRecognizers>
+                        <Label x:Name="TestoPassword" Text="Non configurata (clicca per impostare)" FontSize="16" VerticalOptions="Center" />
+                    </Border>
+                    <Label Text="⚠️ Admin: richiesta per Strumenti, Back Office e Impostazioni" FontSize="14" TextColor="#FF9800" />
+                </VerticalStackLayout>
+            </Border>
+        </ScrollView>
+
+        <!-- ═══ ⚙️ AVANZATE ═══ -->
+        <ScrollView x:Name="PannelloAvanzate" Grid.Row="2" Padding="10" IsVisible="False">
+            <Grid ColumnDefinitions="*,*">
+                <VerticalStackLayout>
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout>
+                            <Label Text="⏱️ TIMEOUT REGISTRATORE TELEMATICO" Style="{StaticResource TitoloCard}" TextColor="#FF6F00" Margin="0,0,0,5" />
+                            <Label Text="Aumentare questi valori se la stampante RT è su WiFi o rete lenta e genera falsi errori di comunicazione."
+                                   FontSize="13" TextColor="#999999" Margin="0,0,0,15" />
+                            <Grid ColumnDefinitions="*,140,Auto" RowDefinitions="Auto,Auto" RowSpacing="12" ColumnSpacing="8">
+                                <Label Text="Timeout connessione TCP:" FontSize="17" FontAttributes="Bold" VerticalOptions="Center" />
+                                <Border Grid.Column="1" Style="{StaticResource Box}" HeightRequest="48">
+                                    <Entry x:Name="CampoTimeoutConn" FontSize="16" Keyboard="Numeric" BackgroundColor="Transparent" />
+                                </Border>
+                                <Label Grid.Column="2" Text=" ms" FontSize="16" TextColor="#666666" VerticalOptions="Center" />
+                                <Label Grid.Row="1" Text="Timeout attesa risposta:" FontSize="17" FontAttributes="Bold" VerticalOptions="Center" />
+                                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Box}" HeightRequest="48">
+                                    <Entry x:Name="CampoTimeoutRisp" FontSize="16" Keyboard="Numeric" BackgroundColor="Transparent" />
+                                </Border>
+                                <Label Grid.Row="1" Grid.Column="2" Text=" ms" FontSize="16" TextColor="#666666" VerticalOptions="Center" />
+                            </Grid>
+                            <Label Text="⚡ Rete cablata: 5000 / 10000 ms (default)&#10;📶 WiFi stabile: 8000 / 15000 ms&#10;🐢 WiFi lento: 12000 / 25000 ms"
+                                   FontSize="13" TextColor="#666666" Margin="0,12,0,0" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout>
+                            <Label Text="📦 CATALOGO" Style="{StaticResource TitoloCard}" TextColor="#37474F" Margin="0,0,0,5" />
+                            <Label x:Name="InfoCatalogo" FontSize="14" TextColor="#666666" />
+                            <Label Text="Per riprendere gli articoli del PC: chiudere POS Touch, copiare pos.db sul tablet e sceglierlo qui."
+                                   FontSize="13" TextColor="#999999" />
+                            <Button Text="📥 IMPORTA CATALOGO (pos.db)" BackgroundColor="#37474F" Style="{StaticResource TastoTouch}" Clicked="OnImportaCatalogo" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <Border Grid.Column="1" Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="🛠️ SVILUPPO" Style="{StaticResource TitoloCard}" TextColor="#607D8B" />
+                        <Label Text="Livello di log:" Style="{StaticResource Voce}" Margin="0,0,0,12" />
+                        <RadioButton x:Name="RbLogDebug" GroupName="Log" Content="🔍 DEBUG — Tutto (connessioni, righe, comandi RT)" FontSize="15" />
+                        <RadioButton x:Name="RbLogInfo" GroupName="Log" Content="ℹ️ INFO — Operazioni principali (vendite)" FontSize="15" />
+                        <RadioButton x:Name="RbLogWarn" GroupName="Log" Content="⚠️ AVVISI — Solo warning e errori" FontSize="15" />
+                        <RadioButton x:Name="RbLogError" GroupName="Log" Content="🔴 SOLO ERRORI — Minimo (consigliato produzione)" FontSize="15" />
+                        <Button Text="📤 CONDIVIDI LOG" BackgroundColor="#607D8B" Style="{StaticResource TastoTouch}" Clicked="OnCondividiLog" />
+                        <Label x:Name="InfoVersione" FontSize="13" TextColor="#999999" HorizontalTextAlignment="Center" Margin="0,10,0,0" />
+                        <Button Text="💾 SALVA IMPOSTAZIONI" BackgroundColor="#4CAF50" Style="{StaticResource TastoTouch}" Margin="0,25,0,0" Clicked="OnSalva" />
+                        <Label x:Name="TestoStato" FontSize="14" TextColor="#666666" HorizontalTextAlignment="Center" Margin="0,15,0,0" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </ScrollView>
+
+        <!-- FOOTER -->
+        <Button Grid.Row="3" Text="✖ CHIUDI" HeightRequest="60" FontSize="24" BackgroundColor="#E53935" CornerRadius="10" Margin="0,5,0,0" Clicked="OnChiudi" />
+    </Grid>
 </ContentPage>
