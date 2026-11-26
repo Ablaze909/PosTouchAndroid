@@ -24,11 +24,31 @@ namespace PosTouch.App.Pagine
             try
             {
                 ListaCategorie.Children.Clear();
+                _tastiCategoria.Clear();
                 foreach (var c in categorie)
                     ListaCategorie.Children.Add(CreaTastoCategoria(c));
             }
             finally { ListaCategorie.BatchCommit(); }
             MostraArticoli();
+        }
+
+        private readonly Dictionary<int, Border> _tastiCategoria = new();
+        private int _categoriaMostrata = int.MinValue;
+
+        /// <summary>Categoria attiva con bordo scuro; al cambio di categoria la griglia articoli riparte dall'alto.</summary>
+        private void EvidenziaCategoria()
+        {
+            foreach (var (id, b) in _tastiCategoria)
+            {
+                bool attiva = id == _categoriaCorrente;
+                b.StrokeThickness = attiva ? 4 : 0;
+                b.Stroke = new SolidColorBrush(Ui.C("#212121"));
+            }
+            if (_categoriaMostrata != _categoriaCorrente)
+            {
+                _categoriaMostrata = _categoriaCorrente;
+                if (ScrollArticoli.ScrollY > 0) _ = ScrollArticoli.ScrollToAsync(0, 0, false);
+            }
         }
 
         private View CreaTastoCategoria(Categoria c)
@@ -47,9 +67,11 @@ namespace PosTouch.App.Pagine
                     TextColor = Ui.ColoreSicuro(c.ColoreTesto, "#000000"),
                     HorizontalTextAlignment = TextAlignment.Center,
                     VerticalTextAlignment = TextAlignment.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
+                    LineBreakMode = LineBreakMode.WordWrap,
+                    MaxLines = 3
                 }
             };
+            _tastiCategoria[c.Id] = tasto;
             Tocco(tasto, () =>
             {
                 if (CombinazioneAperta()) return Task.CompletedTask;
@@ -77,6 +99,7 @@ namespace PosTouch.App.Pagine
 
         private void MostraArticoli()
         {
+            EvidenziaCategoria();
             var catalogo = ContestoCassa.Catalogo;
             var articoli = _combinazione != null ? _combinazione.Gusti.ToList()     // durante la combinazione: solo i gusti
                 : _categoriaCorrente == IdPreferiti
@@ -123,6 +146,7 @@ namespace PosTouch.App.Pagine
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
                 LineBreakMode = LineBreakMode.WordWrap,
+                MaxLines = 3,   // descrizioni lunghe: al massimo 3 righe, non tagliate sopra e sotto
                 Margin = new Thickness(4)
             }, 0, 0);
             griglia.Add(new Label   // prezzo su fascia scura: una sola scritta invece di griglia + scritta
@@ -151,6 +175,7 @@ namespace PosTouch.App.Pagine
         /// <summary>AggiungiProdotto del PC: quantità e prezzo € dalla tastiera, richiesta prezzo per articoli a 0.</summary>
         private async Task AggiungiProdottoAsync(Prodotto p)
         {
+            if (Occupata) return;
             NascondiResto();
             if (_combinazione != null) { await AggiungiGustoAsync(p); return; }   // combinazione aperta: il tasto è un gusto
             if (Cfg.BloccoRigaSingola && Carrello.HaArticoli)
@@ -162,6 +187,24 @@ namespace PosTouch.App.Pagine
             }
             if (p.IsCombinazione) { await AvviaCombinazioneAsync(p); return; }
             var (quantita, prezzoCent) = _tastierino.PrendiPerArticolo();
+            if (prezzoCent.HasValue && !Cfg.AbilitaCambioPrezzo)
+            {
+                // il prezzo battuto ("3 X 1,50") è un cambio prezzo: se disabilitato vale il prezzo di listino
+                prezzoCent = null;
+                await MessaggioBox.Avviso("CAMBIO PREZZO DISABILITATO", $"Il prezzo digitato è stato ignorato: {p.Descrizione} va al prezzo di listino.");
+            }
+            if (Cfg.VirgolaImplicita && prezzoCent == null && quantita > 99 && quantita == Math.Floor(quantita) && !p.VenditaAPeso)
+            {
+                // virgola implicita: "150" + articolo è quasi sempre un prezzo dimenticato senza €
+                int scelta = await SceltaBox.Testi($"{quantita:0} — {p.Descrizione}",
+                    new[] { $"{quantita:0} PEZZI", $"PREZZO € {quantita / 100m:0.00}" }, colonne: 2);
+                if (scelta < 0) return;
+                if (scelta == 1)
+                {
+                    if (!Cfg.AbilitaCambioPrezzo) { await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Cambio prezzo disabilitato dall'amministratore."); return; }
+                    prezzoCent = (int)quantita; quantita = 1;
+                }
+            }
             if (p.VenditaAPeso) { await AggiungiAPesoAsync(p, prezzoCent); return; }
             int prezzo = prezzoCent ?? p.PrezzoCentesimi;
 
@@ -242,9 +285,15 @@ namespace PosTouch.App.Pagine
             // con un dialogo aperto, il popup CASSA o la stampa in corso il lettore non aggiunge articoli
             // (un articolo letto durante l'emissione verrebbe perso alla chiusura dello scontrino)
             if (HaLivelli || Attesa.IsVisible || OverlayPagamento.IsVisible || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso
-                || _modalitaModifica || _combinazione != null) return;
-            if (Cfg.UsaBarcodeBilancia && BarcodeBilancia.IsBarcodeBilancia(codice)) { _ = AggiungiDaEtichettaBilanciaAsync(codice); return; }
+                || _modalitaModifica || _combinazione != null)
+            {
+                // lettura ignorata: almeno una vibrazione, così il cassiere sa di dover rileggere
+                try { Microsoft.Maui.Devices.Vibration.Default.Vibrate(TimeSpan.FromMilliseconds(250)); } catch { }
+                return;
+            }
+            // prima il codice esatto: anche gli EAN interni/a pezzi che iniziano con 2 sono articoli normali
             var p = ContestoCassa.Catalogo.CercaBarcode(codice);
+            if (p == null && Cfg.UsaBarcodeBilancia && BarcodeBilancia.IsBarcodeBilancia(codice)) { _ = AggiungiDaEtichettaBilanciaAsync(codice); return; }
             if (p == null) _ = MessaggioBox.Avviso("ARTICOLO NON TROVATO", $"Nessun articolo con codice:\n{codice}");
             else _ = AggiungiProdottoAsync(p);
         }

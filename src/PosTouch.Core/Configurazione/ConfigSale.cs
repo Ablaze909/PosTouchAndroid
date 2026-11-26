@@ -91,6 +91,9 @@ namespace PosTouch.Core.Configurazione
             SeparatoriPortate ??= new List<string>();
         }
 
+        /// <summary>Impronta del contenuto: la pagina confronta apertura e chiusura per chiedere se salvare.</summary>
+        public string Firma() => System.Text.Json.JsonSerializer.Serialize(this, JsonContesto.Default.ConfigSale);
+
         public ConfigSale Copia()
         {
             Normalizza();

@@ -24,7 +24,7 @@ namespace PosTouch.Core.Sale
             {
                 DataSource = Path.Combine(cartellaDati, "tavoli.db"),
                 Mode = SqliteOpenMode.ReadWriteCreate,
-                Pooling = false
+                Pooling = true   // tavoli.db non viene mai sostituito: connessioni riusate (meno scritture su disco)
             }.ToString();
             CreaSchema();
         }
@@ -34,7 +34,7 @@ namespace PosTouch.Core.Sale
             var c = new SqliteConnection(_connString);
             c.Open();
             using var cmd = c.CreateCommand();
-            cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON;";
+            cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON;";
             cmd.ExecuteNonQuery();
             return c;
         }
@@ -145,7 +145,8 @@ namespace PosTouch.Core.Sale
                            (SELECT COUNT(*) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.InStorno = 0),
                            EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.Comandata = 0 AND r.CentroProduzioneId > 0 AND r.InStorno = 0),
                            IFNULL((SELECT MAX(r.Portata) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 4), 0),
-                           IFNULL(t.NomeCliente, '')
+                           IFNULL(t.NomeCliente, ''),
+                           EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.InStorno = 1)
                     FROM TavoliAperti t";
                 var lista = new List<TavoloAperto>();
                 using var r = cmd.ExecuteReader();
@@ -156,7 +157,8 @@ namespace PosTouch.Core.Sale
                         Apertura = DateTime.TryParse(r.GetString(3), out var d) ? d : DateTime.Now,
                         Preconto = r.GetInt32(4) == 1, PortataCorrente = r.GetInt32(5),
                         TotaleCent = Convert.ToInt32(r.GetInt64(6)), Articoli = r.GetInt32(7), DaComandare = r.GetInt32(8) == 1,
-                        PortataMassima = r.GetInt32(9), NomeCliente = r.GetString(10)
+                        PortataMassima = r.GetInt32(9), NomeCliente = r.GetString(10),
+                        StorniDaInviare = r.GetInt32(11) == 1
                     });
                 return lista;
             }
@@ -358,12 +360,22 @@ namespace PosTouch.Core.Sale
                     }
                     else
                         Esegui(c, tx, "UPDATE TavoliAperti SET SalaId=$s, Numero=$n WHERE Id=$id", ("$s", salaDest), ("$n", numeroDest), ("$id", tavoloId));
+                    SpostaCoda(c, tx, salaOrig, numOrig, salaDest, numeroDest, scambio: altro.HasValue);
                     tx.Commit();
                     LogManager.Info($"SPOSTA tavolo {salaOrig}/{numOrig} → {salaDest}/{numeroDest}{(altro.HasValue ? " (scambio)" : "")}");
                     return altro.HasValue;
                 }
                 catch { tx.Rollback(); throw; }
             }
+        }
+
+        /// <summary>Le stampe in coda/errore seguono il tavolo spostato (il bordo rosso in mappa resta sul tavolo giusto).</summary>
+        private static void SpostaCoda(SqliteConnection c, SqliteTransaction tx, int salaOrig, int numOrig, int salaDest, int numDest, bool scambio)
+        {
+            const string upd = "UPDATE CodaStampa SET SalaId=$s2, NumeroTavolo=$n2 WHERE SalaId=$s1 AND NumeroTavolo=$n1";
+            if (scambio) Esegui(c, tx, upd, ("$s1", salaDest), ("$n1", numDest), ("$s2", -999), ("$n2", -999));
+            Esegui(c, tx, upd, ("$s1", salaOrig), ("$n1", numOrig), ("$s2", salaDest), ("$n2", numDest));
+            if (scambio) Esegui(c, tx, upd, ("$s1", -999), ("$n1", -999), ("$s2", salaOrig), ("$n2", numOrig));
         }
 
         /// <summary>🔗 UNISCI: le righe dei tavoli sorgente vanno in fondo al tavolo di destinazione; i sorgenti si liberano.</summary>

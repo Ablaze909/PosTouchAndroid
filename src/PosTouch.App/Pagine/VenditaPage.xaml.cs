@@ -142,7 +142,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnStrumenti(object sender, EventArgs e)
         {
-            if (CombinazioneAperta()) return;
+            if (Occupata || CombinazioneAperta()) return;
             if (_sessione != null)
             {
                 await MessaggioBox.Avviso("TAVOLO APERTO", "Esci dal tavolo prima di aprire gli strumenti.");
@@ -154,7 +154,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnModifica(object sender, EventArgs e)
         {
-            if (CombinazioneAperta()) return;
+            if (Occupata || CombinazioneAperta()) return;
             if (!Cfg.AbilitaModificaVendita)
             {
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
@@ -185,7 +185,10 @@ namespace PosTouch.App.Pagine
         }
 
         private async void OnFunzioniCassa(object sender, EventArgs e)
-            => await FunzioniCassaBox.Mostra();
+        {
+            if (Occupata) return;   // niente chiusura Z a metà di uno scontrino
+            await FunzioniCassaBox.Mostra();
+        }
 
         /// <summary>🚪: torna alla schermata iniziale (come TornaAlLauncher del PC).</summary>
         private async void OnEsci(object sender, EventArgs e)

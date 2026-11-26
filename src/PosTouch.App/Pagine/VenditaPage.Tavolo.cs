@@ -202,14 +202,14 @@ namespace PosTouch.App.Pagine
         }
 
         /// <summary>Dopo scontrino o conto: il tavolo si libera e si torna alla sala.</summary>
-        private async Task DopoPagamentoAsync(int restoCent = 0)
+        private async Task DopoPagamentoAsync(List<RigaScontrino> venduti, int restoCent = 0)
         {
             if (_sessione == null) return;
             // al tavolo si torna subito alla sala: il resto lo mostro prima di uscire
             if (restoCent > 0) await MessaggioBox.Info("💶 RESTO", $"Resto da dare:\n\n€ {restoCent / 100m:N2}");
             _timerBozza?.Stop();
             EsitoTavolo esito = null;
-            try { esito = _sessione.ChiudiPagato(); }
+            try { esito = _sessione.ChiudiPagato(venduti); }
             catch (Exception ex) { await MessaggioBox.Errore("TAVOLO", $"Tavolo pagato ma non liberato:\n{ex.Message}"); }
             CollegaCarrello(null);
             if (esito != null) await MostraAvvisiAsync(esito);
@@ -310,6 +310,15 @@ namespace PosTouch.App.Pagine
             }
             _timerBozza.Stop();
             _timerBozza.Start();
+        }
+
+        /// <summary>App in background (o chiusa da Android): il salvataggio in attesa (700 ms) si fa subito.</summary>
+        public void SalvaBozzaSubito()
+        {
+            if (_sessione == null || _timerBozza == null || !_timerBozza.IsRunning) return;
+            _timerBozza.Stop();
+            try { _sessione.SalvaBozza(); }
+            catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Error($"Salvataggio tavolo (app in background): {ex.Message}"); }
         }
     }
 }

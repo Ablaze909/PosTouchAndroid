@@ -171,13 +171,13 @@ namespace PosTouch.App.Pagine
         {
             var sala = Sale().FirstOrDefault(x => x.Id == _salaCorrente);
             if (sala == null) { _griglia.Children.Clear(); _firmaTavoli = null; _info.Text = "Nessuna sala configurata: IMPOSTAZIONI → SALE E COMANDE"; return; }
-            var aperti = ContestoCassa.Tavoli.Aperti().Where(t => t.SalaId == sala.Id && t.Articoli > 0).ToDictionary(t => t.Numero);
+            var aperti = ContestoCassa.Tavoli.Aperti().Where(t => t.SalaId == sala.Id && t.Occupato).ToDictionary(t => t.Numero);
             var errori = ContestoCassa.Tavoli.TavoliConErroreStampa();
 
             // aggiornamento ogni 10 s: si ridisegna solo se qualcosa è cambiato davvero (prestazioni)
             string firma = $"{sala.Id}|{sala.NumeroIniziale}|{sala.NumeroTavoli}|{string.Join(",", errori)}|" +
                            string.Join(";", aperti.Values.OrderBy(t => t.Numero).Select(t =>
-                               $"{t.Numero}:{t.TotaleCent}:{t.Preconto}:{t.PortataCorrente}:{t.PortataMassima}:{t.DaComandare}:{t.NomeCliente}"));
+                               $"{t.Numero}:{t.TotaleCent}:{t.Preconto}:{t.PortataCorrente}:{t.PortataMassima}:{t.DaComandare}:{t.StorniDaInviare}:{t.NomeCliente}"));
             if (firma == _firmaTavoli && _griglia.Children.Count > 0) return;
             _firmaTavoli = firma;
 
@@ -275,8 +275,8 @@ namespace PosTouch.App.Pagine
                 WidthRequest = 130, HeightRequest = 130, Margin = new Thickness(6),
                 BackgroundColor = Ui.C(sfondo),
                 StrokeShape = new RoundRectangle { CornerRadius = 12 },
-                Stroke = new SolidColorBrush(Ui.C(t?.DaComandare == true ? "#FF6F00" : sfondo)),
-                StrokeThickness = t?.DaComandare == true ? 4 : 0,
+                Stroke = new SolidColorBrush(Ui.C(t?.DaComandare == true || t?.StorniDaInviare == true ? "#FF6F00" : sfondo)),
+                StrokeThickness = t?.DaComandare == true || t?.StorniDaInviare == true ? 4 : 0,
                 Content = contenuto
             };
             Ui.Tocco(b, async () => { b.Opacity = 0.8; try { await apri(); } finally { b.Opacity = 1; } });
@@ -310,7 +310,7 @@ namespace PosTouch.App.Pagine
             {
                 // conto cliente libero: chiedi il nome (come il PC)
                 string nome = null;
-                if (sala.Id == ConfigSale.SalaConti && !ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Numero == numero && t.Articoli > 0))
+                if (sala.Id == ConfigSale.SalaConti && !ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Numero == numero && t.Occupato))
                 {
                     nome = await TestoBox.Chiedi("👤 NOME CLIENTE");
                     if (string.IsNullOrWhiteSpace(nome)) return;

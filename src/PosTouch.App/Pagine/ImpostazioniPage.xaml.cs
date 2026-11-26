@@ -274,6 +274,9 @@ namespace PosTouch.App.Pagine
 
         private async void OnImportaCatalogo(object sender, EventArgs e)
         {
+            // con tavoli o scontrino aperti gli articoli cambierebbero sotto le righe già battute
+            var blocco = ManutenzioneDati.BloccoDatiProva();
+            if (blocco != null) { await MessaggioBox.Avviso("IMPORTA CATALOGO", blocco.Replace("caricare i dati di prova", "importare il catalogo")); return; }
             if (ContestoCassa.Catalogo.TuttiProdotti.Count > 0 &&
                 !await MessaggioBox.Conferma("IMPORTA CATALOGO",
                     "Il catalogo attuale del tablet (categorie e articoli) verrà SOSTITUITO da quello del file scelto.\n\n" +

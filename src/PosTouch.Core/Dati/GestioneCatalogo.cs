@@ -118,14 +118,17 @@ namespace PosTouch.Core.Dati
                 int i = ordine.IndexOf(id), j = i + direzione;
                 if (i < 0 || j < 0 || j >= ordine.Count) return;
                 (ordine[i], ordine[j]) = (ordine[j], ordine[i]);
+                using var tx = conn.BeginTransaction();   // un solo salvataggio su disco, niente ordini duplicati se si interrompe
                 for (int k = 0; k < ordine.Count; k++)
                 {
                     using var up = conn.CreateCommand();
+                    up.Transaction = tx;
                     up.CommandText = "UPDATE Categorie SET Ordine=$o WHERE Id=$id";
                     up.Parameters.AddWithValue("$o", k + 1);
                     up.Parameters.AddWithValue("$id", ordine[k]);
                     up.ExecuteNonQuery();
                 }
+                tx.Commit();
             });
         }
 
@@ -148,6 +151,17 @@ namespace PosTouch.Core.Dati
                     chk.Parameters.AddWithValue("$id", p.Id);
                     if (chk.ExecuteScalar() is string altro)
                         throw new ArgumentException($"Barcode già usato da \"{altro}\".");
+                    // anche i barcode multipli del PC (ProdottiBarcode): in vendita hanno la precedenza
+                    if (TabellaEsiste(conn, "ProdottiBarcode"))
+                    {
+                        using var chk2 = conn.CreateCommand();
+                        chk2.CommandText = @"SELECT p.Descrizione FROM ProdottiBarcode b JOIN Prodotti p ON p.Id = b.ProdottoId
+                                             WHERE TRIM(b.Barcode)=$b AND b.ProdottoId<>$id";
+                        chk2.Parameters.AddWithValue("$b", barcode);
+                        chk2.Parameters.AddWithValue("$id", p.Id);
+                        if (chk2.ExecuteScalar() is string altro2)
+                            throw new ArgumentException($"Barcode già usato da \"{altro2}\" (barcode multipli del PC).");
+                    }
                 }
 
                 using var cmd = conn.CreateCommand();
@@ -187,6 +201,13 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$prop", p.VariantiProporzionali ? 1 : 0);
                 cmd.Parameters.AddWithValue("$coperto", p.IsCoperto ? 1 : 0);
                 cmd.ExecuteNonQuery();
+                if (p.Id == 0)
+                {
+                    // l'articolo nuovo prende il suo Id: un secondo SALVA dalla stessa pagina aggiorna invece di duplicare
+                    using var id = conn.CreateCommand();
+                    id.CommandText = "SELECT last_insert_rowid()";
+                    p.Id = Convert.ToInt32(id.ExecuteScalar());
+                }
             });
             LogManager.Info($"Articolo salvato: {p.Descrizione} €{p.PrezzoCentesimi / 100m:F2} cat {p.CategoriaId}");
         }
@@ -244,20 +265,31 @@ namespace PosTouch.Core.Dati
                     cmd.CommandText = "DELETE FROM Prodotti WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", id);
                     cmd.ExecuteNonQuery();
+                    EliminaBarcodeMultipli(conn, tx, id);
                 }
                 tx.Commit();
             });
         }
 
-        public void EliminaProdotto(int id)
+        public void EliminaProdotto(int id) => EliminaProdotti(new[] { id });
+
+        /// <summary>Barcode multipli (tabella del PC) dell'articolo eliminato: non devono restare a puntare a un articolo che non c'è.</summary>
+        private static void EliminaBarcodeMultipli(SqliteConnection conn, SqliteTransaction tx, int id)
         {
-            Esegui(conn =>
-            {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "DELETE FROM Prodotti WHERE Id=$id";
-                cmd.Parameters.AddWithValue("$id", id);
-                cmd.ExecuteNonQuery();
-            });
+            if (!TabellaEsiste(conn, "ProdottiBarcode")) return;
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM ProdottiBarcode WHERE ProdottoId=$id";
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        private static bool TabellaEsiste(SqliteConnection conn, string nome)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=$n";
+            cmd.Parameters.AddWithValue("$n", nome);
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
         }
 
         // ══════════════ VARIANTI ══════════════

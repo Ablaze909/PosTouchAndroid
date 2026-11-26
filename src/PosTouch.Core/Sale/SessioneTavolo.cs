@@ -122,11 +122,22 @@ namespace PosTouch.Core.Sale
             return esito;
         }
 
-        /// <summary>Tavolo pagato (scontrino o conto): si libera; eventuali storni pendenti vengono stampati.</summary>
-        public EsitoTavolo ChiudiPagato()
+        /// <summary>
+        /// Tavolo pagato (scontrino o conto): si libera. Gli articoli venduti non ancora comandati partono in comanda
+        /// (pagato subito al tavolo: la cucina deve comunque prepararli) e gli storni pendenti vengono stampati.
+        /// </summary>
+        /// <param name="venduti">Righe del documento emesso (il carrello a video è già stato svuotato).</param>
+        public EsitoTavolo ChiudiPagato(IList<RigaScontrino> venduti = null)
         {
             var esito = new EsitoTavolo();
-            var (stampe, storni) = PreparaStorni(stampaStorni: true, esito);
+            var stampe = new List<JobStampa>();
+            if (venduti != null && venduti.Any(r => r.Tipo == TipoRiga.Prodotto && !r.Comandata))
+            {
+                // la comanda si prepara sulle righe vendute (copie: il carrello a video non si tocca), poi il tavolo si salva vuoto
+                if (Cfg.AbilitaComande) stampe.AddRange(PreparaComande(true, esito, venduti));
+            }
+            var (stampeStorno, storni) = PreparaStorni(stampaStorni: true, esito);
+            stampe.AddRange(stampeStorno);
             _archivio.Salva(Tavolo, new List<RigaScontrino>(), stampe, storni, liberaSeVuoto: true);
             _chiusa = true;   // uscita salvata: nessun salvataggio successivo può riaprire il tavolo
             _storniPendenti.Clear();
@@ -141,7 +152,8 @@ namespace PosTouch.Core.Sale
             var esito = new EsitoTavolo();
             Carrello.RiordinaPortate();   // prima della comanda: la cucina riceve le portate in ordine (SEGUE prima di SEGUE 2)
             var stampe = new List<JobStampa>();
-            if (Cfg.AbilitaComande && Stampe.Uscite.Count > 0)
+            // comande attive: si prepara sempre (anche senza uscite: gli articoli restano da comandare con avviso, regola 12)
+            if (Cfg.AbilitaComande)
                 stampe.AddRange(PreparaComande(stampaComande, esito));
             else
                 foreach (var r in Carrello.Righe.Where(r => r.Tipo == TipoRiga.Prodotto)) r.Comandata = true;
@@ -158,9 +170,9 @@ namespace PosTouch.Core.Sale
 
         // ══════════════ COMANDA (InviaComandaAutomaticaAsync del PC) ══════════════
 
-        private List<JobStampa> PreparaComande(bool stampa, EsitoTavolo esito)
+        private List<JobStampa> PreparaComande(bool stampa, EsitoTavolo esito, IList<RigaScontrino> righe = null)
         {
-            var righe = Carrello.Righe;
+            righe ??= Carrello.Righe;
             var stampe = new List<JobStampa>();
             bool primaComanda = !righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata);
             var nuove = righe.Where(r => r.Tipo == TipoRiga.Prodotto && !r.Comandata && r.CentroProduzioneId > 0).ToList();
@@ -331,8 +343,6 @@ namespace PosTouch.Core.Sale
             var stampe = new List<JobStampa>();
             if (!a.SenzaStampa)
             {
-                // articoli della portata non ancora trasmessi: partono con il VAI (come il PC)
-                foreach (var r in righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == a.Portata && !r.Comandata)) r.Comandata = true;
                 var gruppi = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == a.Portata && r.CentroProduzioneId > 0)
                                   .GroupBy(r => r.CentroProduzioneId).ToList();
                 foreach (var g in gruppi)
@@ -340,6 +350,8 @@ namespace PosTouch.Core.Sale
                     string nomeCentro = Stampe.NomeUscita(g.Key);
                     var st = InstradamentoStampa.Risolvi(Stampe, Tavolo.SalaId, g.Key);
                     if (st == null) { esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, VAI NON stampato."); continue; }
+                    // articoli della portata non ancora trasmessi: partono con il VAI (come il PC), solo se la stampante c'è (regola 12)
+                    foreach (var r in g.Where(r => !r.Comandata)) r.Comandata = true;
                     Dictionary<string, List<RigaScontrino>> altri = Cfg.StampaRiepilogoAltriCentri
                         ? gruppi.Where(x => x.Key != g.Key).ToDictionary(x => Stampe.NomeUscita(x.Key), x => x.ToList())
                         : null;
@@ -385,6 +397,9 @@ namespace PosTouch.Core.Sale
             SalvaBozza();
             _archivio.UnisciTavoli(Tavolo.Id, tavoliId);
             Carrello.Carica(_archivio.Righe(Tavolo.Id));
+            // anche gli storni in sospeso dei tavoli uniti (altrimenti il prossimo salvataggio li cancellerebbe)
+            _storniPendenti.Clear();
+            _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));
             LogManager.Info($"UNISCI in {Titolo}: {Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto)} articoli");
         }
 

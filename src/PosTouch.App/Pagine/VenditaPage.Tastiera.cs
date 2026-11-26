@@ -15,8 +15,9 @@ namespace PosTouch.App.Pagine
         private void OnCifra(object sender, EventArgs e) => _tastierino.Premi(((Button)sender).Text);
 
         /// <summary>C del PC: azzera la tastiera; se non c'è nulla digitato cancella le righe selezionate, altrimenti l'ultima.</summary>
-        private void OnCancella(object sender, EventArgs e)
+        private async void OnCancella(object sender, EventArgs e)
         {
+            if (Occupata) return;
             if (_tastierino.Attivo)
             {
                 _tastierino.Azzera();
@@ -26,6 +27,7 @@ namespace PosTouch.App.Pagine
             var selezionate = Carrello.Righe.Where(r => r.Selezionata).ToList();
             if (selezionate.Count > 0)
             {
+                if (!await ConfermaStornoAsync(selezionate)) return;
                 Carrello.Rimuovi(selezionate);
                 if (Carrello.UltimoErrore != null) _ = MessaggioBox.Avviso("ELIMINA", Carrello.UltimoErrore);
             }
@@ -34,9 +36,26 @@ namespace PosTouch.App.Pagine
                 if (_scontrinoEspanso) return; // lista espansa: C senza selezione non fa nulla
                 var ultima = Carrello.Righe.LastOrDefault();
                 if (ultima == null) return;
+                if (!await ConfermaStornoAsync(new[] { ultima })) return;
                 Carrello.Rimuovi(new[] { ultima });
                 if (Carrello.UltimoErrore != null) _ = MessaggioBox.Avviso("ELIMINA", Carrello.UltimoErrore);
             }
+        }
+
+        /// <summary>
+        /// Vendita/conto in emissione: la schermata è sotto la copertura ma per sicurezza ogni tasto che cambia
+        /// lo scontrino o apre altre pagine si ferma qui (lo scontrino deve restare quello fotografato).
+        /// </summary>
+        private bool Occupata => Attesa.IsVisible || _venditaAvviata || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso;
+
+        /// <summary>Al tavolo, C su un articolo già in cucina lo storna: si chiede prima (un tocco sbagliato stamperebbe uno storno).</summary>
+        private async Task<bool> ConfermaStornoAsync(IEnumerable<RigaScontrino> righe)
+        {
+            var comandate = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Comandata).ToList();
+            if (_sessione == null || comandate.Count == 0) return true;
+            string elenco = string.Join("\n", comandate.Take(5).Select(r => $"• {r.Quantita:0.##} x {r.Descrizione}")) + (comandate.Count > 5 ? "\n…" : "");
+            return await MessaggioBox.Conferma("STORNO ARTICOLI",
+                $"Questi articoli sono già stati inviati in cucina:\n\n{elenco}\n\nEliminandoli verrà stampato lo storno all'uscita dal tavolo.");
         }
 
         private void OnPer(object sender, EventArgs e) => _tastierino.Moltiplica();
@@ -98,7 +117,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnAnnulla(object sender, EventArgs e)
         {
-            if (Carrello.Righe.Count == 0) return;
+            if (Occupata || Carrello.Righe.Count == 0) return;
             if (!await MessaggioBox.Conferma("ANNULLA SCONTRINO", "Vuoi annullare tutto lo scontrino?\n\nQuesta operazione non può essere annullata."))
                 return;
             if (_sessione != null)
@@ -116,14 +135,18 @@ namespace PosTouch.App.Pagine
 
         private async void OnPiu(object sender, EventArgs e)
         {
+            if (Occupata) return;
             var riga = PrimaSelezionata();
+            if (riga?.IsAPeso == true) return;   // il peso non si cambia a pezzi: si riprende sulla bilancia
             if (riga?.Tipo == TipoRiga.Prodotto && !Carrello.ImpostaQuantita(riga, riga.Quantita + 1))
                 await MessaggioBox.Avviso("QUANTITÀ", Carrello.UltimoErrore);
         }
 
         private async void OnMeno(object sender, EventArgs e)
         {
+            if (Occupata) return;
             var riga = PrimaSelezionata();
+            if (riga?.IsAPeso == true) return;
             if (riga?.Tipo == TipoRiga.Prodotto && riga.Quantita > 1 && !Carrello.ImpostaQuantita(riga, riga.Quantita - 1))
                 await MessaggioBox.Avviso("QUANTITÀ", Carrello.UltimoErrore);
         }

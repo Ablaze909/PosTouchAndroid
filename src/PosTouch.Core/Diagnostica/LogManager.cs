@@ -45,13 +45,23 @@ namespace PosTouch.Core.Diagnostica
         private static readonly System.Collections.Concurrent.BlockingCollection<string> _coda =
             new System.Collections.Concurrent.BlockingCollection<string>(new System.Collections.Concurrent.ConcurrentQueue<string>(), 10000);
         private static System.Threading.Thread _scrittore;
+        /// <summary>Righe accodate e non ancora scritte sul file (cala solo DOPO la scrittura).</summary>
+        private static int _inSospeso;
 
         private static void Scrivi(int livelloNum, string livello, string msg)
         {
             if (_percorso == null || livelloNum < _livelloMinimo) return;
             string riga = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{livello}] {msg}{Environment.NewLine}";
+            if (livelloNum >= 3)
+            {
+                // ERROR (rari e i più importanti): scritti subito, dopo quelli già in coda, così non si perdono se l'app si chiude
+                Svuota();
+                ScriviSubito(riga);
+                return;
+            }
             AvviaScrittore();
-            if (!_coda.TryAdd(riga)) ScriviSubito(riga);   // coda piena (caso estremo): scrive direttamente
+            System.Threading.Interlocked.Increment(ref _inSospeso);
+            if (!_coda.TryAdd(riga)) { ScriviSubito(riga); System.Threading.Interlocked.Decrement(ref _inSospeso); }   // coda piena: scrive direttamente
         }
 
         private static void AvviaScrittore()
@@ -71,8 +81,10 @@ namespace PosTouch.Core.Diagnostica
             foreach (var riga in _coda.GetConsumingEnumerable())
             {
                 blocco.Clear().Append(riga);
-                while (blocco.Length < 64 * 1024 && _coda.TryTake(out var altra)) blocco.Append(altra);   // tutto ciò che è in coda in una sola scrittura
+                int righe = 1;
+                while (blocco.Length < 64 * 1024 && _coda.TryTake(out var altra)) { blocco.Append(altra); righe++; }   // tutto ciò che è in coda in una sola scrittura
                 ScriviSubito(blocco.ToString());
+                System.Threading.Interlocked.Add(ref _inSospeso, -righe);
             }
         }
 
@@ -104,7 +116,7 @@ namespace PosTouch.Core.Diagnostica
         /// <summary>Attende (max ~1 s) che le righe in coda siano scritte: da chiamare prima di condividere il log.</summary>
         public static void Svuota()
         {
-            for (int i = 0; i < 50 && _coda.Count > 0; i++) System.Threading.Thread.Sleep(20);
+            for (int i = 0; i < 50 && System.Threading.Volatile.Read(ref _inSospeso) > 0; i++) System.Threading.Thread.Sleep(20);
         }
     }
 }

@@ -41,7 +41,9 @@ namespace PosTouch.App.Pagine
                 if (k < 0) return;
                 if (k == 0) target = Carrello.SeparaUnPezzo(target) ?? target;
             }
-            string err = Varianti.ApplicaTutte(Carrello, target, scelte, aggiunta, inCombinazione);
+            // "combinazione aperta" vale solo per i gusti di QUELLA combinazione: un gusto di una pizza già chiusa va ricalcolato
+            bool dellaAperta = inCombinazione && (target.Tipo != TipoRiga.Gusto || Carrello.PadreDi(target) == _combinazione.Padre);
+            string err = Varianti.ApplicaTutte(Carrello, target, scelte, aggiunta, dellaAperta);
             if (err != null) await MessaggioBox.Avviso("VARIANTI", err);
             foreach (var r in Carrello.Righe) r.Selezionata = false;
             if (inCombinazione) AggiornaCombinazione();

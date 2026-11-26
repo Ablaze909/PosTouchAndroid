@@ -472,7 +472,7 @@ namespace PosTouch.Core.Fiscale
             }
 
             // TYPE=0: sconto fisso sull'ultima riga venduta
-            string descr = $"SCONTO {percentuale:F0}%";
+            string descr = $"SCONTO {percentuale:0.##}%";
             string data = Op2 + descr + Amt9(importoCent) + "0" + "01" + "1";
             return await OkAsync(1, 83, data);
         }
@@ -492,7 +492,7 @@ namespace PosTouch.Core.Fiscale
 
             // TYPE=2: sconto sul subtotale SENZA ristampare riga subtotale
             // (InviaScontiRTAsync ha già chiamato SubtotaleAsync → già stampato)
-            string descr = $"SCONTO {percentuale:F0}%";
+            string descr = $"SCONTO {percentuale:0.##}%";
             string data = Op2 + descr + Amt9(importoCent) + "2" + "01" + "1";
             return await OkAsync(1, 83, data);
         }

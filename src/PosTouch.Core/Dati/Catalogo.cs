@@ -308,8 +308,39 @@ namespace PosTouch.Core.Dati
             }
 
             SqliteConnection.ClearAllPools();
-            if (File.Exists(_percorso)) File.Copy(_percorso, _percorso + ".bak", overwrite: true);   // catalogo precedente salvato
+            // copie del catalogo precedente: .bak (ultimo), .bak2, .bak3 — due import sbagliati di fila non lo perdono
+            if (File.Exists(_percorso))
+            {
+                if (File.Exists(_percorso + ".bak2")) File.Copy(_percorso + ".bak2", _percorso + ".bak3", overwrite: true);
+                if (File.Exists(_percorso + ".bak")) File.Copy(_percorso + ".bak", _percorso + ".bak2", overwrite: true);
+                File.Copy(_percorso, _percorso + ".bak", overwrite: true);
+            }
+            bool cerano = _prodotti.Count > 0;
             File.Move(tmp, _percorso, overwrite: true);
+            try
+            {
+                int n = Carica();
+                if (n == 0 && cerano) throw new InvalidDataException("Il file scelto non contiene articoli leggibili.");
+                return n;
+            }
+            catch
+            {
+                // catalogo nuovo illeggibile o vuoto: si rimette quello di prima, come se l'import non fosse avvenuto
+                SqliteConnection.ClearAllPools();
+                if (File.Exists(_percorso + ".bak")) File.Copy(_percorso + ".bak", _percorso, overwrite: true);
+                try { Carica(); } catch (Exception ex2) { LogManager.Error($"Ripristino catalogo dopo import fallito: {ex2.Message}"); }
+                throw;
+            }
+        }
+
+        /// <summary>Rimette il catalogo com'era prima dell'ultimo import (copia .bak).</summary>
+        public int RipristinaPrecedente()
+        {
+            if (!File.Exists(_percorso + ".bak")) throw new FileNotFoundException("Nessuna copia del catalogo precedente.");
+            SqliteConnection.ClearAllPools();
+            string corrente = _percorso + ".prima_del_ripristino";
+            if (File.Exists(_percorso)) File.Copy(_percorso, corrente, overwrite: true);
+            File.Copy(_percorso + ".bak", _percorso, overwrite: true);
             return Carica();
         }
 

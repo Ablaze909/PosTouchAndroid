@@ -196,7 +196,7 @@ namespace PosTouch.Core.Configurazione
             vecchia.Normalizza();
             string Indirizzo(string ip, int porta) => porta == 9100 ? ip.Trim() : $"{ip.Trim()}:{porta}";
             ParametriStampa Da(StampanteRete s, bool beep) => s == null || string.IsNullOrWhiteSpace(s.IP) ? new ParametriStampa()
-                : new ParametriStampa { IP = s.IP.Trim(), Porta = s.Porta, Cicalino = beep ? 1 : 0 };
+                : new ParametriStampa { IP = s.IP.Trim(), Porta = s.Porta, Cicalino = beep ? 1 : 0, Taglio = 2 };   // le versioni vecchie tagliavano a fondo
 
             foreach (var s in vecchia.Stampanti.Where(s => !string.IsNullOrWhiteSpace(s.IP))) c.IndirizziIP.Add(Indirizzo(s.IP, s.Porta));
             if (!string.IsNullOrWhiteSpace(ipTermica)) c.IndirizziIP.Add(Indirizzo(ipTermica, portaTermica));
@@ -207,7 +207,9 @@ namespace PosTouch.Core.Configurazione
                 c.Base.Uscite[centro.Id] = Da(vecchia.StampanteDa(centro.StampanteId), cicalinoComande);
             }
             if (!string.IsNullOrWhiteSpace(ipTermica))
-                c.Base.Preconto = new ParametriStampa { IP = ipTermica.Trim(), Porta = portaTermica };
+                c.Base.Preconto = new ParametriStampa { IP = ipTermica.Trim(), Porta = portaTermica, Taglio = 2 };
+            foreach (var centro in vecchia.Centri.Where(x => x.Id < 1 || x.Id > MaxUscite))
+                Diagnostica.LogManager.Warning($"Passaggio stampe: centro {centro.Id} {centro.Nome} non riportato (uscite ammesse 1-{MaxUscite})");
 
             // vecchie eccezioni "sala × centro → stampante": diventano pagine per sala
             if (vecchia.StampantiSala.Any(x => x.StampanteId > 0))

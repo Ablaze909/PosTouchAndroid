@@ -23,7 +23,7 @@ namespace PosTouch.App.Dialoghi
         private SceltaTavoloBox(bool unisci, int sala, int numero)
         {
             _unisci = unisci; _salaCorrente = _salaVista = sala; _numeroCorrente = numero;
-            _aperti = ContestoCassa.Tavoli.Aperti().Where(t => t.Articoli > 0).ToList();
+            _aperti = ContestoCassa.Tavoli.Aperti().Where(t => t.Occupato).ToList();
             var cfg = ContestoCassa.Impostazioni.Sale;
             string nome = cfg.SalaDa(sala)?.Nome ?? "";
 

@@ -16,7 +16,7 @@ namespace PosTouch.App.Servizi
         /// <summary>Motivo per cui ora non si possono caricare i dati di prova (null = si può).</summary>
         public static string BloccoDatiProva()
         {
-            if (ContestoCassa.Tavoli.Aperti().Any(t => t.Articoli > 0)) return "Ci sono tavoli o conti aperti: incassali prima di caricare i dati di prova.";
+            if (ContestoCassa.Tavoli.Aperti().Any(t => t.Occupato)) return "Ci sono tavoli o conti aperti: incassali prima di caricare i dati di prova.";
             if (!ContestoCassa.Carrello.Vuoto) return "Al banco c'è uno scontrino aperto: chiudilo prima di caricare i dati di prova.";
             return null;
         }

@@ -219,8 +219,9 @@ namespace PosTouch.Core.Vendita
             string chiaveRT = $"{cfg.TipoCassa}|{cfg.IP_RT}|{cfg.Porta_RT}";
             if (_txFooterConfiguratoPer != chiaveRT)
             {
-                await rt.ConfiguraTxFooterJsonAsync();
-                _txFooterConfiguratoPer = chiaveRT;
+                // memorizzato solo se l'RT ha accettato: altrimenti si riprova alla vendita dopo
+                if (await rt.ConfiguraTxFooterJsonAsync()) _txFooterConfiguratoPer = chiaveRT;
+                else LogManager.Warning("Configurazione TX_FOOTER non accettata: si riprova alla prossima vendita");
             }
 
             // ── OPERATORE ──
@@ -241,8 +242,8 @@ namespace PosTouch.Core.Vendita
             _fase = 1;
             foreach (var riga in daInviare)
             {
-                // Il protocollo 3i accetta solo ASCII: "CAFFÈ" diventerebbe "CAFF". Convertiamo le accentate (È → E').
-                string descr = cfg.TipoCassa == TipoCassaFiscale.RT3i ? TestoRT.SenzaAccenti(riga.Descrizione) : riga.Descrizione;
+                // 3i ed Epson inviano ASCII: "CAFFÈ" o "PIZZA ½+½" verrebbero rifiutati o stampati male (È → E', ½ → 1/2)
+                string descr = TestoRT.SenzaAccenti(riga.Descrizione);
                 LogManager.Debug($"Riga: Rep{riga.RepartoFiscale} {descr} €{riga.PrezzoCentesimi / 100.0:F2} x{riga.Quantita}");
                 if (!await rt.VendiRepartoAsync(riga.RepartoFiscale, descr, riga.PrezzoCentesimi, riga.Quantita))
                 {
@@ -255,7 +256,7 @@ namespace PosTouch.Core.Vendita
                 if (cfg.VariantiSuScontrino && !string.IsNullOrEmpty(riga.VariantiTesto))
                     foreach (var vt in riga.VariantiTesto.Split('|'))
                         if (!string.IsNullOrWhiteSpace(vt))
-                            await rt.StampaMessaggioAsync(cfg.TipoCassa == TipoCassaFiscale.RT3i ? TestoRT.SenzaAccenti(vt.Trim()) : vt.Trim());
+                            await rt.StampaMessaggioAsync(TestoRT.SenzaAccenti(vt.Trim()));
             }
 
             // ── SCONTI ──
@@ -319,7 +320,19 @@ namespace PosTouch.Core.Vendita
             if (footer.Confermato)
                 LogManager.Info($"✅ SCONTRINO CONFERMATO: Doc={footer.NumeroDocumento}, Azz={footer.NumeroAzzeramento}");
             else
+            {
                 LogManager.Warning($"⚠️ TX_FOOTER non confermato: {footer.Errore ?? "risposta assente"}");
+                // nessuna conferma: se lo scontrino è ancora APERTO la chiusura non è avvenuta → si annulla e la vendita resta a video
+                bool aperto = false;
+                try { aperto = await rt.HaScontrinoApertoAsync(); }
+                catch (Exception ex) { LogManager.Warning($"Verifica scontrino aperto: {ex.Message}"); }
+                if (aperto)
+                {
+                    LogManager.Error("RT: dopo la chiusura lo scontrino risulta ancora aperto");
+                    return await AnnullaEdEsci(rt, "SCONTRINO NON CHIUSO",
+                        "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato).\n\nLo scontrino è stato annullato: la vendita resta a video, riprova.");
+                }
+            }
 
             if (eliminacode > 0)
             {
@@ -328,10 +341,14 @@ namespace PosTouch.Core.Vendita
             }
 
             if (cfg.ApriCassetto)
-                await rt.ApriCassettoAsync();
+            {
+                // scontrino già chiuso: un errore del cassetto non deve far perdere il numero documento letto
+                try { await rt.ApriCassettoAsync(); }
+                catch (Exception ex) { LogManager.Warning($"Apertura cassetto non riuscita: {ex.Message}"); }
+            }
 
             rt.Disconnect();
-            _ultimaVenditaFallita = false;
+            _ultimaVenditaFallita = !footer.Confermato;   // senza conferma, la prossima vendita controlla prima l'RT
 
             var esito = RegistraEsito(_ultimoDaRegistrare, footer, StatoEsito.Riuscito);
             esito.RestoCent = restoFinale;
@@ -359,7 +376,12 @@ namespace PosTouch.Core.Vendita
             catch (Exception ex)
             {
                 esito.Stato = StatoEsito.RiuscitoSenzaArchivio;
-                esito.Messaggio = $"Scontrino emesso, ma la vendita non è stata salvata in archivio:\n{ex.Message}";
+                esito.Messaggio = $"Scontrino emesso, ma la vendita non è stata salvata in archivio:\n{ex.Message}\n\nI dati sono stati scritti nel log.";
+                // come per il conto: i dati della vendita restano almeno nel log, per ricostruirla
+                LogManager.Error($"=== VENDITA NON SALVATA IN ARCHIVIO === Doc {v.NumeroScontrino} Azz {v.NumeroAzzeramento} {v.DataOra:yyyy-MM-dd HH:mm:ss}\n" +
+                                 string.Join("\n", (v.Righe ?? new List<RigaScontrino>()).Select(r =>
+                                     $"  {r.Quantita:0.###} x {r.Descrizione} €{r.PrezzoCentesimi / 100m:F2} rep{r.RepartoFiscale}")) +
+                                 $"\nErrore: {ex}");
             }
             return esito;
         }
@@ -370,7 +392,8 @@ namespace PosTouch.Core.Vendita
         /// </summary>
         public EsitoVendita ConfermaScontrinoUscito(EsitoVendita incerto)
         {
-            _ultimaVenditaFallita = false;
+            // resta il controllo dell'RT alla prossima vendita: se lo scontrino fosse ancora aperto non ci si aggiungono righe
+            _ultimaVenditaFallita = true;
             LogManager.Warning("Scontrino confermato a mano dall'operatore dopo comunicazione interrotta");
             return RegistraEsito(incerto?.DaRegistrare, null, StatoEsito.Riuscito);
         }

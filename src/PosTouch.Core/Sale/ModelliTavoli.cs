@@ -23,6 +23,10 @@ namespace PosTouch.Core.Sale
         public int TotaleCent { get; set; }
         public int Articoli { get; set; }
         public bool DaComandare { get; set; }
+        /// <summary>Storni non ancora stampati (app chiusa prima di uscire): il tavolo va mostrato anche se vuoto.</summary>
+        public bool StorniDaInviare { get; set; }
+        /// <summary>Da mostrare in mappa come occupato: ha articoli o storni da inviare alla cucina.</summary>
+        public bool Occupato => Articoli > 0 || StorniDaInviare;
         /// <summary>Portata più alta presente (0 = senza portate).</summary>
         public int PortataMassima { get; set; }
     }

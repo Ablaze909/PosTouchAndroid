@@ -26,7 +26,8 @@ namespace PosTouch.App.Pagine
         {
             BackgroundColor = Ui.C("#F5F5F5");
             var titolo = new Label { Text = "🍽️ SALE E TAVOLI", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center };
-            var chiudi = Ui.Tasto("✖ CHIUDI", "#78909C", fontSize: 15, altezza: 46, clic: async (s, e) => await Navigazione.Chiudi(this));
+            _firma = _c.Firma();
+            var chiudi = Ui.Tasto("✖ CHIUDI", "#78909C", fontSize: 15, altezza: 46, clic: async (s, e) => await ChiudiAsync());
             var salva = Ui.Tasto("💾 SALVA", "#43A047", fontSize: 15, altezza: 46, clic: async (s, e) => await SalvaAsync());
             chiudi.WidthRequest = 130; salva.WidthRequest = 130;
             var testa = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto) }, ColumnSpacing = 10, BackgroundColor = Ui.C("#00897B"), Padding = new Thickness(16, 8) };
@@ -40,7 +41,24 @@ namespace PosTouch.App.Pagine
             Mostra(0);
         }
 
-        protected override bool Indietro() { _ = Navigazione.Chiudi(this); return true; }
+        protected override bool Indietro() { _ = ChiudiAsync(); return true; }
+
+        private readonly string _firma;
+        private bool _chiusura;
+
+        /// <summary>Come Stampe: con modifiche non salvate si chiede prima di chiudere.</summary>
+        private async Task ChiudiAsync()
+        {
+            if (_chiusura) return;
+            _chiusura = true;
+            try
+            {
+                if (_c.Firma() != _firma && await MessaggioBox.Domanda("MODIFICHE NON SALVATE", "Salvare sale e opzioni comande prima di chiudere?"))
+                { await SalvaAsync(); return; }
+                await Navigazione.Chiudi(this);
+            }
+            finally { _chiusura = false; }
+        }
 
         private void Mostra(int n)
         {
@@ -138,7 +156,7 @@ namespace PosTouch.App.Pagine
                 griglia.Add(InBox(Scelta("Articolo coperto", vociCoperto, ic >= 0 ? ic + 1 : 0, i => sala.CopertoProdottoId = i > 0 ? prodotti[i - 1].Id : 0, 3)), 3, riga);
                 griglia.Add(TastoElimina(async () =>
                 {
-                    if (ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Articoli > 0))
+                    if (ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Occupato))
                     { await MessaggioBox.Avviso("SALA CON TAVOLI APERTI", "Chiudi prima i tavoli aperti di questa sala."); return; }
                     if (!await MessaggioBox.Conferma("ELIMINA SALA", $"Eliminare la sala {sala.Nome}?")) return;
                     _c.Sale.Remove(sala);
@@ -205,7 +223,7 @@ namespace PosTouch.App.Pagine
         private List<string> TavoliFuoriConfigurazione()
         {
             var r = new List<string>();
-            foreach (var t in ContestoCassa.Tavoli.Aperti().Where(t => t.Articoli > 0))
+            foreach (var t in ContestoCassa.Tavoli.Aperti().Where(t => t.Occupato))
             {
                 bool visibile;
                 if (t.SalaId == ConfigSale.SalaConti)

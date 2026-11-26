@@ -67,7 +67,7 @@ namespace PosTouch.App.Pagine
                 await InviaComandaBancoAsync(righe, eliminacode);
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.StampatoSenzaArchivio)
                     await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
-                await DopoPagamentoAsync();
+                await DopoPagamentoAsync(righe);
             }
             finally { _venditaAvviata = false; }
         }
@@ -181,7 +181,7 @@ namespace PosTouch.App.Pagine
             await InviaComandaBancoAsync(righe, eliminacode);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
-            await DopoPagamentoAsync(restoCent);
+            await DopoPagamentoAsync(righe, restoCent);
         }
 
         /// <summary>Documento al banco uscito: accoda la comanda con l'eliminacode (avvisa se un'uscita non ha stampante).</summary>

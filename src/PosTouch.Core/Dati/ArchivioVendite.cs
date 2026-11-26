@@ -144,6 +144,8 @@ namespace PosTouch.Core.Dati
                 AggiungiColonna(c, "ContiRighe", "Tipo", "INTEGER DEFAULT 0");
                 AggiungiColonna(c, "ContiRighe", "IsAPeso", "INTEGER DEFAULT 0");
                 AggiungiColonna(c, "ContiRighe", "UnitaPesoRiga", "TEXT");
+                AggiungiColonna(c, "RigheVendita", "VariantiTesto", "TEXT");   // "+MOZZARELLA|-CIPOLLA": storico completo (regola 5)
+                AggiungiColonna(c, "ContiRighe", "VariantiTesto", "TEXT");
             }
         }
 
@@ -197,8 +199,8 @@ namespace PosTouch.Core.Dati
                         cmd.CommandText = @"
                             INSERT INTO RigheVendita (VenditaId, ProdottoId, CodiceArticolo, Descrizione, Quantita,
                                                       PrezzoCentesimi, PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId,
-                                                      CategoriaNome, AliquotaIVA, Tipo, IsAPeso, UnitaPesoRiga)
-                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita)";
+                                                      CategoriaNome, AliquotaIVA, Tipo, IsAPeso, UnitaPesoRiga, VariantiTesto)
+                            VALUES ($v, $p, $cod, $desc, $qta, $prezzo, $orig, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita, $vt)";
                         cmd.Parameters.AddWithValue("$v", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");
@@ -213,6 +215,7 @@ namespace PosTouch.Core.Dati
                         cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
                         cmd.Parameters.AddWithValue("$peso", r.IsAPeso ? 1 : 0);
                         cmd.Parameters.AddWithValue("$unita", (object)r.UnitaPeso ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("$vt", (object)r.VariantiTesto ?? DBNull.Value);
                         cmd.ExecuteNonQuery();
                     }
 
@@ -275,8 +278,8 @@ namespace PosTouch.Core.Dati
                         cmd.Transaction = tx;
                         cmd.CommandText = @"INSERT INTO ContiRighe (ContoId, ProdottoId, CodiceArticolo, Descrizione, Quantita, PrezzoCentesimi,
                                                 PrezzoOriginaleCentesimi, ImportoCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA,
-                                                Tipo, IsAPeso, UnitaPesoRiga)
-                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita)";
+                                                Tipo, IsAPeso, UnitaPesoRiga, VariantiTesto)
+                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva, $tipo, $peso, $unita, $vt)";
                         cmd.Parameters.AddWithValue("$c", id);
                         cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");
@@ -292,6 +295,7 @@ namespace PosTouch.Core.Dati
                         cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
                         cmd.Parameters.AddWithValue("$peso", r.IsAPeso ? 1 : 0);
                         cmd.Parameters.AddWithValue("$unita", (object)r.UnitaPeso ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("$vt", (object)r.VariantiTesto ?? DBNull.Value);
                         cmd.ExecuteNonQuery();
                     }
                     tx.Commit();

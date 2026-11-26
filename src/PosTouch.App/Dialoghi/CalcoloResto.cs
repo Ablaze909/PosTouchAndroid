@@ -290,6 +290,7 @@ namespace PosTouch.App.Dialoghi
 
         private void Scontrino()
         {
+            if (_input.Length > 0) ConfermaImporto();   // importo digitato senza ✓: vale come confermato
             if (!PagamentoCompleto) return;
             int carta = Cent(_cartaImporto);
             int contanti = Cent(ParteContanti);

@@ -37,6 +37,14 @@ namespace PosTouch.Tests
                 a.EsitoJob(coda[0].Id, false, "spenta", true);
                 Ok(a.TavoliConErroreStampa().Contains("1:5"), "tavolo segnato con errore di stampa");
 
+                a.SpostaTavolo(t.Id, 1, 9);
+                Ok(a.TavoliConErroreStampa().Contains("1:9") && !a.TavoliConErroreStampa().Contains("1:5"), "l'errore di stampa segue il tavolo spostato");
+                Ok(a.Aperti().Single(x => x.Id == t.Id).Numero == 9, "tavolo spostato al 9");
+
+                a.Salva(t, new List<RigaScontrino>(), storniPendenti: new[] { riga });
+                var soloStorni = a.Aperti().Single(x => x.Id == t.Id);
+                Ok(soloStorni.Occupato && soloStorni.Articoli == 0, "tavolo con soli storni da inviare: resta occupato in mappa");
+
                 int e1 = a.ProssimoEliminacode(), e2 = a.ProssimoEliminacode();
                 Uguale(e1 + 1, e2, "eliminacode progressivo");
                 a.AzzeraEliminacode();

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup automatico Android (fino ad Android 11): esclusi tavoli e coda di stampa (un ripristino ristamperebbe
+     comande vecchie), i file temporanei del database e il log. -->
+<full-backup-content>
+    <exclude domain="file" path="tavoli.db" />
+    <exclude domain="file" path="tavoli.db-wal" />
+    <exclude domain="file" path="tavoli.db-shm" />
+    <exclude domain="file" path="vendite.db-wal" />
+    <exclude domain="file" path="vendite.db-shm" />
+    <exclude domain="file" path="catalogo.db-wal" />
+    <exclude domain="file" path="catalogo.db-shm" />
+    <exclude domain="file" path="debug.log" />
+</full-backup-content>

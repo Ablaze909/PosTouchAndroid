@@ -36,6 +36,8 @@ namespace PosTouch.App.Servizi
         private static PosTouch.App.Pagine.VenditaPage _paginaVendita;
         /// <summary>Una sola schermata vendita per tutta l'app (lo scontrino in corso è uno solo).</summary>
         public static PosTouch.App.Pagine.VenditaPage PaginaVendita => _paginaVendita ??= new PosTouch.App.Pagine.VenditaPage();
+        /// <summary>La vendita se è già stata aperta (null altrimenti): per salvare quando l'app va in background.</summary>
+        public static PosTouch.App.Pagine.VenditaPage PaginaVenditaAperta => _paginaVendita;
 
         /// <summary>Aumenta a ogni salvataggio impostazioni: la vendita si ridisegna solo se serve.</summary>
         public static int VersioneImpostazioni { get; private set; }

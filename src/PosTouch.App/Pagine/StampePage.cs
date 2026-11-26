@@ -18,14 +18,13 @@ namespace PosTouch.App.Pagine
         private readonly Label _titolo = new Label { FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center };
         private int _sala = ConfigStampe.SalaBanco;
         private static StampeSala _salaCopiata;
-        private readonly string _firma;
+        private string _firma;
 
         private ConfigSale Sale => ContestoCassa.Impostazioni.Sale;
 
         public StampePage()
         {
             _c = (ContestoCassa.Impostazioni.Stampe ?? new ConfigStampe()).Copia();
-            _firma = Firma();
             BackgroundColor = Ui.C("#263238");
 
             var chiudi = Ui.Tasto("✖ CHIUDI", "#C2185B", fontSize: 15, altezza: 46, clic: async (s, e) => await ChiudiAsync());
@@ -43,6 +42,7 @@ namespace PosTouch.App.Pagine
             radice.Add(corpo, 0, 1);
             Content = radice;
             Disegna();
+            _firma = Firma();   // dopo il primo disegno: i controlli possono normalizzare valori (niente falso "modifiche non salvate")
         }
 
         protected override bool Indietro() { _ = ChiudiAsync(); return true; }
@@ -197,8 +197,16 @@ namespace PosTouch.App.Pagine
 
         private async Task AggiungiUscitaAsync()
         {
-            int numero = Enumerable.Range(1, ConfigStampe.MaxUscite).FirstOrDefault(n => _c.UscitaDa(n) == null);
-            if (numero == 0) return;
+            var liberi = Enumerable.Range(1, ConfigStampe.MaxUscite).Where(n => _c.UscitaDa(n) == null).ToList();
+            if (liberi.Count == 0) return;
+            // prima un numero che nessuna categoria/articolo usa ancora: un'uscita eliminata non "rinasce" con le vecchie categorie
+            int numero = liberi.FirstOrDefault(n => UsataDa(n) == 0);
+            if (numero == 0)
+            {
+                numero = liberi[0];
+                if (!await MessaggioBox.Conferma("USCITA GIÀ ASSEGNATA",
+                        $"L'uscita {numero} è ancora assegnata a {UsataDa(numero)} tra categorie e articoli: la nuova uscita riceverà le loro comande.\n\nContinuare?")) return;
+            }
             string nome = await TestoBox.Chiedi($"NOME USCITA {numero} (es. BAR, CUCINA)");
             if (string.IsNullOrWhiteSpace(nome)) return;
             _c.Uscite.Add(new Uscita { Numero = numero, Nome = nome.Trim().ToUpperInvariant() });
@@ -216,15 +224,18 @@ namespace PosTouch.App.Pagine
 
         private async Task EliminaUscitaAsync(Uscita u)
         {
-            int usata = ContestoCassa.Catalogo.TutteCategorie.Count(c => c.CentroProduzioneId == u.Numero)
-                      + ContestoCassa.Catalogo.TuttiProdotti.Count(p => p.CentroProduzioneId == u.Numero);
-            string avviso = usata > 0 ? $"\n\n⚠️ È usata da {usata} tra categorie e articoli: non andranno più in comanda." : "";
+            int usata = UsataDa(u.Numero);
+            string avviso = usata > 0 ? $"\n\n⚠️ È usata da {usata} tra categorie e articoli: non andranno più in comanda finché non le assegni a un'altra uscita." : "";
             if (!await MessaggioBox.Conferma("ELIMINA USCITA", $"Eliminare l'uscita {u.Numero} {u.Nome}?{avviso}")) return;
             _c.Uscite.Remove(u);
             _c.Base.Uscite.Remove(u.Numero);
             foreach (var p in _c.PerSala.Values) p.Uscite.Remove(u.Numero);
             Disegna();
         }
+
+        private static int UsataDa(int numero) =>
+            ContestoCassa.Catalogo.TutteCategorie.Count(c => c.CentroProduzioneId == numero)
+          + ContestoCassa.Catalogo.TuttiProdotti.Count(p => p.CentroProduzioneId == numero);
 
         // ══════════════ salva / chiudi ══════════════
 

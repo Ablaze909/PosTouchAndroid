@@ -48,6 +48,7 @@ namespace PosTouch.App.Dialoghi
             corpo.Add(chiudi, 0, 2);
 
             _attesa = new Grid { BackgroundColor = Ui.C("#99000000"), IsVisible = false };
+            _attesa.GestureRecognizers.Add(new TapGestureRecognizer());   // durante la chiusura Z i tocchi non passano a CHIUDI
             _attesa.Add(new VerticalStackLayout
             {
                 HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, Spacing = 12,
