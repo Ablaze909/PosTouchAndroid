@@ -1,10 +1,11 @@
+using PosTouch.App.Controlli;
 using PosTouch.App.Dialoghi;
 using PosTouch.App.Servizi;
 
 namespace PosTouch.App.Pagine
 {
     /// <summary>Schermata iniziale, come LauncherDialog del PC.</summary>
-    public partial class LauncherPage : ContentPage
+    public partial class LauncherPage : PaginaPos
     {
         private readonly IDispatcherTimer _orologio;
 
@@ -66,14 +67,14 @@ namespace PosTouch.App.Pagine
         private async void OnDocumenti(object sender, TappedEventArgs e)
             => await MessaggioBox.Info("📄 DOCUMENTI", "L'elenco documenti (ristampe, annulli, resi) arriverà nella prossima versione.");
 
-        private async void OnFunzioniCassa(object sender, TappedEventArgs e) => await Navigazione.ApriModale(this, () => new FunzioniCassaPage());
+        private async void OnFunzioniCassa(object sender, TappedEventArgs e) => await FunzioniCassaBox.Mostra();
 
         private async void OnImpostazioni(object sender, TappedEventArgs e)
         {
             if (await Accesso.VerificaPinAsync("IMPOSTAZIONI")) await Navigazione.Apri(this, () => new ImpostazioniPage());
         }
 
-        protected override bool OnBackButtonPressed()
+        protected override bool Indietro()
         {
             OnEsci(this, null);
             return true;

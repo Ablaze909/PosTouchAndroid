@@ -11,7 +11,7 @@ namespace PosTouch.App.Pagine
     /// Vendita al banco: stesso layout, stessi tasti e stessi gesti di MainWindow (POS Touch Windows).
     /// La logica sta in Carrello, Tastierino e ServizioVendita (libreria Core).
     /// </summary>
-    public partial class VenditaPage : ContentPage
+    public partial class VenditaPage : PaginaPos
     {
         private const int IdPreferiti = -1;
         private double _latoTasto = 100;     // 100×100 come sul PC; si adatta per riempire la riga
@@ -279,6 +279,7 @@ namespace PosTouch.App.Pagine
 
         private void AggiungiDaBarcode(string codice)
         {
+            if (HaLivelli) return; // con un dialogo aperto il lettore non aggiunge articoli
             var p = ContestoCassa.Catalogo.CercaBarcode(codice);
             if (p == null) _ = MessaggioBox.Avviso("ARTICOLO NON TROVATO", $"Nessun articolo con codice:\n{codice}");
             else _ = AggiungiProdottoAsync(p);
@@ -305,7 +306,7 @@ namespace PosTouch.App.Pagine
         }
 
         private async void OnFunzioniCassa(object sender, EventArgs e)
-            => await Navigazione.ApriModale(this, () => new FunzioniCassaPage());
+            => await FunzioniCassaBox.Mostra();
 
         /// <summary>🚪: torna alla schermata iniziale (come TornaAlLauncher del PC).</summary>
         private async void OnEsci(object sender, EventArgs e)
@@ -319,7 +320,7 @@ namespace PosTouch.App.Pagine
         }
 
         /// <summary>Tasto indietro di Android: come 🚪 (non si esce con lo scontrino aperto o durante la stampa).</summary>
-        protected override bool OnBackButtonPressed()
+        protected override bool Indietro()
         {
             if (Attesa.IsVisible) return true;
             if (OverlayPagamento.IsVisible) { OverlayPagamento.IsVisible = false; return true; }

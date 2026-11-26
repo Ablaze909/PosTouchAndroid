@@ -6,7 +6,7 @@ using PosTouch.Core.Modelli;
 namespace PosTouch.App.Pagine
 {
     /// <summary>Copia di CategoriaDialogTouch del PC.</summary>
-    public partial class CategoriaPage : ContentPage
+    public partial class CategoriaPage : PaginaPos
     {
         private static readonly int[] Aliquote = { 4, 5, 10, 22 };
         private readonly Categoria _cat;
@@ -39,8 +39,9 @@ namespace PosTouch.App.Pagine
             SwAttiva.IsToggled = _cat.Attiva;
             CampoNome.Text = _cat.Nome;
             _reparto = _cat.RepartoFiscale;
+            SceltaIva.Voci = Aliquote.Select(a => $"{a}%").ToList();
             int iva = Array.IndexOf(Aliquote, _cat.AliquotaIVA);
-            SceltaIva.SelectedIndex = iva >= 0 ? iva : 2;
+            SceltaIva.Indice = iva >= 0 ? iva : 2;
             AggiornaTutto();
         }
 
@@ -119,7 +120,7 @@ namespace PosTouch.App.Pagine
             }
             _cat.Nome = CampoNome.Text.Trim().ToUpperInvariant();
             _cat.RepartoFiscale = _reparto;
-            _cat.AliquotaIVA = Aliquote[Math.Max(0, SceltaIva.SelectedIndex)];
+            _cat.AliquotaIVA = Aliquote[Math.Max(0, SceltaIva.Indice)];
             _cat.Attiva = SwAttiva.IsToggled || _cat.Id == 0;
             try
             {

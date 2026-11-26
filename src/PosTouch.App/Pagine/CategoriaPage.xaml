@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copia di CategoriaDialogTouch del PC (riquadro 780×530 bianco, angoli 16) -->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ctl:PaginaPos xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.CategoriaPage"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="#F5F5F5">
-    <ContentPage.Resources>
+    <ctl:PaginaPos.Resources>
         <Style x:Key="Etichetta" TargetType="Label">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="TextColor" Value="#757575" />
@@ -19,7 +20,7 @@
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="Margin" Value="0,0,0,15" />
         </Style>
-    </ContentPage.Resources>
+    </ctl:PaginaPos.Resources>
 
     <Border x:Name="Riquadro" WidthRequest="780" HeightRequest="560" HorizontalOptions="Center" VerticalOptions="Center"
             BackgroundColor="White" StrokeThickness="0" StrokeShape="RoundRectangle 16">
@@ -56,14 +57,7 @@
 
                     <Label Text="Aliquota IVA (%) *" Style="{StaticResource Etichetta}" />
                     <Border Style="{StaticResource Campo}">
-                        <Picker x:Name="SceltaIva" FontSize="15" BackgroundColor="Transparent">
-                            <Picker.Items>
-                                <x:String>4%</x:String>
-                                <x:String>5%</x:String>
-                                <x:String>10%</x:String>
-                                <x:String>22%</x:String>
-                            </Picker.Items>
-                        </Picker>
+                        <ctl:CampoScelta x:Name="SceltaIva" FontSize="15" Titolo="Aliquota IVA" Colonne="4" />
                     </Border>
                 </VerticalStackLayout>
 
@@ -119,4 +113,4 @@
             </Grid>
         </Grid>
     </Border>
-</ContentPage>
+</ctl:PaginaPos>

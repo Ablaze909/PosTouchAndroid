@@ -10,13 +10,7 @@ namespace PosTouch.App.Servizi
 
         public static Task Apri(Page da, Func<Page> crea) => Esegui(() => da.Navigation.PushAsync(crea()));
 
-        /// <summary>Finestra sopra la schermata attuale (come i dialog del PC, la schermata sotto resta visibile).</summary>
-        public static Task ApriModale(Page da, Func<Page> crea) => Esegui(() => da.Navigation.PushModalAsync(crea(), false));
-
-        public static Task Chiudi(Page pagina) => Esegui(() =>
-            pagina.Navigation.ModalStack.Contains(pagina)
-                ? pagina.Navigation.PopModalAsync(false)
-                : pagina.Navigation.PopAsync());
+        public static Task Chiudi(Page pagina) => Esegui(() => pagina.Navigation.PopAsync());
 
         private static async Task Esegui(Func<Task> azione)
         {

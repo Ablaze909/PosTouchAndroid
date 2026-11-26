@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copia di ImpostazioniDialog del PC: intestazione arancione, schede, riquadri bianchi, ✖ CHIUDI in fondo -->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ctl:PaginaPos xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.ImpostazioniPage"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="#F0F0F0">
-    <ContentPage.Resources>
+    <ctl:PaginaPos.Resources>
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="BackgroundColor" Value="White" />
             <Setter Property="StrokeThickness" Value="0" />
@@ -48,7 +49,7 @@
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Margin" Value="0,15,0,0" />
         </Style>
-    </ContentPage.Resources>
+    </ctl:PaginaPos.Resources>
 
     <Grid RowDefinitions="70,Auto,*,65" Padding="10">
         <!-- HEADER -->
@@ -73,12 +74,7 @@
                         <Label Text="🖨️ REGISTRATORE TELEMATICO" Style="{StaticResource TitoloCard}" />
                         <Label Text="Tipo Cassa Fiscale:" Style="{StaticResource Voce}" Margin="0,0,0,8" />
                         <Border Style="{StaticResource Box}">
-                            <Picker x:Name="SceltaTipo" FontSize="20" BackgroundColor="Transparent" SelectedIndexChanged="OnTipoCambiato">
-                                <Picker.Items>
-                                    <x:String>3i (XON/XOFF)</x:String>
-                                    <x:String>Epson (Communication Protocol)</x:String>
-                                </Picker.Items>
-                            </Picker>
+                            <ctl:CampoScelta x:Name="SceltaTipo" FontSize="20" Titolo="Tipo Cassa Fiscale" Colonne="2" Cambiato="OnTipoCambiato" />
                         </Border>
                         <Label Text="Indirizzo IP:" Style="{StaticResource Voce}" Margin="0,20,0,8" />
                         <Border Style="{StaticResource Box}">
@@ -228,4 +224,4 @@
         <!-- FOOTER -->
         <Button Grid.Row="3" Text="✖ CHIUDI" HeightRequest="60" FontSize="24" BackgroundColor="#E53935" CornerRadius="10" Margin="0,5,0,0" Clicked="OnChiudi" />
     </Grid>
-</ContentPage>
+</ctl:PaginaPos>

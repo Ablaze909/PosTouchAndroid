@@ -1,10 +1,11 @@
+using PosTouch.App.Controlli;
 using PosTouch.App.Dialoghi;
 using PosTouch.App.Servizi;
 
 namespace PosTouch.App.Pagine
 {
     /// <summary>Copia di StrumentiDialog del PC.</summary>
-    public partial class StrumentiPage : ContentPage
+    public partial class StrumentiPage : PaginaPos
     {
         public StrumentiPage()
         {

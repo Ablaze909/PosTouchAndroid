@@ -10,7 +10,7 @@ using PosTouch.Core.Fiscale;
 namespace PosTouch.App.Pagine
 {
     /// <summary>Copia di ImpostazioniDialog del PC con le voci già disponibili su Android.</summary>
-    public partial class ImpostazioniPage : ContentPage
+    public partial class ImpostazioniPage : PaginaPos
     {
         private int _fontCategorie;
         private string _password;
@@ -52,7 +52,8 @@ namespace PosTouch.App.Pagine
 
         private void Carica(Impostazioni i)
         {
-            SceltaTipo.SelectedIndex = i.TipoCassa == TipoCassaFiscale.Epson ? 1 : 0;
+            SceltaTipo.Voci = new List<string> { "3i (XON/XOFF)", "Epson (Communication Protocol)" };
+            SceltaTipo.Indice = i.TipoCassa == TipoCassaFiscale.Epson ? 1 : 0;
             CampoIP.Text = i.IP_RT;
             CampoPorta.Text = i.Porta_RT.ToString();
             CampoOperatore.Text = i.OperatoreRT.ToString();
@@ -85,7 +86,7 @@ namespace PosTouch.App.Pagine
             RbLogDebug.IsChecked = !RbLogInfo.IsChecked && !RbLogWarn.IsChecked && !RbLogError.IsChecked;
         }
 
-        private TipoCassaFiscale TipoScelto => SceltaTipo.SelectedIndex == 1 ? TipoCassaFiscale.Epson : TipoCassaFiscale.RT3i;
+        private TipoCassaFiscale TipoScelto => SceltaTipo.Indice == 1 ? TipoCassaFiscale.Epson : TipoCassaFiscale.RT3i;
 
         /// <summary>Legge i campi; restituisce null (e mostra l'errore) se qualcosa non va.</summary>
         private async Task<Impostazioni> LeggiAsync()
@@ -130,7 +131,7 @@ namespace PosTouch.App.Pagine
         }
 
         /// <summary>Riassunto dei campi per capire se ci sono modifiche non salvate.</summary>
-        private string Firma() => string.Join("|", SceltaTipo.SelectedIndex, CampoIP.Text, CampoPorta.Text, CampoOperatore.Text, ChkCassetto.IsChecked,
+        private string Firma() => string.Join("|", SceltaTipo.Indice, CampoIP.Text, CampoPorta.Text, CampoOperatore.Text, ChkCassetto.IsChecked,
             CampoNomePV.Text, CampoSottotitoloPV.Text, ChkSconti.IsChecked, ChkCambioPrezzo.IsChecked, ChkModificaVendita.IsChecked,
             ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,

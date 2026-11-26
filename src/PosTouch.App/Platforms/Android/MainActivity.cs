@@ -33,12 +33,47 @@ namespace PosTouch.App
             // Cassa: lo schermo non deve spegnersi durante il servizio
             Window?.AddFlags(WindowManagerFlags.KeepScreenOn);
             SchermoIntero();
+
+            // Quando si chiude la tastiera a schermo Android rimostra le barre: le rinascondiamo
+            if (Window?.DecorView?.ViewTreeObserver is ViewTreeObserver osservatore)
+                osservatore.GlobalLayout += (s, e) => ControllaBarre();
+        }
+
+        protected override void OnResume()
+        {
+            base.OnResume();
+            SchermoInteroRitardato();
         }
 
         public override void OnWindowFocusChanged(bool hasFocus)
         {
             base.OnWindowFocusChanged(hasFocus);
-            if (hasFocus) SchermoIntero();
+            // il focus torna dopo menu a tendina, finestre di sistema, selettore file…
+            if (hasFocus) SchermoInteroRitardato();
+        }
+
+        private bool _inAttesa;
+
+        /// <summary>Se le barre sono visibili e la tastiera a schermo è chiusa, torna a schermo intero.</summary>
+        private void ControllaBarre()
+        {
+            if (_inAttesa || Window?.DecorView == null) return;
+            var insets = ViewCompat.GetRootWindowInsets(Window.DecorView);
+            if (insets == null) return;
+            bool tastiera = insets.IsVisible(WindowInsetsCompat.Type.Ime());
+            bool barre = insets.IsVisible(WindowInsetsCompat.Type.SystemBars());
+            if (barre && !tastiera) SchermoInteroRitardato();
+        }
+
+        private void SchermoInteroRitardato()
+        {
+            if (_inAttesa || Window?.DecorView == null) return;
+            _inAttesa = true;
+            Window.DecorView.PostDelayed(() =>
+            {
+                _inAttesa = false;
+                SchermoIntero();
+            }, 300);
         }
 
         /// <summary>

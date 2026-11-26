@@ -4,15 +4,16 @@
     Colonne: categorie 120 | articoli * | scontrino + tastiera 320.
     Righe:   contenuto * | barra pagamenti 58 (sotto categorie e articoli).
 -->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ctl:PaginaPos xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              xmlns:m="clr-namespace:PosTouch.Core.Modelli;assembly=PosTouch.Core"
              xmlns:conv="clr-namespace:PosTouch.App.Convertitori"
              x:Class="PosTouch.App.Pagine.VenditaPage"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="White">
 
-    <ContentPage.Resources>
+    <ctl:PaginaPos.Resources>
         <conv:ColoreConverter x:Key="Colore" />
 
         <!-- ModernButton del PC: tasti tastiera bianchi, piatti, testo nero -->
@@ -40,7 +41,7 @@
             <Setter Property="MinimumHeightRequest" Value="32" />
             <Setter Property="Margin" Value="3,0" />
         </Style>
-    </ContentPage.Resources>
+    </ctl:PaginaPos.Resources>
 
     <Grid x:Name="Radice" RowDefinitions="*,58" ColumnDefinitions="120,*,320">
 
@@ -257,4 +258,4 @@
             </VerticalStackLayout>
         </Grid>
     </Grid>
-</ContentPage>
+</ctl:PaginaPos>

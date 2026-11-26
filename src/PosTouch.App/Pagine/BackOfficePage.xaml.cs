@@ -30,9 +30,12 @@ namespace PosTouch.App.Pagine
     }
 
     /// <summary>Copia del Back office del PC: schede PRODOTTI e CATEGORIE.</summary>
-    public partial class BackOfficePage : ContentPage
+    public partial class BackOfficePage : PaginaPos
     {
         private List<VoceProdotto> _voci = new();
+        private List<Categoria> _filtro = new();
+        private int CategoriaFiltro => FiltroCategoria != null && FiltroCategoria.Indice > 0 && FiltroCategoria.Indice < _filtro.Count
+            ? _filtro[FiltroCategoria.Indice].Id : 0;
         private bool _soloPreferiti, _soloNascosti;
         private bool _schedaProdotti = true;
         private DateTime _toccoFreccia = DateTime.MinValue;
@@ -54,11 +57,12 @@ namespace PosTouch.App.Pagine
             var cat = ContestoCassa.Catalogo;
             Contatori.Text = $"{cat.TuttiProdotti.Count} Prodotti • {cat.TutteCategorie.Count} Categorie";
 
-            var filtro = new List<Categoria> { new Categoria { Id = 0, Nome = "Tutte" } };
-            filtro.AddRange(cat.TutteCategorie);
-            int idScelto = (FiltroCategoria.SelectedItem as Categoria)?.Id ?? 0;
-            FiltroCategoria.ItemsSource = filtro;
-            FiltroCategoria.SelectedItem = filtro.FirstOrDefault(c => c.Id == idScelto) ?? filtro[0];
+            int idScelto = CategoriaFiltro;
+            _filtro = new List<Categoria> { new Categoria { Id = 0, Nome = "Tutte" } };
+            _filtro.AddRange(cat.TutteCategorie);
+            FiltroCategoria.Voci = _filtro.Select(c => c.Nome).ToList();
+            int i = _filtro.FindIndex(c => c.Id == idScelto);
+            FiltroCategoria.Indice = i >= 0 ? i : 0;
 
             FiltraProdotti();
             CaricaCategorie();
@@ -103,7 +107,7 @@ namespace PosTouch.App.Pagine
         private void FiltraProdotti()
         {
             if (FiltroCategoria == null || ListaProdotti == null) return;
-            int catId = (FiltroCategoria.SelectedItem as Categoria)?.Id ?? 0;
+            int catId = CategoriaFiltro;
             string testo = (CampoRicerca.Text ?? "").Trim();
             string barcode = (CampoBarcode.Text ?? "").Trim();
 
@@ -162,7 +166,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("NESSUNA CATEGORIA", "Crea prima una categoria nella scheda 🏷️ CATEGORIE.");
                 return;
             }
-            int catId = (FiltroCategoria.SelectedItem as Categoria)?.Id ?? 0;
+            int catId = CategoriaFiltro;
             await Navigazione.Apri(this, () => new ProdottoPage(null, catId > 0 ? catId : categorie[0].Id));
         }
 

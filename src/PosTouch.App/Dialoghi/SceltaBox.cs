@@ -42,11 +42,7 @@ namespace PosTouch.App.Dialoghi
         }
 
         /// <summary>Tasto indietro di Android = ANNULLA (-1), non la prima voce.</summary>
-        protected override bool OnBackButtonPressed()
-        {
-            Chiudi(-1);
-            return true;
-        }
+        public override void Indietro() => Chiudi(-1);
 
         public static Task<int> Testi(string titolo, IList<string> voci, int colonne = 3)
             => Dialogo.Mostra(new SceltaBox(titolo, voci, null, colonne, 60, 16));

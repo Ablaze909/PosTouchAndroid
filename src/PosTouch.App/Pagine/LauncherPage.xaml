@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copia di LauncherDialog del PC: sfondo blu scuro, titolo a sinistra, 6 tasti a destra, Esci in basso a sinistra -->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ctl:PaginaPos xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.LauncherPage"
              NavigationPage.HasNavigationBar="False">
-    <ContentPage.Resources>
+    <ctl:PaginaPos.Resources>
         <Style x:Key="TastoCard" TargetType="Border">
             <Setter Property="BackgroundColor" Value="White" />
             <Setter Property="Opacity" Value="0.92" />
@@ -14,7 +15,7 @@
             <Setter Property="StrokeThickness" Value="0" />
             <Setter Property="StrokeShape" Value="RoundRectangle 12" />
         </Style>
-    </ContentPage.Resources>
+    </ctl:PaginaPos.Resources>
 
     <Grid RowDefinitions="*,Auto">
         <Grid.Background>
@@ -121,4 +122,4 @@
             <Label x:Name="OraData" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="End" VerticalOptions="Center" />
         </Grid>
     </Grid>
-</ContentPage>
+</ctl:PaginaPos>

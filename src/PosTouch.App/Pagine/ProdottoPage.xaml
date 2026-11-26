@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copia di ProdottoDialogTouch del PC (a tutto schermo, bordo nero 3px, form a 3 colonne) -->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ctl:PaginaPos xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.ProdottoPage"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="White">
-    <ContentPage.Resources>
+    <ctl:PaginaPos.Resources>
         <Style x:Key="Etichetta" TargetType="Label">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="TextColor" Value="#1A1A1A" />
@@ -29,7 +30,7 @@
             <Setter Property="BorderWidth" Value="2" />
             <Setter Property="Padding" Value="2,0" />
         </Style>
-    </ContentPage.Resources>
+    </ctl:PaginaPos.Resources>
 
     <Border Stroke="Black" StrokeThickness="3" BackgroundColor="White">
         <Grid RowDefinitions="Auto,*,Auto" Padding="30,20,30,15">
@@ -81,7 +82,7 @@
                     <VerticalStackLayout Grid.Column="2">
                         <Label Text="Categoria *" Style="{StaticResource Etichetta}" />
                         <Border Style="{StaticResource Campo}">
-                            <Picker x:Name="SceltaCategoria" FontSize="16" ItemDisplayBinding="{Binding Nome}" BackgroundColor="Transparent" />
+                            <ctl:CampoScelta x:Name="SceltaCategoria" FontSize="16" Titolo="Categoria" />
                         </Border>
 
                         <Label Text="Colore bottone" Style="{StaticResource Etichetta}" />
@@ -142,4 +143,4 @@
             </Grid>
         </Grid>
     </Border>
-</ContentPage>
+</ctl:PaginaPos>

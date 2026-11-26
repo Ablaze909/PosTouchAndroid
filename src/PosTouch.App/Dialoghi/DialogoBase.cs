@@ -1,21 +1,41 @@
+using PosTouch.App.Controlli;
+
 namespace PosTouch.App.Dialoghi
 {
     /// <summary>
-    /// Finestra modale sopra la pagina (come i dialog ShowDialog() del PC): sfondo scuro semitrasparente,
+    /// Dialogo come le finestre ShowDialog() del PC: sfondo scuro semitrasparente sopra la schermata,
     /// riquadro al centro, risultato restituito con <see cref="Risultato"/>.
+    /// Viene mostrato come livello dentro la pagina (non come finestra Android separata),
+    /// così lo schermo intero resta attivo.
     /// </summary>
-    public abstract class DialogoBase<T> : ContentPage
+    public abstract class DialogoBase<T> : ContentView
     {
         private readonly TaskCompletionSource<T> _tcs = new TaskCompletionSource<T>();
         private bool _chiuso;
+        internal PaginaPos Pagina { get; set; }
+        internal Action AllaChiusura { get; set; }
 
         protected DialogoBase()
         {
             BackgroundColor = Color.FromArgb("#99000000");
-            NavigationPage.SetHasNavigationBar(this, false);
+            HorizontalOptions = LayoutOptions.Fill;
+            VerticalOptions = LayoutOptions.Fill;
+            // i tocchi sullo sfondo scuro non devono arrivare alla schermata sotto
+            GestureRecognizers.Add(new TapGestureRecognizer());
         }
 
         public Task<T> Risultato => _tcs.Task;
+
+        protected void Chiudi(T valore)
+        {
+            if (_chiuso) return;
+            _chiuso = true;
+            AllaChiusura?.Invoke();
+            _tcs.TrySetResult(valore);
+        }
+
+        /// <summary>Tasto indietro di Android = ANNULLA.</summary>
+        public virtual void Indietro() => Chiudi(default);
 
         private View _riquadro;
         private double _larghezza, _altezza;
@@ -41,44 +61,50 @@ namespace PosTouch.App.Dialoghi
             if (_altezza > 0) _riquadro.HeightRequest = Math.Min(_altezza, height - 24);
             else _riquadro.MaximumHeightRequest = height - 24;
         }
-
-        protected async void Chiudi(T valore)
-        {
-            if (_chiuso) return;
-            _chiuso = true;
-            try { await Navigation.PopModalAsync(false); } catch { }
-            _tcs.TrySetResult(valore);
-        }
-
-        /// <summary>Tasto indietro di Android = ANNULLA.</summary>
-        protected override bool OnBackButtonPressed()
-        {
-            Chiudi(default);
-            return true;
-        }
     }
 
     public static class Dialogo
     {
-        private static bool _aperto;
+        private static readonly List<Type> _aperti = new List<Type>();
+
+        /// <summary>Pagina attualmente in primo piano (dove aprire il dialogo).</summary>
+        private static PaginaPos PaginaAttiva()
+        {
+            var finestra = Application.Current?.Windows.FirstOrDefault()?.Page;
+            if (finestra == null) return null;
+            var nav = finestra.Navigation;
+            Page cima = nav.ModalStack.LastOrDefault() ?? nav.NavigationStack.LastOrDefault() ?? finestra;
+            if (cima is NavigationPage np) cima = np.CurrentPage;
+            return cima as PaginaPos;
+        }
 
         /// <summary>
-        /// Mostra il dialogo e attende la risposta. Un secondo dialogo chiesto mentre uno è già aperto
-        /// (es. doppio tocco su TOTALE) viene ignorato.
+        /// Mostra il dialogo e attende la risposta. Un secondo dialogo dello stesso tipo chiesto
+        /// mentre uno è già aperto (es. doppio tocco su TOTALE) viene ignorato.
         /// </summary>
         public static async Task<T> Mostra<T>(DialogoBase<T> dialogo)
         {
-            var nav = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation;
-            if (nav == null || _aperto) return default;
-            _aperto = true;
+            var pagina = PaginaAttiva();
+            var tipo = dialogo.GetType();
+            if (pagina == null || _aperti.Contains(tipo)) return default;
+
+            _aperti.Add(tipo);
+            var indietroPrecedente = pagina.IndietroDialogo;
+            dialogo.Pagina = pagina;
+            dialogo.AllaChiusura = () =>
+            {
+                pagina.RimuoviLivello(dialogo);
+                pagina.IndietroDialogo = indietroPrecedente;
+            };
+            pagina.IndietroDialogo = () => { dialogo.Indietro(); return true; };
+            pagina.AggiungiLivello(dialogo);
             try
             {
-                await nav.PushModalAsync(dialogo, false);
                 return await dialogo.Risultato;
             }
             finally
             {
-                _aperto = false;
+                _aperti.Remove(tipo);
             }
         }
     }

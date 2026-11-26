@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copia di StrumentiDialog del PC -->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ctl:PaginaPos xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.StrumentiPage"
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="#F5F5F5">
-    <ContentPage.Resources>
+    <ctl:PaginaPos.Resources>
         <Style x:Key="Menu" TargetType="Border">
             <Setter Property="Margin" Value="10" />
             <Setter Property="StrokeThickness" Value="0" />
@@ -21,7 +22,7 @@
             <Setter Property="TextColor" Value="White" />
             <Setter Property="HorizontalOptions" Value="Center" />
         </Style>
-    </ContentPage.Resources>
+    </ctl:PaginaPos.Resources>
 
     <Grid RowDefinitions="80,*,80" Padding="20">
         <Border BackgroundColor="#37474F" StrokeThickness="0" StrokeShape="RoundRectangle 10" Margin="0,0,0,10">
@@ -58,4 +59,4 @@
 
         <Button Grid.Row="2" Text="✖ CHIUDI" HeightRequest="60" FontSize="20" BackgroundColor="#E53935" CornerRadius="10" Clicked="OnChiudi" />
     </Grid>
-</ContentPage>
+</ctl:PaginaPos>

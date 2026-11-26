@@ -6,7 +6,7 @@ using PosTouch.Core.Modelli;
 namespace PosTouch.App.Pagine
 {
     /// <summary>Copia di ProdottoDialogTouch del PC (campi della fase 1).</summary>
-    public partial class ProdottoPage : ContentPage
+    public partial class ProdottoPage : PaginaPos
     {
         private readonly Prodotto _p;
         private readonly List<Categoria> _categorie;
@@ -33,8 +33,8 @@ namespace PosTouch.App.Pagine
             PannelloAttivo.IsVisible = BtnElimina.IsVisible = esistente != null;
             SwAttivo.IsToggled = _p.Attivo;
 
-            SceltaCategoria.ItemsSource = _categorie;
-            SceltaCategoria.SelectedItem = _categorie.FirstOrDefault(c => c.Id == _p.CategoriaId);
+            SceltaCategoria.Voci = _categorie.Select(c => c.Nome).ToList();
+            SceltaCategoria.Indice = _categorie.FindIndex(c => c.Id == _p.CategoriaId);
             CampoDescrizione.Text = _p.Descrizione;
             CampoBarcode.Text = _p.Barcode;
             ChkPreferito.IsChecked = _p.IsPreferito;
@@ -146,7 +146,8 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("CAMPO OBBLIGATORIO", "Inserire la descrizione.");
                 return;
             }
-            if (SceltaCategoria.SelectedItem is not Categoria cat)
+            var cat = SceltaCategoria.Indice >= 0 ? _categorie[SceltaCategoria.Indice] : null;
+            if (cat == null)
             {
                 await MessaggioBox.Avviso("CAMPO OBBLIGATORIO", "Scegliere la categoria.");
                 return;
