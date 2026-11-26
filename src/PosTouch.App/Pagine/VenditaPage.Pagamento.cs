@@ -24,8 +24,47 @@ namespace PosTouch.App.Pagine
 
         private void OnChiudiPagamento(object sender, EventArgs e) => OverlayPagamento.IsVisible = false;
 
+        /// <summary>📄 CONTO (btnConto_Click del PC): conto non fiscale sulla stampante termica.</summary>
         private async void OnConto(object sender, EventArgs e)
-            => await MessaggioBox.Info("📄 CONTO", "La gestione dei conti (parcheggio e conti clienti) arriverà nella prossima versione.");
+        {
+            if (_venditaAvviata || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso) return;
+            if (Carrello.Vuoto)
+            {
+                await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!\n\nAggiungi almeno un prodotto prima di stampare il conto.");
+                return;
+            }
+            _venditaAvviata = true;
+            try
+            {
+                var righe = Carrello.Fotografia();
+                MostraAttesa(true, "⏳ Stampa conto in corso...");
+                PosTouch.Core.Conti.EsitoConto esito;
+                try { esito = await Task.Run(() => ContestoCassa.ServizioConto.StampaAsync(righe)); }
+                finally { MostraAttesa(false); }
+
+                if (esito.Stato == PosTouch.Core.Conti.StatoConto.NonStampato)
+                {
+                    await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
+                    return; // scontrino intatto
+                }
+                if (esito.Stato == PosTouch.Core.Conti.StatoConto.Incerto)
+                {
+                    bool uscito = await MessaggioBox.Domanda(esito.Titolo, esito.Messaggio + "\n\nIl conto è stato STAMPATO?");
+                    if (!uscito)
+                    {
+                        await MessaggioBox.Avviso("CONTO NON SALVATO", "Il conto NON è stato salvato.\n\nLo scontrino è ancora visibile:\npuoi riprovare quando la stampante torna disponibile.");
+                        return;
+                    }
+                    esito = ContestoCassa.ServizioConto.ConfermaContoStampato(esito);
+                }
+
+                // Conto stampato: come sul PC si svuota senza messaggi
+                SvuotaScontrino();
+                if (esito.Stato == PosTouch.Core.Conti.StatoConto.StampatoSenzaArchivio)
+                    await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
+            }
+            finally { _venditaAvviata = false; }
+        }
 
         private bool _cassettoInCorso;
 
@@ -87,7 +126,7 @@ namespace PosTouch.App.Pagine
 
         private async Task EseguiVenditaAsync(Pagamento pagamento, int restoCent)
         {
-            if (Carrello.Vuoto || ContestoCassa.ServizioVendita.InCorso || _venditaAvviata) return;
+            if (Carrello.Vuoto || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso || _venditaAvviata) return;
             _venditaAvviata = true;
             try { await EseguiVenditaInternaAsync(pagamento, restoCent); }
             finally { _venditaAvviata = false; }

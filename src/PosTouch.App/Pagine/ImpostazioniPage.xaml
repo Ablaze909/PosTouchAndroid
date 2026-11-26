@@ -96,7 +96,8 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource Card}" VerticalOptions="Start">
+                <VerticalStackLayout Grid.Column="1">
+                <Border Style="{StaticResource Card}" VerticalOptions="Start">
                     <VerticalStackLayout>
                         <Label Text="📋 IDENTITÀ PUNTO VENDITA" Style="{StaticResource TitoloCard}" TextColor="#673AB7" Margin="0,0,0,5" />
                         <Label Text="Appare nella schermata iniziale e nei report." FontSize="13" TextColor="#999999" Margin="0,0,0,15" />
@@ -110,6 +111,41 @@
                         </Border>
                     </VerticalStackLayout>
                 </Border>
+
+                <Border Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout>
+                        <Label Text="🧾 STAMPANTE TERMICA (CONTO)" Style="{StaticResource TitoloCard}" TextColor="#9C27B0" Margin="0,0,0,5" />
+                        <Label Text="Stampante ESC/POS in rete, carta 80 mm. Stampa il conto non fiscale." FontSize="13" TextColor="#999999" Margin="0,0,0,10" />
+                        <HorizontalStackLayout>
+                            <CheckBox x:Name="ChkTermica" Color="#4CAF50" />
+                            <Label Text="Abilita stampante termica (tasto CONTO)" Style="{StaticResource Spunta}" />
+                        </HorizontalStackLayout>
+                        <Label Text="Indirizzo IP:" Style="{StaticResource Voce}" Margin="0,15,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoIPTermica" FontSize="18" Keyboard="Url" Placeholder="192.168.1.200" BackgroundColor="Transparent" />
+                        </Border>
+                        <Label Text="Porta TCP:" Style="{StaticResource Voce}" Margin="0,15,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoPortaTermica" FontSize="18" Keyboard="Numeric" Placeholder="9100" BackgroundColor="Transparent" />
+                        </Border>
+                        <Label Text="Intestazione conto (3 righe):" Style="{StaticResource Voce}" Margin="0,15,0,8" />
+                        <Border Style="{StaticResource Box}">
+                            <Entry x:Name="CampoIntest1" FontSize="18" Placeholder="Riga 1 (grande)" BackgroundColor="Transparent" />
+                        </Border>
+                        <Border Style="{StaticResource Box}" Margin="0,6,0,0">
+                            <Entry x:Name="CampoIntest2" FontSize="18" Placeholder="Riga 2" BackgroundColor="Transparent" />
+                        </Border>
+                        <Border Style="{StaticResource Box}" Margin="0,6,0,0">
+                            <Entry x:Name="CampoIntest3" FontSize="18" Placeholder="Riga 3" BackgroundColor="Transparent" />
+                        </Border>
+                        <HorizontalStackLayout Margin="0,15,0,0">
+                            <CheckBox x:Name="ChkAccorpaConto" Color="#4CAF50" />
+                            <Label Text="🔗 Accorpa righe uguali sul conto" Style="{StaticResource Spunta}" />
+                        </HorizontalStackLayout>
+                        <Button x:Name="BtnProvaTermica" Text="🖨️ STAMPA DI PROVA" BackgroundColor="#9C27B0" Style="{StaticResource TastoTouch}" Clicked="OnProvaTermica" />
+                    </VerticalStackLayout>
+                </Border>
+                </VerticalStackLayout>
             </Grid>
         </ScrollView>
 

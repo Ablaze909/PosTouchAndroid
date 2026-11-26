@@ -211,7 +211,7 @@
         <!-- ═════════ BARRA INFERIORE: CASSA, CASSETTO, BARCODE, reparti ═════════ -->
         <Grid x:Name="BarraInferiore" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" ColumnDefinitions="*,*,*,*,*">
             <Button Grid.ColumnSpan="2" Text="💰 CASSA" FontSize="18" BackgroundColor="#388E3C" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassa" />
-            <Button Grid.Column="2" Text="📄 CONTO" FontSize="18" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
+            <Button x:Name="BtnConto" Grid.Column="2" Text="📄 CONTO" FontSize="18" BackgroundColor="#9C27B0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnConto" />
             <Button Grid.Column="3" Text="📂 CASSETTO" FontSize="18" BackgroundColor="#FF9800" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnCassetto" />
             <Button Grid.Column="4" Text="🔍 BARCODE" FontSize="18" BackgroundColor="#795548" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnBarcode" />
         </Grid>

@@ -24,6 +24,9 @@ namespace PosTouch.Core.Modelli
         public string CategoriaNome { get; set; } = "";
         /// <summary>Aliquota IVA al momento della vendita (per lo storico).</summary>
         public int AliquotaIVA { get; set; }
+        /// <summary>Unità di peso ("Kg", "g"...) per gli articoli venduti a peso; null = articolo a pezzi.</summary>
+        public string UnitaPeso { get; set; }
+        public bool IsAPeso => !string.IsNullOrEmpty(UnitaPeso);
         public int PrezzoOriginaleCentesimi { get; set; }
         public int? ScontoPercentualeCent { get; set; }
 

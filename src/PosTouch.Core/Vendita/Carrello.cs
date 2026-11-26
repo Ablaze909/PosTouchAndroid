@@ -91,6 +91,7 @@ namespace PosTouch.Core.Vendita
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.CategoriaNome ?? "",
                 AliquotaIVA = p.AliquotaIVA,
+                UnitaPeso = p.VenditaAPeso ? (string.IsNullOrWhiteSpace(p.UnitaPeso) ? "Kg" : p.UnitaPeso) : null,
                 PrezzoCentesimi = prezzo,
                 PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
                 Quantita = quantita

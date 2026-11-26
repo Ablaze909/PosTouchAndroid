@@ -20,6 +20,7 @@ namespace PosTouch.App.Servizi
         public static GestioneCatalogo GestioneCatalogo { get; private set; }
         public static ArchivioVendite Vendite { get; private set; }
         public static ServizioVendita ServizioVendita { get; private set; }
+        public static PosTouch.Core.Conti.ServizioConto ServizioConto { get; private set; }
         public static FunzioniCassa FunzioniCassa { get; private set; }
         public static Carrello Carrello { get; } = new Carrello();
 
@@ -50,6 +51,7 @@ namespace PosTouch.App.Servizi
 
             Vendite = new ArchivioVendite(cartellaDati);
             ServizioVendita = new ServizioVendita(() => Impostazioni, Vendite);
+            ServizioConto = new PosTouch.Core.Conti.ServizioConto(() => Impostazioni, Vendite);
             FunzioniCassa = new FunzioniCassa(() => Impostazioni);
         }
 

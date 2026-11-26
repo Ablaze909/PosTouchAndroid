@@ -98,7 +98,41 @@ namespace PosTouch.Core.Dati
                         FOREIGN KEY(VenditaId) REFERENCES Vendite(Id) ON DELETE CASCADE
                     );
                     CREATE INDEX IF NOT EXISTS IX_Vendite_DataOra ON Vendite(DataOra);
-                    CREATE INDEX IF NOT EXISTS IX_RigheVendita_VenditaId ON RigheVendita(VenditaId);";
+                    CREATE INDEX IF NOT EXISTS IX_RigheVendita_VenditaId ON RigheVendita(VenditaId);
+
+                    -- Conti non fiscali (tasto CONTO): separati dagli scontrini, come sul PC
+                    CREATE TABLE IF NOT EXISTS Conti (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        DataOra TEXT NOT NULL,
+                        TotaleCentesimi INTEGER NOT NULL,
+                        NumeroProgressivo INTEGER NOT NULL,
+                        OperatoreId INTEGER DEFAULT 1,
+                        Stampato INTEGER DEFAULT 1
+                    );
+                    CREATE TABLE IF NOT EXISTS ContiRighe (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ContoId INTEGER NOT NULL,
+                        ProdottoId INTEGER,
+                        CodiceArticolo TEXT DEFAULT '',
+                        Descrizione TEXT NOT NULL,
+                        Quantita REAL NOT NULL,
+                        PrezzoCentesimi INTEGER NOT NULL,
+                        PrezzoOriginaleCentesimi INTEGER DEFAULT 0,
+                        ImportoCentesimi INTEGER NOT NULL,
+                        RepartoFiscale INTEGER DEFAULT 1,
+                        CategoriaId INTEGER DEFAULT 0,
+                        CategoriaNome TEXT DEFAULT '',
+                        AliquotaIVA INTEGER DEFAULT 0,
+                        FOREIGN KEY(ContoId) REFERENCES Conti(Id) ON DELETE CASCADE
+                    );
+                    CREATE INDEX IF NOT EXISTS IX_Conti_DataOra ON Conti(DataOra);
+                    CREATE INDEX IF NOT EXISTS IX_ContiRighe_ContoId ON ContiRighe(ContoId);
+                    CREATE TABLE IF NOT EXISTS Progressivi (
+                        Id INTEGER PRIMARY KEY CHECK (Id = 1),
+                        ProgressivoConto INTEGER NOT NULL DEFAULT 0,
+                        UltimoAggiornamento TEXT
+                    );
+                    INSERT OR IGNORE INTO Progressivi (Id, ProgressivoConto) VALUES (1, 0);";
                 cmd.ExecuteNonQuery();
 
                 // Archivi creati dalle versioni precedenti: aggiunge le colonne nuove (i dati esistenti restano)
@@ -180,6 +214,81 @@ namespace PosTouch.Core.Dati
                 {
                     tx.Rollback();
                     LogManager.Error($"Salvataggio vendita fallito: {ex.Message}");
+                    throw;
+                }
+            }
+        }
+
+        // ══════════════ CONTI NON FISCALI ══════════════
+
+        /// <summary>Nuovo numero di conto, atomico (lo stesso numero va in stampa e in archivio).</summary>
+        public int ProssimoNumeroConto()
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = @"UPDATE Progressivi SET ProgressivoConto = ProgressivoConto + 1, UltimoAggiornamento = datetime('now') WHERE Id = 1;
+                                    SELECT ProgressivoConto FROM Progressivi WHERE Id = 1;";
+                return Convert.ToInt32(cmd.ExecuteScalar());
+            }
+        }
+
+        /// <summary>Salva il conto (righe articolo e sconto) in un'unica transazione. Restituisce l'Id.</summary>
+        public long SalvaConto(IList<RigaScontrino> righe, int numero, DateTime quando, bool stampato)
+        {
+            var valide = new List<RigaScontrino>();
+            foreach (var r in righe) if (r.ContaNelTotale) valide.Add(r);
+            int totale = 0;
+            foreach (var r in valide) totale += r.ImportoCentesimi;
+
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var tx = c.BeginTransaction();
+                try
+                {
+                    long id;
+                    using (var cmd = c.CreateCommand())
+                    {
+                        cmd.Transaction = tx;
+                        cmd.CommandText = @"INSERT INTO Conti (DataOra, TotaleCentesimi, NumeroProgressivo, Stampato)
+                                            VALUES ($d, $t, $n, $s); SELECT last_insert_rowid();";
+                        cmd.Parameters.AddWithValue("$d", quando.ToString("yyyy-MM-dd HH:mm:ss"));
+                        cmd.Parameters.AddWithValue("$t", totale);
+                        cmd.Parameters.AddWithValue("$n", numero);
+                        cmd.Parameters.AddWithValue("$s", stampato ? 1 : 0);
+                        id = Convert.ToInt64(cmd.ExecuteScalar());
+                    }
+                    foreach (var r in valide)
+                    {
+                        using var cmd = c.CreateCommand();
+                        cmd.Transaction = tx;
+                        cmd.CommandText = @"INSERT INTO ContiRighe (ContoId, ProdottoId, CodiceArticolo, Descrizione, Quantita, PrezzoCentesimi,
+                                                PrezzoOriginaleCentesimi, ImportoCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA)
+                                            VALUES ($c, $p, $cod, $desc, $q, $pr, $orig, $imp, $rep, $cat, $catNome, $iva)";
+                        cmd.Parameters.AddWithValue("$c", id);
+                        cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("$cod", r.Barcode ?? "");
+                        cmd.Parameters.AddWithValue("$desc", r.Descrizione ?? "");
+                        cmd.Parameters.AddWithValue("$q", (double)r.Quantita);
+                        cmd.Parameters.AddWithValue("$pr", r.PrezzoCentesimi);
+                        cmd.Parameters.AddWithValue("$orig", r.PrezzoOriginaleCentesimi);
+                        cmd.Parameters.AddWithValue("$imp", r.ImportoCentesimi);
+                        cmd.Parameters.AddWithValue("$rep", r.RepartoFiscale);
+                        cmd.Parameters.AddWithValue("$cat", r.CategoriaId);
+                        cmd.Parameters.AddWithValue("$catNome", r.CategoriaNome ?? "");
+                        cmd.Parameters.AddWithValue("$iva", r.AliquotaIVA);
+                        cmd.ExecuteNonQuery();
+                    }
+                    tx.Commit();
+                    LogManager.Info($"Conto N. {numero} salvato: €{totale / 100m:F2}, {valide.Count} righe");
+                    return id;
+                }
+                catch (Exception ex)
+                {
+                    tx.Rollback();
+                    LogManager.Error($"Salvataggio conto N. {numero} fallito: {ex.Message}");
                     throw;
                 }
             }

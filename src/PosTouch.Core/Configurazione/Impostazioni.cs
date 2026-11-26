@@ -34,6 +34,15 @@ namespace PosTouch.Core.Configurazione
         public bool BloccoModificaQuantita { get; set; } = false;
         /// <summary>Blocco riga singola: un solo articolo per scontrino (come sul PC).</summary>
         public bool BloccoRigaSingola { get; set; } = false;
+
+        // ── Stampante termica (CONTO non fiscale), come sul PC ──
+        public bool AbilitaStampanteTermica { get; set; } = true;
+        public string IP_Termica { get; set; } = "192.168.1.200";
+        public int Porta_Termica { get; set; } = 9100;
+        public string IntestazioneConto1 { get; set; } = "RISTORANTE";
+        public string IntestazioneConto2 { get; set; } = "";
+        public string IntestazioneConto3 { get; set; } = "";
+        public bool AccorpaRigheConto { get; set; } = true;
         /// <summary>Mostra la riga ＋/﹣ sotto la tastiera (MostraRigaVariantiVendita del PC).</summary>
         public bool MostraRigaPiuMeno { get; set; } = true;
         /// <summary>Accorpa righe uguali a video (2× caffè → una riga).</summary>

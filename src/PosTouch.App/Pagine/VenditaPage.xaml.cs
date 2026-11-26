@@ -56,6 +56,7 @@ namespace PosTouch.App.Pagine
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
             RigaQuantita.IsVisible = Cfg.MostraRigaPiuMeno;
+            BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata
             // Sconti disattivati: spariscono i due tasti sconto, ANNULLA resta e occupa tutta la riga
             BtnScontoValore.IsVisible = BtnScontoPerc.IsVisible = Cfg.AbilitaSconti;
             Grid.SetColumn(BtnAnnulla, Cfg.AbilitaSconti ? 2 : 0);
