@@ -239,6 +239,11 @@ namespace PosTouch.Core.Vendita
                         "Il registratore ha rifiutato un articolo.\n\n" +
                         "Verificare coperchio, carta e reparti/aliquote configurati sull'RT.");
                 }
+                // Varianti su scontrino fiscale (se configurato), come il PC: righe di messaggio sotto l'articolo
+                if (cfg.VariantiSuScontrino && !string.IsNullOrEmpty(riga.VariantiTesto))
+                    foreach (var vt in riga.VariantiTesto.Split('|'))
+                        if (!string.IsNullOrWhiteSpace(vt))
+                            await rt.StampaMessaggioAsync(cfg.TipoCassa == TipoCassaFiscale.RT3i ? TestoRT.SenzaAccenti(vt.Trim()) : vt.Trim());
             }
 
             // ── SCONTI ──

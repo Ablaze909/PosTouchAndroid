@@ -360,7 +360,7 @@ namespace PosTouch.Core.Sale
             var righe = Carrello.Fotografia();
             if (!righe.Any(r => r.Tipo == TipoRiga.Prodotto)) return "Non ci sono articoli.";
             if (righe.Where(r => r.ContaNelTotale).Sum(r => r.ImportoCentesimi) <= 0) return "Totale non valido.";
-            var dati = LayoutConto.Crea(righe, 0, imp.IntestazioneConto1, imp.IntestazioneConto2, imp.IntestazioneConto3, imp.AccorpaRigheConto, DateTime.Now);
+            var dati = LayoutConto.Crea(righe, 0, imp.IntestazioneConto1, imp.IntestazioneConto2, imp.IntestazioneConto3, imp.AccorpaRigheConto, DateTime.Now, varianti: imp.VariantiSuConto);
             string errore = await AccessoStampanti.InviaAsync(imp.IP_Termica, imp.Porta_Termica, dati, TimeSpan.FromSeconds(10));
             if (errore != null) return $"Impossibile stampare su {imp.IP_Termica}:{imp.Porta_Termica}.\n{errore}\n\nPreconto NON stampato.";
             Tavolo.Preconto = true;

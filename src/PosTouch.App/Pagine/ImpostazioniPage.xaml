@@ -174,6 +174,8 @@
                         <HorizontalStackLayout><CheckBox x:Name="ChkMostraStrumenti" Color="#4CAF50" /><Label Text="🔧 Mostra tasto Strumenti in vendita" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkPrezzoZero" Color="#4CAF50" /><Label Text="💶 Richiesta prezzo per articoli a €0,00" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkBloccoQuantita" Color="#4CAF50" /><Label Text="🔒 Blocco modifica quantità (sempre Qta 1)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkVarScontrino" Color="#4CAF50" /><Label Text="🔖 Varianti su scontrino fiscale" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <HorizontalStackLayout><CheckBox x:Name="ChkVarConto" Color="#4CAF50" /><Label Text="🔖 Varianti su conto e preconto" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkBilancia" Color="#4CAF50" /><Label Text="🏷️ Barcode bilancia (etichette EAN-13 che iniziano per 2)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkRigaSingola" Color="#4CAF50" /><Label Text="🔒 Blocco riga singola (1 prodotto per scontrino)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkRigaPiuMeno" Color="#4CAF50" /><Label Text="🔧 Mostra riga ＋/﹣ in vendita" Style="{StaticResource Spunta}" /></HorizontalStackLayout>

@@ -116,6 +116,12 @@ namespace PosTouch.App.Pagine
             double colonna = (width - destra - 12) / 5;
             foreach (var b in BarraInferiore.Children.OfType<Button>())
                 b.FontSize = Math.Clamp(colonna / 7.5, 12, 20);
+            // barra tavolo: 8 colonne, testo più piccolo sugli schermi da 8"
+            double colTavolo = (width - destra - 12) / 8;
+            foreach (var b in BarraTavolo.Children.OfType<Button>())
+                b.FontSize = Math.Clamp(colTavolo / 7.2, 10, 16);
+            foreach (var b in RigaQuantita.Children.OfType<Button>().Where(x => x.Text.StartsWith("VAR")))
+                b.FontSize = Math.Clamp(destra / 26, 10, 14);
 
             // tasti articolo: quanti ne entrano in una riga, poi allargati per riempirla
             double area = width - sinistra - destra - 8;

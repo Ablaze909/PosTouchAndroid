@@ -69,6 +69,8 @@ namespace PosTouch.App.Pagine
             ChkBloccoQuantita.IsChecked = i.BloccoModificaQuantita;
             ChkRigaSingola.IsChecked = i.BloccoRigaSingola;
             ChkBilancia.IsChecked = i.UsaBarcodeBilancia;
+            ChkVarScontrino.IsChecked = i.VariantiSuScontrino;
+            ChkVarConto.IsChecked = i.VariantiSuConto;
             ChkTermica.IsChecked = i.AbilitaStampanteTermica;
             CampoIPTermica.Text = i.IP_Termica;
             CampoPortaTermica.Text = i.Porta_Termica.ToString();
@@ -140,6 +142,8 @@ namespace PosTouch.App.Pagine
             n.BloccoModificaQuantita = ChkBloccoQuantita.IsChecked;
             n.BloccoRigaSingola = ChkRigaSingola.IsChecked;
             n.UsaBarcodeBilancia = ChkBilancia.IsChecked;
+            n.VariantiSuScontrino = ChkVarScontrino.IsChecked;
+            n.VariantiSuConto = ChkVarConto.IsChecked;
             n.AbilitaStampanteTermica = ChkTermica.IsChecked;
             n.IP_Termica = ipTermica;
             n.Porta_Termica = portaTermica;
@@ -163,7 +167,7 @@ namespace PosTouch.App.Pagine
         /// <summary>Riassunto dei campi per capire se ci sono modifiche non salvate.</summary>
         private string Firma() => string.Join("|", SceltaTipo.Indice, CampoIP.Text, CampoPorta.Text, CampoOperatore.Text, ChkCassetto.IsChecked,
             CampoNomePV.Text, CampoSottotitoloPV.Text, ChkSconti.IsChecked, ChkCambioPrezzo.IsChecked, ChkModificaVendita.IsChecked,
-            ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkRigaSingola.IsChecked, ChkBilancia.IsChecked, ChkRigaPiuMeno.IsChecked, ChkTermica.IsChecked, CampoIPTermica.Text, CampoPortaTermica.Text,
+            ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkRigaSingola.IsChecked, ChkBilancia.IsChecked, ChkVarScontrino.IsChecked, ChkVarConto.IsChecked, ChkRigaPiuMeno.IsChecked, ChkTermica.IsChecked, CampoIPTermica.Text, CampoPortaTermica.Text,
             CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked);

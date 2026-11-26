@@ -18,7 +18,8 @@ namespace PosTouch.Core.Vendita
                 var esistente = risultato.FirstOrDefault(x =>
                     x.RepartoFiscale == r.RepartoFiscale &&
                     x.Descrizione == r.Descrizione &&
-                    x.PrezzoCentesimi == r.PrezzoCentesimi);
+                    x.PrezzoCentesimi == r.PrezzoCentesimi &&
+                    (x.VariantiTesto ?? "") == (r.VariantiTesto ?? ""));   // varianti diverse = righe diverse
                 if (esistente != null)
                     esistente.Quantita += r.Quantita;
                 else

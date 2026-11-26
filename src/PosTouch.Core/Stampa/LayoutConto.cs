@@ -17,7 +17,7 @@ namespace PosTouch.Core.Stampa
 
         public static byte[] Crea(IList<RigaScontrino> righe, int numero, string intestazione1, string intestazione2,
                                   string intestazione3, bool accorpa, DateTime quando, decimal versato = 0, decimal resto = 0,
-                                  bool stampaNumero = false)
+                                  bool stampaNumero = false, bool varianti = false)
         {
             const int L = EscPos.Colonne;
             var p = new EscPos();
@@ -40,6 +40,9 @@ namespace PosTouch.Core.Stampa
                 int maxDesc = L - qta.Length - unita.Length - 1 - prezzo.Length - 1;
                 if (desc.Length > maxDesc) desc = desc.Substring(0, Math.Max(maxDesc - 3, 1)) + "...";
                 p.Testo(EscPos.DueColonne($"{qta}{unita} {desc}", prezzo));
+                if (varianti && !string.IsNullOrEmpty(r.VariantiTesto))
+                    foreach (var vt in r.VariantiTesto.Split('|'))
+                        if (!string.IsNullOrWhiteSpace(vt)) p.Testo($"    {vt.Trim()}");
             }
 
             var sconti = righe.Where(r => r.Tipo == TipoRiga.Sconto).ToList();

@@ -85,7 +85,7 @@ namespace PosTouch.Core.Conti
                 int numero = _archivio.ProssimoNumeroConto();
                 var quando = DateTime.Now;
                 var dati = LayoutConto.Crea(righe, numero, cfg.IntestazioneConto1, cfg.IntestazioneConto2, cfg.IntestazioneConto3,
-                                            cfg.AccorpaRigheConto, quando, stampaNumero: cfg.StampaNumeroConto);
+                                            cfg.AccorpaRigheConto, quando, stampaNumero: cfg.StampaNumeroConto, varianti: cfg.VariantiSuConto);
                 try
                 {
                     await st.InviaAsync(dati);

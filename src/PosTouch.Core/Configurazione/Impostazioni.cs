@@ -36,6 +36,10 @@ namespace PosTouch.Core.Configurazione
         public bool BloccoRigaSingola { get; set; } = false;
         /// <summary>Riconosce le etichette EAN-13 della bilancia (prefisso 2, prezzo nel codice), come sul PC.</summary>
         public bool UsaBarcodeBilancia { get; set; } = false;
+        /// <summary>Stampa varianti e gusti sotto l'articolo sullo scontrino fiscale (VariantiSuScontrino del PC).</summary>
+        public bool VariantiSuScontrino { get; set; } = false;
+        /// <summary>Stampa varianti e gusti sotto l'articolo su conto e preconto.</summary>
+        public bool VariantiSuConto { get; set; } = false;
 
         // ── Stampante termica (CONTO non fiscale), come sul PC ──
         public bool AbilitaStampanteTermica { get; set; } = true;
