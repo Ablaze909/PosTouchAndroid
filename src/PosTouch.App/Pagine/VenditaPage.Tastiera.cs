@@ -53,7 +53,14 @@ namespace PosTouch.App.Pagine
         private async Task<bool> ConfermaStornoAsync(IEnumerable<RigaScontrino> righe)
         {
             // un gusto o una variante cancellati portano via il loro articolo (Carrello.Rimuovi risale al padre)
-            var comandate = righe.Select(r => r.Tipo == TipoRiga.Prodotto ? r : Carrello.PadreDi(r) ?? r)
+            var elenco0 = righe.ToList();
+            // varianti di un articolo già in cucina: non si tolgono da sole (si storna l'articolo intero) → avviso subito, niente PIN
+            if (_sessione != null && elenco0.Any(r => r.Tipo == TipoRiga.Variante && Carrello.ProprietarioDi(r) is { Tipo: TipoRiga.Prodotto, Comandata: true }))
+            {
+                await MessaggioBox.Avviso("VARIANTE GIÀ IN CUCINA", "Le varianti di un articolo già inviato in cucina non si tolgono.\n\nElimina l'articolo (verrà stornato) e battilo di nuovo.");
+                return false;
+            }
+            var comandate = elenco0.Select(r => r.Tipo == TipoRiga.Prodotto ? r : Carrello.PadreDi(r) ?? r)
                                  .Where(r => r.Tipo == TipoRiga.Prodotto && r.Comandata).Distinct().ToList();
             if (_sessione == null || comandate.Count == 0) return true;
             string elenco = string.Join("\n", comandate.Take(5).Select(r => $"• {r.Quantita:0.##} x {r.Descrizione}")) + (comandate.Count > 5 ? "\n…" : "");

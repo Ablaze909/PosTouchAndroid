@@ -110,11 +110,11 @@ namespace PosTouch.App.Servizi
 
         private static async Task<Operatore> ChiChiudeAsync(Turno t)
         {
+            if (!await Accesso.TentativoConsentitoAsync()) return null;   // prima del PIN, come le altre richieste
             string pin = await TastierinoPrezzo.ChiediCodice($"🔒 CHIUSURA TURNO DI {t.OperatoreNome}\nPIN di {t.OperatoreNome} o di un amministratore", nascondi: true);
             if (pin == null) return null;
-            if (!await Accesso.TentativoConsentitoAsync()) return null;
             var chi = await Task.Run(() => Op.Archivio.TrovaPerPin(pin));
-            Accesso.EsitoPin(chi != null);
+            Accesso.EsitoPin(chi != null && (chi.Id == t.OperatoreId || chi.Amministratore));
             if (chi != null && (chi.Id == t.OperatoreId || chi.Amministratore)) return chi;
             await MessaggioBox.Errore("NON AUTORIZZATO", $"Il turno di {t.OperatoreNome} lo può chiudere solo lui o un amministratore.");
             return null;
@@ -138,6 +138,10 @@ namespace PosTouch.App.Servizi
                 ? $"💶 CONTANTI NEL CASSETTO (fondo compreso)\nAttesi {Importi.Euro(anteprima.ContantiAttesiCent)} — {annulla}"
                 : $"💶 CONTANTI INCASSATI NEL TURNO\n(senza fondo cassa — {annulla})");
             int? contatiCent = contati.HasValue && contati.Value >= 0 ? (int)Math.Round(contati.Value * 100, MidpointRounding.AwayFromZero) : (int?)null;
+            // OK premuto senza digitare dà 0: con contanti attesi si chiede conferma (altrimenti "ammanco" dell'intero incasso)
+            if (contatiCent == 0 && anteprima.ContantiAttesiCent > 0
+                && !await MessaggioBox.Conferma("CONTANTI A ZERO", $"Hai inserito € 0,00 ma ne sono attesi {Importi.Euro(anteprima.ContantiAttesiCent)}.\n\nConfermi che il cassetto è vuoto?"))
+                return false;
             if (obbligatorio && contatiCent == null)
             {
                 // conteggio obbligatorio: senza importo (anche 0) il turno non si chiude

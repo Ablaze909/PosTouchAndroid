@@ -43,6 +43,8 @@ namespace PosTouch.Core.Vendita
                 if (target == null) { errore = "Nessun prodotto a cui applicare la variante."; return null; }
             }
             var articolo = target.Tipo == TipoRiga.Prodotto ? target : c.PadreDi(target);
+            if (articolo?.IsAPeso == true)
+            { errore = "Le varianti non si applicano agli articoli a peso\n(il prezzo della variante verrebbe moltiplicato per il peso)."; return null; }
             if (articolo?.Comandata == true)
             { errore = "Articolo già inviato in comanda: le varianti non si possono più cambiare.\n\nEliminalo (verrà stornato) e battilo di nuovo."; return null; }
             return target;

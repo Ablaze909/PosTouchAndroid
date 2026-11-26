@@ -230,10 +230,11 @@ namespace PosTouch.Core.Vendita
         /// <summary>Lettura della conferma (TX_FOOTER); senza conferma si controlla se lo scontrino è rimasto aperto.</summary>
         private async Task<(EsitoVendita fermo, RisultatoChiusuraRT footer)> VerificaChiusuraAsync(IFiscalConnector rt, Emissione e)
         {
-            _fase = 3;
+            // _fase resta 2 finché la chiusura non è certa: un'eccezione qui significa "da verificare", mai "emesso"
             var footer = await rt.LeggiTxFooterAsync();
             if (footer.Confermato)
             {
+                _fase = 3;
                 LogManager.Info($"✅ SCONTRINO CONFERMATO: Doc={footer.NumeroDocumento}, Azz={footer.NumeroAzzeramento}");
                 return (null, footer);
             }
@@ -246,8 +247,17 @@ namespace PosTouch.Core.Vendita
             if (aperto == true)
             {
                 LogManager.Error("RT: dopo la chiusura lo scontrino risulta ancora aperto");
-                return (await AnnullaEdEsci(rt, "SCONTRINO NON CHIUSO",
-                    "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato).\n\nLo scontrino è stato annullato: la vendita resta a video, riprova."), footer);
+                try
+                {
+                    return (await AnnullaEdEsci(rt, "SCONTRINO NON CHIUSO",
+                        "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato).\n\nLo scontrino è stato annullato: la vendita resta a video, riprova."), footer);
+                }
+                catch (Exception ex)
+                {
+                    // rete caduta durante l'annullo: non si sa com'è finita → decide l'operatore
+                    LogManager.Error($"RT: annullo dopo chiusura non confermata interrotto: {ex.Message}");
+                    return (Incerto(rt, e, "La comunicazione si è interrotta mentre si annullava uno scontrino rimasto aperto.\n\nControllare il registratore."), footer);
+                }
             }
             if (aperto == null && e.Cfg.TipoCassa == TipoCassaFiscale.RT3i)
             {
@@ -255,6 +265,7 @@ namespace PosTouch.Core.Vendita
                 LogManager.Error("RT: chiusura non confermata e stato scontrino non leggibile");
                 return (Incerto(rt, e, "Il registratore non ha confermato lo scontrino e non risponde (carta o coperchio?).\n\nControllare il registratore."), footer);
             }
+            _fase = 3;   // stato "chiuso" letto (3i) o chiusura già confermata dalla risposta (Epson)
             return (null, footer);
         }
 

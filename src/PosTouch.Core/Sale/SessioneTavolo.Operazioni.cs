@@ -23,7 +23,13 @@ namespace PosTouch.Core.Sale
             if (!Carrello.HaArticoli) throw new InvalidOperationException("Il tavolo è vuoto: non c'è niente da spostare.");
             string da = Titolo;
             EsciSenzaInvio();
-            bool scambio = _archivio.SpostaTavolo(Tavolo.Id, salaDest, numeroDest);
+            bool scambio;
+            try { scambio = _archivio.SpostaTavolo(Tavolo.Id, salaDest, numeroDest); }
+            catch
+            {
+                _chiusa = false;   // spostamento fallito: il tavolo resta aperto a video e deve continuare a salvarsi
+                throw;
+            }
             return scambio ? $"{da} ↔ {nomeDestinazione}" : $"Spostato da {da} a {nomeDestinazione}.";
         }
 

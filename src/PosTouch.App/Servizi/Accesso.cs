@@ -64,7 +64,8 @@ namespace PosTouch.App.Servizi
             string pin = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPIN di un operatore autorizzato", nascondi: true);
             if (pin == null) return false;
             var chi = await Task.Run(() => ContestoCassa.Operatori.Archivio.TrovaPerPin(pin));   // hash del PIN fuori dal thread grafico
-            EsitoPin(chi != null);
+            // il contatore si azzera solo se l'operazione viene autorizzata: un PIN valido senza permesso non "ricarica" i tentativi
+            EsitoPin(chi?.Puo(permesso) == true);
             if (chi?.Puo(permesso) == true)
             {
                 LogManager.Info($"AUTORIZZAZIONE {permesso}: {chi.Nome} per {ContestoCassa.Operatori.Corrente?.Nome ?? "nessun operatore"}");
@@ -88,7 +89,7 @@ namespace PosTouch.App.Servizi
             string pin = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPIN amministratore", nascondi: true);
             if (pin == null) return null;
             var op = await Task.Run(() => ContestoCassa.Operatori.Archivio.TrovaPerPin(pin));
-            EsitoPin(op != null);
+            EsitoPin(op?.Amministratore == true);
             if (op?.Amministratore == true) return op;
             await MessaggioBox.Errore("NON AUTORIZZATO", "PIN errato o operatore non amministratore.");
             return null;
@@ -99,8 +100,10 @@ namespace PosTouch.App.Servizi
             string pin = ContestoCassa.Impostazioni.PinImpostazioni;
             if (string.IsNullOrEmpty(pin)) return true;
 
+            if (!await TentativoConsentitoAsync()) return false;   // anche la password ha il limite di tentativi
             string inserito = await TastierinoPrezzo.ChiediCodice($"🔑 {titolo}\nPassword amministratore", nascondi: true);
             if (inserito == null) return false;
+            EsitoPin(inserito == pin);
             if (inserito == pin) return true;
             await MessaggioBox.Errore("PASSWORD ERRATA", "La password inserita non è corretta.");
             return false;

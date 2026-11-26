@@ -102,7 +102,7 @@ namespace PosTouch.App.Pagine
         {
             OverlayPagamento.IsVisible = false;
             if (Carrello.Vuoto) { await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!"); return; }
-            if (Carrello.TotaleCent <= 0) return;
+            if (Carrello.TotaleCent <= 0) { await MessaggioBox.Avviso("TOTALE NON VALIDO", $"Il totale è € {Carrello.TotaleCent / 100m:N2}: controlla prezzi e sconti."); return; }
             await EseguiVenditaAsync(Pagamento.Contanti(), 0);
         }
 
@@ -111,7 +111,7 @@ namespace PosTouch.App.Pagine
         {
             OverlayPagamento.IsVisible = false;
             if (Carrello.Vuoto) { await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!"); return; }
-            if (Carrello.TotaleCent <= 0) return;
+            if (Carrello.TotaleCent <= 0) { await MessaggioBox.Avviso("TOTALE NON VALIDO", $"Il totale è € {Carrello.TotaleCent / 100m:N2}: controlla prezzi e sconti."); return; }
             await EseguiVenditaAsync(Pagamento.Carta(), 0);
         }
 

@@ -79,7 +79,15 @@ namespace PosTouch.Core.Fiscale
             
             // FASE 1: Verifica PRIMA se c'è uno scontrino aperto (89F)
             // Questo evita di mandare 25F quando non serve → niente "ERRORE NON AMMESSO"
-            bool aperto = await HaScontrinoApertoAsync();
+            // Stato non leggibile: NON si dà per pulito (le righe nuove finirebbero nello scontrino rimasto aperto)
+            bool? stato = await StatoScontrinoDopoChiusuraAsync();
+            if (stato == null)
+            {
+                UltimoErrore = "Stato del registratore non leggibile";
+                LogManager.Error("Recovery 3i: stato scontrino non leggibile — vendita bloccata finché l'RT non risponde");
+                return false;
+            }
+            bool aperto = stato.Value;
             
             if (!aperto)
             {

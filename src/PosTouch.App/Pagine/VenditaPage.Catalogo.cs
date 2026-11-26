@@ -175,7 +175,9 @@ namespace PosTouch.App.Pagine
         }
 
         /// <summary>AggiungiProdotto del PC: quantità e prezzo € dalla tastiera, richiesta prezzo per articoli a 0.</summary>
-        private async Task AggiungiProdottoAsync(Prodotto p)
+        /// <param name="pezziConfezione">Barcode di confezione (es. cassa da 6): la quantità battuta si moltiplica.</param>
+        /// <param name="barcodeLetto">Codice letto, salvato nella riga (storico, come il PC).</param>
+        private async Task AggiungiProdottoAsync(Prodotto p, int pezziConfezione = 1, string barcodeLetto = null)
         {
             if (Occupata) return;
             // l'autorizzazione del tasto € vale solo per il prezzo che è ancora sul tastierino, e per un solo articolo
@@ -217,6 +219,7 @@ namespace PosTouch.App.Pagine
                     prezzoCent = (int)quantita; quantita = 1;
                 }
             }
+            if (pezziConfezione > 1 && !p.VenditaAPeso) quantita *= pezziConfezione;   // dopo la domanda pezzi/prezzo della virgola implicita
             if (p.VenditaAPeso) { await AggiungiAPesoAsync(p, prezzoCent); return; }
             int prezzo = prezzoCent ?? p.PrezzoListino(Carrello.Listino);
 
@@ -239,6 +242,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}");
                 return;
             }
+            if (!string.IsNullOrEmpty(barcodeLetto)) riga.Barcode = barcodeLetto;
             MostraInFondo(riga);
         }
 
@@ -285,10 +289,17 @@ namespace PosTouch.App.Pagine
                     "Vai in Back Office → Modifica Prodotto → spunta 'Codice bilancia'.");
                 return;
             }
+            if (Cfg.BloccoRigaSingola && Carrello.HaArticoli)
+            {
+                _tastierino.Azzera();
+                await MessaggioBox.Avviso("RIGA SINGOLA", "È consentito un solo prodotto per scontrino.\n\nChiudi lo scontrino corrente prima di aggiungere un altro articolo.");
+                return;
+            }
             var (qta, _) = _tastierino.PrendiPerArticolo();
             var riga = Carrello.Aggiungi(p, qta, l.PrezzoCentesimi, accorpa: false);
             if (riga == null) { await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}"); return; }
             riga.Barcode = barcode;   // nello storico l'etichetta letta
+            riga.UnitaPeso = null;    // l'etichetta ha già il prezzo totale: è "1 pezzo", non "1 Kg"
             MostraInFondo(riga);
         }
 
@@ -304,10 +315,10 @@ namespace PosTouch.App.Pagine
                 return;
             }
             // prima il codice esatto: anche gli EAN interni/a pezzi che iniziano con 2 sono articoli normali
-            var p = ContestoCassa.Catalogo.CercaBarcode(codice);
+            var (p, pezzi) = ContestoCassa.Catalogo.CercaBarcodeConQuantita(codice);
             if (p == null && Cfg.UsaBarcodeBilancia && BarcodeBilancia.IsBarcodeBilancia(codice)) { _ = AggiungiDaEtichettaBilanciaAsync(codice); return; }
             if (p == null) _ = MessaggioBox.Avviso("ARTICOLO NON TROVATO", $"Nessun articolo con codice:\n{codice}");
-            else _ = AggiungiProdottoAsync(p);
+            else _ = AggiungiProdottoAsync(p, Math.Max(1, pezzi), codice);   // barcode di confezione: quantità × pezzi (come il PC)
         }
     }
 }

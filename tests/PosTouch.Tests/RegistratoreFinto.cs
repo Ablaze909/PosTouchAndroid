@@ -17,6 +17,8 @@ namespace PosTouch.Tests
         public List<string> Comandi { get; } = new List<string>();
         /// <summary>Nomi dei metodi che rispondono false (es. "VendiRepartoAsync").</summary>
         public HashSet<string> Rifiuta { get; } = new HashSet<string>();
+        /// <summary>Comandi che lanciano un'eccezione (rete che cade a metà).</summary>
+        public HashSet<string> Lancia { get; } = new HashSet<string>();
         public bool FooterConfermato = true;
         public bool? StatoDopoChiusura = false;
 
@@ -31,6 +33,7 @@ namespace PosTouch.Tests
             string nome = metodo.Name;
             Comandi.Add(nome + (args == null || args.Length == 0 ? "" : "(" + string.Join(",", args.Select(a => a?.ToString())) + ")"));
             var tipo = metodo.ReturnType;
+            if (Lancia.Contains(nome)) throw new System.IO.IOException($"rete caduta durante {nome}");
             if (nome == "LeggiTxFooterAsync")
                 return Task.FromResult(new RisultatoChiusuraRT { Confermato = FooterConfermato, NumeroDocumento = FooterConfermato ? 42 : 0, NumeroAzzeramento = 7 });
             if (nome == "StatoScontrinoDopoChiusuraAsync") return Task.FromResult(StatoDopoChiusura);

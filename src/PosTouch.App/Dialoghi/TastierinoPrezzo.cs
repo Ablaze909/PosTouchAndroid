@@ -17,6 +17,8 @@ namespace PosTouch.App.Dialoghi
         private readonly Label _display;
         private readonly bool _nascosto;
         private string _input = "";
+        /// <summary>Valore attuale (invariante): OK senza digitare lo conferma invece di restituire 0.</summary>
+        private string _attualeNumero;
 
         public TastierinoPrezzo(string titolo, string valoreAttuale, ModoTastierino modo, bool nascondi = false)
         {
@@ -117,6 +119,7 @@ namespace PosTouch.App.Dialoghi
         private void Conferma()
         {
             if (_modo == ModoTastierino.Codice) Chiudi(_input);
+            else if (_input.Length == 0 && _attualeNumero != null) Chiudi(_attualeNumero);   // OK a vuoto = tieni il valore attuale (per 0 si digita 0)
             else Chiudi(Valore().ToString(CultureInfo.InvariantCulture));
         }
 
@@ -125,13 +128,15 @@ namespace PosTouch.App.Dialoghi
         /// <summary>Prezzo in euro (null = annullato).</summary>
         public static async Task<decimal?> ChiediEuro(string titolo, decimal? attuale = null)
         {
-            var r = await Dialogo.Mostra(new TastierinoPrezzo(titolo, attuale.HasValue ? $"€ {attuale.Value:N2}" : null, ModoTastierino.Euro));
+            var r = await Dialogo.Mostra(new TastierinoPrezzo(titolo, attuale.HasValue ? $"€ {attuale.Value:N2}" : null, ModoTastierino.Euro)
+                { _attualeNumero = attuale?.ToString(CultureInfo.InvariantCulture) });
             return r == null ? null : decimal.Parse(r, CultureInfo.InvariantCulture);
         }
 
         public static async Task<decimal?> ChiediQuantita(string titolo, decimal? attuale = null)
         {
-            var r = await Dialogo.Mostra(new TastierinoPrezzo(titolo, attuale?.ToString("0.###"), ModoTastierino.Quantita));
+            var r = await Dialogo.Mostra(new TastierinoPrezzo(titolo, attuale?.ToString("0.###"), ModoTastierino.Quantita)
+                { _attualeNumero = attuale?.ToString(CultureInfo.InvariantCulture) });
             return r == null ? null : decimal.Parse(r, CultureInfo.InvariantCulture);
         }
 
