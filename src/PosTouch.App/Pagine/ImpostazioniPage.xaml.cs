@@ -296,6 +296,83 @@ namespace PosTouch.App.Pagine
             }
         }
 
+        /// <summary>
+        /// 🧪 Dati di prova: catalogo d'esempio (pizze con combinazioni, primi, secondi, bevande con barcode,
+        /// gastronomia a peso con codice bilancia, coperti, 25 varianti in gruppi) e configurazione sale/uscite
+        /// per provare tutto. Le stampanti (IP) restano quelle impostate.
+        /// </summary>
+        private async void OnDatiProva(object sender, EventArgs e)
+        {
+            if (ContestoCassa.Tavoli.Aperti().Any(t => t.Articoli > 0))
+            {
+                await MessaggioBox.Avviso("TAVOLI APERTI", "Ci sono tavoli o conti aperti: incassali prima di caricare i dati di prova.");
+                return;
+            }
+            if (!ContestoCassa.Carrello.Vuoto)
+            {
+                await MessaggioBox.Avviso("SCONTRINO APERTO", "Al banco c'è uno scontrino aperto: chiudilo prima di caricare i dati di prova.");
+                return;
+            }
+            if (!await MessaggioBox.Conferma("🧪 DATI DI PROVA",
+                    "Il catalogo del tablet verrà SOSTITUITO da un catalogo di prova (10 categorie, 58 articoli, 25 varianti).\n\n" +
+                    "Vengono impostate anche: 2 sale (SALA 1 e TERRAZZA) con coperto, conti clienti, portate, uscite CUCINA / BAR / PIZZERIA.\n" +
+                    "Le stampanti e le impostazioni fiscali NON cambiano.\n\nIl catalogo attuale resta salvato come copia (.bak).\n\nContinuare?"))
+                return;
+            try
+            {
+                int n;
+                using (var s = await FileSystem.OpenAppPackageFileAsync("catalogo_prova.db"))
+                using (var copia = new MemoryStream())
+                {
+                    await s.CopyToAsync(copia);
+                    copia.Position = 0;
+                    n = await Task.Run(() => ContestoCassa.Catalogo.Importa(copia));
+                }
+                var imp = ContestoCassa.Impostazioni.Copia();
+                ConfiguraProva(imp, ContestoCassa.Catalogo);
+                ContestoCassa.SalvaImpostazioni(imp);
+                InfoCatalogo.Text = $"{ContestoCassa.Catalogo.TutteCategorie.Count} categorie, {n} prodotti";
+                await MessaggioBox.Successo("🧪 DATI DI PROVA CARICATI",
+                    $"{n} articoli in {ContestoCassa.Catalogo.TutteCategorie.Count} categorie.\n\n" +
+                    "Da provare:\n• PIZZA ½ + ½ e PIZZA 3 GUSTI (combinazioni)\n• GASTRONOMIA a peso (etichetta bilancia 2 00011 …)\n" +
+                    "• Barcode bevande (es. 5449000000996 = COCA COLA)\n• VAR＋/VAR﹣ su pizze, primi, secondi, bevande\n• ⬅ SALA: SALA 1 (1-10) e TERRAZZA (101-110)\n\n" +
+                    "Imposta gli IP delle stampanti in 🍽️ SALE E STAMPE → OPZIONI DI STAMPA.");
+                _statoIniziale = Firma();   // le impostazioni della pagina restano quelle a video
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Dati di prova: {ex}");
+                await MessaggioBox.Errore("DATI DI PROVA", ex.Message);
+            }
+        }
+
+        /// <summary>Sale, coperti, portate e uscite adatti al catalogo di prova (le stampanti restano quelle impostate).</summary>
+        private static void ConfiguraProva(Impostazioni imp, PosTouch.Core.Dati.Catalogo cat)
+        {
+            int coperto = cat.TuttiProdotti.FirstOrDefault(p => p.Descrizione == "COPERTO")?.Id ?? 0;
+            int copertoTerrazza = cat.TuttiProdotti.FirstOrDefault(p => p.Descrizione == "COPERTO TERRAZZA")?.Id ?? coperto;
+            var s = imp.Sale;
+            s.AbilitaSale = true;
+            s.AbilitaContiClienti = true;
+            s.NumeroSlotContiClienti = 10;
+            s.AbilitaComande = true;
+            s.AbilitaPortate = true;
+            if (s.SeparatoriPortate.Count == 0) s.SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2", "SEGUE 3" };
+            s.Sale = new List<Sala>
+            {
+                new Sala { Id = 1, Nome = "SALA 1", NumeroTavoli = 10, NumeroIniziale = 1, CopertoProdottoId = coperto },
+                new Sala { Id = 2, Nome = "TERRAZZA", NumeroTavoli = 10, NumeroIniziale = 101, CopertoProdottoId = copertoTerrazza }
+            };
+            imp.PreparaStampe();
+            var st = imp.Stampe;
+            foreach (var (num, nome) in new[] { (1, "CUCINA"), (2, "BAR"), (3, "PIZZERIA") })
+            {
+                var u = st.UscitaDa(num);
+                if (u == null) st.Uscite.Add(new Uscita { Numero = num, Nome = nome }); else u.Nome = nome;
+            }
+            st.Normalizza();
+        }
+
         /// <summary>Dopo l'import: centri di produzione usati dal catalogo del PC ma non impostati qui (le comande non uscirebbero).</summary>
         private async Task AvvisaCentriMancantiAsync()
         {

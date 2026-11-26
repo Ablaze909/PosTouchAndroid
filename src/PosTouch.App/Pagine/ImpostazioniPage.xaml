@@ -262,6 +262,7 @@
                             <Label Text="Per riprendere gli articoli del PC: chiudere POS Touch, copiare pos.db sul tablet e sceglierlo qui."
                                    FontSize="13" TextColor="#999999" />
                             <Button Text="📥 IMPORTA CATALOGO (pos.db)" BackgroundColor="#37474F" Style="{StaticResource TastoTouch}" Clicked="OnImportaCatalogo" />
+                            <Button Text="🧪 CARICA DATI DI PROVA" BackgroundColor="#6A1B9A" Style="{StaticResource TastoTouch}" Clicked="OnDatiProva" Margin="0,8,0,0" />
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
