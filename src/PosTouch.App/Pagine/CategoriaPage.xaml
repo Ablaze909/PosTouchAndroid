@@ -1,52 +1,67 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- Come CategoriaDialogTouch del PC -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ctl="clr-namespace:PosTouch.App.Controlli"
              x:Class="PosTouch.App.Pagine.CategoriaPage"
-             Title="Categoria">
-    <ScrollView>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="24" Padding="20">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="Nome" />
-                <Entry x:Name="CampoNome" MaxLength="30" TextTransform="Uppercase" TextChanged="OnAnteprima" />
-                <Label Text="Reparto del registratore (RT)" />
-                <Entry x:Name="CampoReparto" Keyboard="Numeric" MaxLength="2" />
-                <Label Text="IVA" />
-                <Picker x:Name="SceltaIva">
-                    <Picker.Items>
-                        <x:String>22%</x:String>
-                        <x:String>10%</x:String>
-                        <x:String>5%</x:String>
-                        <x:String>4%</x:String>
-                        <x:String>0% (esente/non imponibile)</x:String>
-                    </Picker.Items>
-                </Picker>
-                <Label Text="L'aliquota vera la decide il reparto programmato sull'RT: qui serve per riferimento e statistiche."
-                       FontSize="12" TextColor="{StaticResource TestoTenue}" />
-                <Label Text="Posizione (ordine)" />
-                <Entry x:Name="CampoOrdine" Keyboard="Numeric" MaxLength="3" />
-            </VerticalStackLayout>
+             NavigationPage.HasNavigationBar="False">
+    <Border Stroke="Black" StrokeThickness="3" BackgroundColor="White">
+        <Grid RowDefinitions="Auto,*,Auto" Padding="30,20,30,15">
+            <Label x:Name="Titolo" Text="➕ NUOVA CATEGORIA" Style="{StaticResource TitoloDialog}" Margin="0,0,0,10" />
 
-            <VerticalStackLayout Grid.Column="1" Spacing="6">
-                <Label Text="Colore del tasto" />
-                <ctl:SceltaColore x:Name="Colore" />
-                <Label Text="Testo" />
-                <Picker x:Name="SceltaTesto" SelectedIndexChanged="OnAnteprima">
-                    <Picker.Items>
-                        <x:String>Bianco</x:String>
-                        <x:String>Nero</x:String>
-                    </Picker.Items>
-                </Picker>
-                <Label Text="Anteprima" Margin="0,10,0,0" />
-                <Border x:Name="Anteprima" StrokeThickness="0" HeightRequest="58" WidthRequest="160" HorizontalOptions="Start">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
-                    <Label x:Name="AnteprimaTesto" FontAttributes="Bold" FontSize="15" HorizontalOptions="Center" VerticalOptions="Center" />
-                </Border>
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,24,0,0">
-                    <Button x:Name="BtnElimina" Text="ELIMINA" Clicked="OnElimina" BackgroundColor="{StaticResource Pericolo}" HeightRequest="60" />
-                    <Button Grid.Column="1" Text="SALVA" Clicked="OnSalva" BackgroundColor="{StaticResource Contanti}" HeightRequest="60" FontSize="18" />
+            <ScrollView Grid.Row="1">
+                <Grid ColumnDefinitions="*,20,*">
+                    <VerticalStackLayout>
+                        <Label Text="Nome" Style="{StaticResource Campo}" />
+                        <Entry x:Name="CampoNome" MaxLength="30" TextTransform="Uppercase" TextChanged="OnAnteprima" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <VerticalStackLayout>
+                                <Label Text="Reparto RT" Style="{StaticResource Campo}" />
+                                <Entry x:Name="CampoReparto" Keyboard="Numeric" MaxLength="2" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="IVA" Style="{StaticResource Campo}" />
+                                <Picker x:Name="SceltaIva">
+                                    <Picker.Items>
+                                        <x:String>22%</x:String>
+                                        <x:String>10%</x:String>
+                                        <x:String>5%</x:String>
+                                        <x:String>4%</x:String>
+                                        <x:String>0% (esente/non imponibile)</x:String>
+                                    </Picker.Items>
+                                </Picker>
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Label Text="L'aliquota stampata la decide il reparto programmato sull'RT; l'IVA qui serve per riferimento e statistiche."
+                               FontSize="12" TextColor="#666666" />
+                        <Label Text="Posizione (ordine)" Style="{StaticResource Campo}" />
+                        <Entry x:Name="CampoOrdine" Keyboard="Numeric" MaxLength="3" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="2">
+                        <Label Text="Colore tasto" Style="{StaticResource Campo}" />
+                        <ctl:SceltaColore x:Name="Colore" />
+                        <Label Text="Colore testo" Style="{StaticResource Campo}" />
+                        <Picker x:Name="SceltaTesto" SelectedIndexChanged="OnAnteprima">
+                            <Picker.Items>
+                                <x:String>Bianco</x:String>
+                                <x:String>Nero</x:String>
+                            </Picker.Items>
+                        </Picker>
+                        <Label Text="Anteprima" Style="{StaticResource Campo}" Margin="0,14,0,4" />
+                        <Border x:Name="Anteprima" StrokeThickness="0" HeightRequest="64" WidthRequest="114" HorizontalOptions="Start">
+                            <Label x:Name="AnteprimaTesto" FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center" LineBreakMode="WordWrap" Margin="4" />
+                        </Border>
+                    </VerticalStackLayout>
                 </Grid>
-            </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="12" Margin="0,15,0,0">
+                <Button x:Name="BtnElimina" Text="🗑️ ELIMINA" BackgroundColor="#F44336" FontSize="18" HeightRequest="60" Clicked="OnElimina" />
+                <Button Grid.Column="1" Text="✖ ANNULLA" Style="{StaticResource TastoAnnulla}" Clicked="OnAnnulla" />
+                <Button Grid.Column="2" Text="✔ SALVA" Style="{StaticResource TastoSalva}" Clicked="OnSalva" />
+            </Grid>
         </Grid>
-    </ScrollView>
+    </Border>
 </ContentPage>

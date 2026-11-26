@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Come StrumentiDialog del PC -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PosTouch.App.Pagine.StrumentiPage"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="#ECEFF1">
+    <Grid RowDefinitions="Auto,*,Auto" WidthRequest="500" Padding="0,20">
+        <Label Text="🔧 STRUMENTI" FontSize="20" FontAttributes="Bold" TextColor="#37474F"
+               HorizontalOptions="Center" Margin="0,0,0,20" />
+        <VerticalStackLayout Grid.Row="1" Spacing="0">
+            <Button Text="📦 BACK OFFICE&#10;categorie, reparti e articoli" Style="{StaticResource TastoFunzione}" HeightRequest="80"
+                    BackgroundColor="#37474F" Clicked="OnBackOffice" />
+            <Button Text="⚙️ IMPOSTAZIONI" Style="{StaticResource TastoFunzione}" HeightRequest="80"
+                    BackgroundColor="#FF9800" Clicked="OnImpostazioni" />
+        </VerticalStackLayout>
+        <Button Grid.Row="2" Text="✖ CHIUDI" Style="{StaticResource TastoFunzione}" BackgroundColor="#607D8B" Clicked="OnChiudi" />
+    </Grid>
+</ContentPage>

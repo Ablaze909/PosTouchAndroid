@@ -25,7 +25,7 @@ namespace PosTouch.App.Pagine
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, IsPreferito = esistente.IsPreferito
                 };
 
-            Title = esistente == null ? "Nuovo articolo" : $"Articolo {esistente.Codice}";
+            Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
             BtnElimina.IsVisible = esistente != null;
 
             SceltaCategoria.ItemsSource = _categorie;
@@ -94,6 +94,8 @@ namespace PosTouch.App.Pagine
                 await DisplayAlert("Articolo", ex.Message, "OK");
             }
         }
+
+        private async void OnAnnulla(object sender, EventArgs e) => await Navigation.PopAsync();
 
         private async void OnElimina(object sender, EventArgs e)
         {

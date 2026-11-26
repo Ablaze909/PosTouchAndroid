@@ -24,6 +24,8 @@ namespace PosTouch.Core.Cassa
 
         public Task<EsitoOperazione> ChiusuraFiscaleAsync() => Esegui("Chiusura fiscale", rt => rt.ChiusuraFiscaleAsync());
         public Task<EsitoOperazione> LetturaGiornalieraAsync() => Esegui("Lettura giornaliera", rt => rt.LetturaGiornalieraAsync());
+        public Task<EsitoOperazione> RapportoRepartiAsync() => Esegui("Rapporto reparti", rt => rt.RapportoRepartiLetturaAsync());
+        public Task<EsitoOperazione> RistampaPenultimoAsync() => Esegui("Ristampa penultimo scontrino", rt => rt.StampaPenultimoScontrinoAsync());
         public Task<EsitoOperazione> RistampaUltimoAsync() => Esegui("Ristampa ultimo scontrino", rt => rt.StampaUltimoScontrinoAsync());
         public Task<EsitoOperazione> ApriCassettoAsync() => Esegui("Apertura cassetto", rt => rt.ApriCassettoAsync());
         public Task<EsitoOperazione> SbloccaRTAsync() => Esegui("Sblocco RT", rt => rt.RecuperaScontrinoApertoAsync());

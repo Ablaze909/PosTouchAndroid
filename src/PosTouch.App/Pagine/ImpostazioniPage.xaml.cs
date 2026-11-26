@@ -88,6 +88,8 @@ namespace PosTouch.App.Pagine
             return prova.ElencoTastiReparto().Count == parti;
         }
 
+        private async void OnAnnulla(object sender, EventArgs e) => await Navigation.PopAsync();
+
         private async void OnSalva(object sender, EventArgs e)
         {
             var nuove = await LeggiCampiAsync();
@@ -111,7 +113,7 @@ namespace PosTouch.App.Pagine
             if (prova == null) return;
             var btn = (Button)sender;
             btn.IsEnabled = false;
-            btn.Text = "PROVA IN CORSO...";
+            btn.Text = "⏳ PROVA IN CORSO...";
             try
             {
                 var esito = await Task.Run(() => new FunzioniCassa(() => prova).TestConnessioneAsync());
@@ -120,7 +122,7 @@ namespace PosTouch.App.Pagine
             finally
             {
                 btn.IsEnabled = true;
-                btn.Text = "PROVA CONNESSIONE";
+                btn.Text = "🔌 PROVA CONNESSIONE";
             }
         }
 

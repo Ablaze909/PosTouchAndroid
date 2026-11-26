@@ -21,6 +21,8 @@ namespace PosTouch.Core.Vendita
 
         public int SubtotaleProdottiCent => Righe.Where(r => r.Tipo == TipoRiga.Prodotto).Sum(r => r.ImportoCentesimi);
         public int TotaleCent => Righe.Sum(r => r.ImportoCentesimi);
+        /// <summary>Pezzi totali (somma quantità delle righe articolo), come "Pz:" sul PC.</summary>
+        public decimal Pezzi => Righe.Where(r => r.Tipo == TipoRiga.Prodotto).Sum(r => r.Quantita);
         public decimal TotaleEuro => TotaleCent / 100m;
 
         public RigaScontrino Sconto => Righe.FirstOrDefault(r => r.Tipo == TipoRiga.Sconto);
@@ -157,6 +159,7 @@ namespace PosTouch.Core.Vendita
             if (s?.ScontoPercentualeCent is int pc)
                 s.PrezzoCentesimi = -(int)Math.Round(SubtotaleProdottiCent * pc / 10000m, MidpointRounding.AwayFromZero);
             if (Vuoto && s != null) Righe.Remove(s);
+            for (int i = 0; i < Righe.Count; i++) Righe[i].Alternata = i % 2 == 1;
             Cambiato?.Invoke();
         }
     }

@@ -36,6 +36,22 @@ namespace PosTouch.Core.Modelli
             set { _quantita = value; Notifica(); }
         }
 
+        private bool _alternata;
+        /// <summary>Riga dispari della lista (sfondo alternato come sul PC). Impostata dal Carrello.</summary>
+        public bool Alternata
+        {
+            get => _alternata;
+            set
+            {
+                if (_alternata == value) return;
+                _alternata = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Alternata)));
+            }
+        }
+
+        public bool IsSconto => Tipo == TipoRiga.Sconto;
+        public bool IsProdotto => Tipo == TipoRiga.Prodotto;
+
         /// <summary>Importo totale della riga in euro (prezzo × quantità).</summary>
         public decimal ImportoEuro => PrezzoCentesimi * Quantita / 100m;
         public int ImportoCentesimi => (int)System.Math.Round(PrezzoCentesimi * Quantita, System.MidpointRounding.AwayFromZero);

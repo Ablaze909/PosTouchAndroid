@@ -21,7 +21,7 @@ namespace PosTouch.App.Pagine
                     Ordine = esistente.Ordine
                 };
 
-            Title = esistente == null ? "Nuova categoria" : $"Categoria {esistente.Nome}";
+            Titolo.Text = esistente == null ? "➕ NUOVA CATEGORIA" : "✏️ MODIFICA CATEGORIA";
             BtnElimina.IsVisible = esistente != null;
 
             CampoNome.Text = _cat.Nome;
@@ -71,6 +71,8 @@ namespace PosTouch.App.Pagine
                 await DisplayAlert("Categoria", ex.Message, "OK");
             }
         }
+
+        private async void OnAnnulla(object sender, EventArgs e) => await Navigation.PopAsync();
 
         private async void OnElimina(object sender, EventArgs e)
         {

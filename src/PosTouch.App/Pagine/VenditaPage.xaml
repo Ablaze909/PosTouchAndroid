@@ -1,175 +1,230 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Schermata vendita: stesso layout di MainWindow.xaml (POS Touch Windows).
+    Colonne: categorie 120 | articoli * | scontrino + tastiera 320.
+    Righe:   contenuto * | barra pagamenti 58 (sotto categorie e articoli).
+-->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:m="clr-namespace:PosTouch.Core.Modelli;assembly=PosTouch.Core"
              xmlns:conv="clr-namespace:PosTouch.App.Convertitori"
              x:Class="PosTouch.App.Pagine.VenditaPage"
-             Title="POS Touch — Banco">
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="White">
 
     <ContentPage.Resources>
-        <conv:ColoreConverter x:Key="Colore" />
-        <Style x:Key="Tasto" TargetType="Button">
-            <Setter Property="BackgroundColor" Value="#E3E7EC" />
-            <Setter Property="TextColor" Value="#1A1A1A" />
-            <Setter Property="FontSize" Value="20" />
+        <conv:AlternatoConverter x:Key="Alternato" />
+
+        <!-- ModernButton del PC: tasti tastiera bianchi, piatti, testo nero -->
+        <Style x:Key="TastoNum" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="TextColor" Value="#111111" />
+            <Setter Property="FontSize" Value="24" />
             <Setter Property="FontAttributes" Value="Bold" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="HeightRequest" Value="50" />
+            <Setter Property="Margin" Value="1" />
         </Style>
-        <Style x:Key="TastoBarra" TargetType="Button">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="HeightRequest" Value="56" />
-            <Setter Property="MinimumWidthRequest" Value="110" />
-            <Setter Property="Padding" Value="10,0" />
+        <Style x:Key="TastoScuro" TargetType="Button">
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style x:Key="TastoToolbar" TargetType="Button">
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HeightRequest" Value="32" />
+            <Setter Property="MinimumHeightRequest" Value="32" />
+            <Setter Property="Margin" Value="3,0" />
         </Style>
     </ContentPage.Resources>
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Impostazioni" Clicked="OnImpostazioni" />
-    </ContentPage.ToolbarItems>
+    <Grid RowDefinitions="*,58" ColumnDefinitions="120,*,320">
 
-    <Grid>
-        <Grid ColumnDefinitions="*,390" RowDefinitions="Auto,*,Auto" Padding="8" ColumnSpacing="8" RowSpacing="8">
+        <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie → ▲▼ → 🏠 ═════════ -->
+        <Grid Grid.Row="0" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
+            <Button Grid.Row="0" Text="🚪" FontSize="22" BackgroundColor="#B71C1C" Style="{StaticResource TastoScuro}"
+                    Margin="0,0,0,2" Clicked="OnEsci" />
 
-            <!-- ═══ CATEGORIE ═══ -->
-            <CollectionView x:Name="ListaCategorie" Grid.Row="0" Grid.Column="0"
-                            HeightRequest="64" SelectionMode="Single" SelectionChanged="OnCategoriaScelta">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="6" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="m:Categoria">
-                        <Border StrokeThickness="0" Padding="14,0" HeightRequest="58" MinimumWidthRequest="110"
-                                BackgroundColor="{Binding Colore, Converter={StaticResource Colore}, ConverterParameter='#2196F3'}">
-                            <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
-                            <Label Text="{Binding Nome}" FontAttributes="Bold" FontSize="15"
-                                   TextColor="{Binding ColoreTesto, Converter={StaticResource Colore}, ConverterParameter='#000000'}"
-                                   VerticalOptions="Center" HorizontalOptions="Center" />
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+            <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Never">
+                <VerticalStackLayout x:Name="ListaCategorie" Spacing="1" Padding="0,2" />
+            </ScrollView>
 
-            <!-- ═══ ARTICOLI ═══ -->
-            <CollectionView x:Name="ListaProdotti" Grid.Row="1" Grid.Column="0"
-                            SelectionMode="Single" SelectionChanged="OnProdottoScelto">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical" Span="5" HorizontalItemSpacing="6" VerticalItemSpacing="6" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.EmptyView>
-                    <Label x:Name="MessaggioVuoto" HorizontalTextAlignment="Center" VerticalOptions="Center"
-                           TextColor="{StaticResource TestoTenue}" FontSize="16" Margin="20" />
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="m:Prodotto">
-                        <Border StrokeThickness="0" HeightRequest="92" Padding="6"
-                                BackgroundColor="{Binding Colore, Converter={StaticResource Colore}, ConverterParameter='#455A64'}">
-                            <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
-                            <Grid RowDefinitions="*,Auto">
-                                <Label Text="{Binding Descrizione}" FontAttributes="Bold" FontSize="14" MaxLines="3"
-                                       LineBreakMode="WordWrap" HorizontalTextAlignment="Center" VerticalOptions="Center"
-                                       TextColor="{Binding ColoreTesto, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}" />
-                                <Label Grid.Row="1" Text="{Binding PrezzoEuro, StringFormat='€ {0:N2}'}" FontSize="13"
-                                       HorizontalTextAlignment="Center"
-                                       TextColor="{Binding ColoreTesto, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}" />
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="2" Padding="0,2">
+                <Button Text="▲" FontSize="22" BackgroundColor="#37474F" Style="{StaticResource TastoScuro}" Clicked="OnCategorieSu" />
+                <Button Grid.Column="1" Text="▼" FontSize="22" BackgroundColor="#37474F" Style="{StaticResource TastoScuro}" Clicked="OnCategorieGiu" />
+            </Grid>
 
-            <!-- ═══ SCONTRINO + TASTIERINO ═══ -->
-            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" BackgroundColor="{StaticResource Pannello}"
-                    StrokeThickness="0" Padding="8">
-                <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
-                <Grid RowDefinitions="*,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+            <Button Grid.Row="3" Text="🏠" FontSize="20" BackgroundColor="#F5F5F5" TextColor="#111111"
+                    BorderColor="#DDDDDD" BorderWidth="1" CornerRadius="0" Clicked="OnPreferiti" />
+        </Grid>
+        <BoxView Grid.Row="0" Grid.Column="0" WidthRequest="1" Color="#E5E5E5" HorizontalOptions="End" />
 
-                    <CollectionView x:Name="ListaRighe" Grid.Row="0" SelectionMode="Single" SelectionChanged="OnRigaScelta">
-                        <CollectionView.EmptyView>
-                            <Label Text="Tocca un articolo per aggiungerlo" HorizontalTextAlignment="Center"
-                                   VerticalOptions="Center" TextColor="{StaticResource TestoTenue}" />
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="m:RigaScontrino">
-                                <Grid ColumnDefinitions="40,*,Auto" Padding="4,8" ColumnSpacing="6">
-                                    <Label Text="{Binding QuantitaDisplay}" FontAttributes="Bold" FontSize="16" />
-                                    <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="16" LineBreakMode="TailTruncation" />
-                                    <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="16" FontAttributes="Bold" />
-                                </Grid>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+        <!-- ═════════ COLONNA CENTRO: toolbar + articoli ═════════ -->
+        <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="40,*">
+            <Grid BackgroundColor="#FAFAFA">
+                <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                    <Button Text="🔧" WidthRequest="46" BackgroundColor="#555555" Style="{StaticResource TastoToolbar}" Clicked="OnStrumenti" />
+                    <Button x:Name="BtnModifica" Text="✏️" WidthRequest="46" BackgroundColor="#757575" Style="{StaticResource TastoToolbar}" Clicked="OnModifica" />
+                    <Button Text="💰 FUNZIONI CASSA" FontSize="11" FontAttributes="Bold" Padding="12,0" BackgroundColor="#555555"
+                            Style="{StaticResource TastoToolbar}" Clicked="OnFunzioniCassa" />
+                </HorizontalStackLayout>
+                <BoxView HeightRequest="1" Color="#E5E5E5" VerticalOptions="End" />
+            </Grid>
 
-                    <!-- Totale + display tastierino -->
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Padding="4,2">
-                        <Label Text="TOTALE" FontSize="20" FontAttributes="Bold" VerticalOptions="Center" />
-                        <Label x:Name="EtichettaTotale" Grid.Column="1" Text="€ 0,00" FontSize="28" FontAttributes="Bold"
-                               TextColor="{StaticResource Primario}" />
-                    </Grid>
-                    <Border Grid.Row="2" BackgroundColor="#1E293B" StrokeThickness="0" Padding="10,4">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="4" /></Border.StrokeShape>
-                        <Label x:Name="DisplayTastierino" Text="0" FontSize="24" FontAttributes="Bold" TextColor="#7CFC9A"
-                               HorizontalTextAlignment="End" />
-                    </Border>
+            <ScrollView Grid.Row="1" Margin="2">
+                <FlexLayout x:Name="GrigliaArticoli" Wrap="Wrap" AlignContent="Start" AlignItems="Start" />
+            </ScrollView>
+            <Label x:Name="MessaggioVuoto" Grid.Row="1" HorizontalTextAlignment="Center" VerticalOptions="Center"
+                   TextColor="#999999" FontSize="16" Margin="30" IsVisible="False" InputTransparent="True" />
+        </Grid>
 
-                    <!-- Tastierino -->
-                    <Grid Grid.Row="3" ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="5" RowSpacing="5">
-                        <Button Text="7" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="8" Grid.Column="1" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="9" Grid.Column="2" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="C" Grid.Column="3" Style="{StaticResource Tasto}" Clicked="OnCancella" BackgroundColor="#F4C7C7" />
-                        <Button Text="4" Grid.Row="1" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="5" Grid.Row="1" Grid.Column="1" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="6" Grid.Row="1" Grid.Column="2" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="X" Grid.Row="1" Grid.Column="3" Style="{StaticResource Tasto}" Clicked="OnPer" BackgroundColor="#FFE0B2" />
-                        <Button Text="1" Grid.Row="2" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="2" Grid.Row="2" Grid.Column="1" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="3" Grid.Row="2" Grid.Column="2" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="€" Grid.Row="2" Grid.Column="3" Grid.RowSpan="2" Style="{StaticResource Tasto}" Clicked="OnEuro"
-                                BackgroundColor="#C8E6C9" HeightRequest="105" />
-                        <Button Text="0" Grid.Row="3" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="00" Grid.Row="3" Grid.Column="1" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                        <Button Text="," Grid.Row="3" Grid.Column="2" Style="{StaticResource Tasto}" Clicked="OnCifra" />
-                    </Grid>
+        <!-- ═════════ COLONNA DESTRA: scontrino + tastiera (righe 0 e 1) ═════════ -->
+        <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" BackgroundColor="White" RowDefinitions="Auto,*,Auto,Auto,Auto">
 
-                    <Grid Grid.Row="4" ColumnDefinitions="*,*,*" ColumnSpacing="5">
-                        <Button Text="€ SCONTO" Clicked="OnScontoValore" FontSize="14" />
-                        <Button Grid.Column="1" Text="% SCONTO" Clicked="OnScontoPercentuale" FontSize="14" />
-                        <Button Grid.Column="2" Text="ANNULLA" Clicked="OnSvuota" BackgroundColor="{StaticResource Pericolo}" FontSize="14" />
-                    </Grid>
-
-                    <Grid Grid.Row="5" ColumnDefinitions="2*,2*,*" ColumnSpacing="5">
-                        <Button x:Name="BtnContanti" Text="CONTANTI" FontSize="18" HeightRequest="66"
-                                BackgroundColor="{StaticResource Contanti}" Clicked="OnContanti" />
-                        <Button x:Name="BtnCarta" Grid.Column="1" Text="CARTA" FontSize="18" HeightRequest="66"
-                                BackgroundColor="{StaticResource Carta}" Clicked="OnCarta" />
-                        <Button x:Name="BtnMisto" Grid.Column="2" Text="MISTO" FontSize="14" HeightRequest="66"
-                                BackgroundColor="{StaticResource Misto}" Clicked="OnMisto" />
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <!-- ═══ BARRA SOTTO ═══ -->
-            <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                    <HorizontalStackLayout x:Name="BarraReparti" Spacing="6" />
-                </ScrollView>
-                <HorizontalStackLayout Grid.Column="1" Spacing="6">
-                    <Button Text="CASSETTO" Style="{StaticResource TastoBarra}" Clicked="OnCassetto" />
-                    <Button Text="BARCODE" Style="{StaticResource TastoBarra}" Clicked="OnBarcode" />
-                    <Button Text="ARTICOLI" Style="{StaticResource TastoBarra}" Clicked="OnArticoli" BackgroundColor="{StaticResource Primario}" />
-                    <Button Text="FUNZIONI" Style="{StaticResource TastoBarra}" Clicked="OnFunzioniCassa" BackgroundColor="{StaticResource Primario}" />
+            <!-- Intestazione nera -->
+            <Grid Grid.Row="0" BackgroundColor="#111111" Padding="10,8" ColumnDefinitions="*,Auto">
+                <Label Text="📋 SCONTRINO" FontSize="14" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
+                    <Label x:Name="Orologio" Text="00:00:00" FontSize="14" FontAttributes="Bold" FontFamily="monospace" TextColor="White" />
+                    <Label x:Name="Data" Text="01/01/2026" FontSize="11" TextColor="White" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </Grid>
 
+            <!-- Righe scontrino (sfondo alternato, riga selezionata evidenziata) -->
+            <CollectionView x:Name="ListaRighe" Grid.Row="1" SelectionMode="Single" SelectionChanged="OnRigaScelta">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:RigaScontrino">
+                        <Grid ColumnDefinitions="28,*,74" Padding="4,8" MinimumHeightRequest="34"
+                              BackgroundColor="{Binding Alternata, Converter={StaticResource Alternato}}">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroupList>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#C9C9C9" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateGroupList>
+                            </VisualStateManager.VisualStateGroups>
+                            <!-- articolo -->
+                            <Label Text="{Binding QuantitaDisplay}" FontSize="14" FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" VerticalOptions="Center" IsVisible="{Binding IsProdotto}" />
+                            <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="14" FontAttributes="Bold"
+                                   LineBreakMode="WordWrap" Margin="4,0,3,0" VerticalOptions="Center" IsVisible="{Binding IsProdotto}" />
+                            <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="14" FontAttributes="Bold"
+                                   HorizontalTextAlignment="End" VerticalOptions="Center" IsVisible="{Binding IsProdotto}" />
+                            <!-- sconto (arancio scuro come sul PC) -->
+                            <Label Text="🎯" FontSize="13" HorizontalTextAlignment="Center" VerticalOptions="Center" IsVisible="{Binding IsSconto}" />
+                            <Label Grid.Column="1" Text="{Binding Descrizione}" FontSize="14" FontAttributes="Bold" TextColor="#D84315"
+                                   Margin="4,0,3,0" VerticalOptions="Center" IsVisible="{Binding IsSconto}" />
+                            <Label Grid.Column="2" Text="{Binding ImportoDisplay}" FontSize="14" FontAttributes="Bold" TextColor="#D84315"
+                                   HorizontalTextAlignment="End" VerticalOptions="Center" IsVisible="{Binding IsSconto}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Display + pezzi + totale -->
+            <Grid Grid.Row="2" BackgroundColor="#F5F5F5" Padding="10,10" Margin="0,4,0,0" ColumnDefinitions="Auto,*,Auto">
+                <Label x:Name="DisplayTastierino" FontSize="16" FontAttributes="Bold" TextColor="#666666"
+                       VerticalOptions="Center" MaximumWidthRequest="150" LineBreakMode="TailTruncation" />
+                <Label x:Name="EtichettaPezzi" Grid.Column="1" Text="Pz: 0" FontSize="13" FontAttributes="Bold" TextColor="#999999"
+                       HorizontalOptions="Center" VerticalOptions="Center" />
+                <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center">
+                    <Label Text="TOTALE:" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" Margin="0,0,6,0" />
+                    <Label x:Name="EtichettaTotale" Text="€ 0,00" FontSize="24" FontAttributes="Bold" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Grid>
+
+            <!-- RESTO arancione (compare dopo un incasso in contanti con resto) -->
+            <Grid x:Name="BarraResto" Grid.Row="3" BackgroundColor="#FF9800" Padding="10,10" Margin="0,10,0,0" IsVisible="False">
+                <Label Text="RESTO" FontSize="18" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                <Label x:Name="EtichettaResto" Text="€ 0,00" FontSize="24" FontAttributes="Bold" TextColor="White"
+                       HorizontalOptions="End" VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Tastiera 4x4 + sconti + quantità -->
+            <Grid Grid.Row="4" Margin="4,4,4,4" RowDefinitions="Auto,Auto,Auto">
+                <Grid BackgroundColor="#E5E5E5" RowDefinitions="60,60,60,60" ColumnDefinitions="*,*,*,*">
+                    <Button Text="7" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="8" Grid.Column="1" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="9" Grid.Column="2" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="C" Grid.Column="3" Style="{StaticResource TastoNum}" BackgroundColor="#F44336" TextColor="White" Clicked="OnCancella" />
+                    <Button Text="4" Grid.Row="1" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="5" Grid.Row="1" Grid.Column="1" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="6" Grid.Row="1" Grid.Column="2" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="X" Grid.Row="1" Grid.Column="3" Style="{StaticResource TastoNum}" BackgroundColor="#FF9800" TextColor="White" Clicked="OnPer" />
+                    <Button Text="1" Grid.Row="2" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="2" Grid.Row="2" Grid.Column="1" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="3" Grid.Row="2" Grid.Column="2" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="€" Grid.Row="2" Grid.Column="3" Grid.RowSpan="2" Style="{StaticResource TastoNum}"
+                            BackgroundColor="#4CAF50" TextColor="White" FontSize="36" Clicked="OnEuro" />
+                    <Button Text="0" Grid.Row="3" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
+                    <Button Text="00" Grid.Row="3" Grid.Column="1" Style="{StaticResource TastoNum}" FontSize="22" Clicked="OnCifra" />
+                    <Button Text="," Grid.Row="3" Grid.Column="2" Style="{StaticResource TastoNum}" FontSize="32" Clicked="OnCifra" />
+                </Grid>
+
+                <Grid Grid.Row="1" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,1.2*" ColumnSpacing="6">
+                    <Button Text="€ SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoValore" />
+                    <Button Grid.Column="1" Text="% SCONTO" FontSize="12" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnScontoPercentuale" />
+                    <Button Grid.Column="2" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
+                </Grid>
+
+                <Grid Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*" ColumnSpacing="4">
+                    <Button Text="＋" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnPiu" />
+                    <Button Grid.Column="1" Text="﹣" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
+                </Grid>
+            </Grid>
+
+            <BoxView Grid.RowSpan="5" WidthRequest="1" Color="#E5E5E5" HorizontalOptions="Start" InputTransparent="True" />
         </Grid>
 
-        <Label x:Name="EtichettaStato" VerticalOptions="Start" HorizontalOptions="Center" Margin="0,4,0,0"
-               FontSize="13" TextColor="{StaticResource TestoTenue}" InputTransparent="True" />
+        <!-- ═════════ BARRA INFERIORE: CASSA, CASSETTO, BARCODE, reparti ═════════ -->
+        <Grid x:Name="BarraPagamento" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="6,0,6,0" />
 
-        <!-- ═══ ATTESA durante la stampa ═══ -->
-        <Grid x:Name="Attesa" IsVisible="False" BackgroundColor="#99000000">
+        <!-- ═════════ OVERLAY MODALITÀ MODIFICA ═════════ -->
+        <Grid x:Name="OverlayModifica" Grid.RowSpan="2" Grid.ColumnSpan="3" BackgroundColor="#1AFF9800"
+              InputTransparent="True" CascadeInputTransparent="True" IsVisible="False">
+            <Grid BackgroundColor="#FF9800" HeightRequest="60" VerticalOptions="End" Margin="10,0,10,70" Padding="20,0">
+                <Label Text="✏️ MODALITÀ MODIFICA ATTIVA — tocca un articolo per modificarlo" FontSize="20" FontAttributes="Bold"
+                       TextColor="White" VerticalOptions="Center" />
+            </Grid>
+        </Grid>
+
+        <!-- ═════════ POPUP CASSA ═════════ -->
+        <Grid x:Name="OverlayPagamento" Grid.RowSpan="2" Grid.ColumnSpan="3" IsVisible="False">
+            <BoxView Color="#99000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnChiudiPagamento" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeThickness="0" WidthRequest="520" HeightRequest="270"
+                    HorizontalOptions="Center" VerticalOptions="Center">
+                <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                <Grid RowDefinitions="50,*,54">
+                    <Grid BackgroundColor="#388E3C">
+                        <Label Text="💰  SCEGLI METODO DI PAGAMENTO" TextColor="White" FontSize="15" FontAttributes="Bold"
+                               HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
+                    <Grid Grid.Row="1" Margin="20,16,20,8" ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                        <Button Text="💵&#10;CONTANTI" BackgroundColor="#4CAF50" FontSize="16" CornerRadius="4" Clicked="OnContanti" />
+                        <Button Grid.Column="1" Text="💵 + 💳&#10;MISTO" BackgroundColor="#7B1FA2" FontSize="16" CornerRadius="4" Clicked="OnMisto" />
+                        <Button Grid.Column="2" Text="💳&#10;PAG. ELETTRONICO" BackgroundColor="#1976D2" FontSize="16" CornerRadius="4" Clicked="OnCarta" />
+                    </Grid>
+                    <Button Grid.Row="2" Text="✕  ANNULLA" Margin="20,0,20,10" BackgroundColor="#EEEEEE" TextColor="#555555"
+                            FontSize="13" CornerRadius="4" Clicked="OnChiudiPagamento" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═════════ ATTESA durante la stampa ═════════ -->
+        <Grid x:Name="Attesa" Grid.RowSpan="2" Grid.ColumnSpan="3" IsVisible="False" BackgroundColor="#99000000">
             <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="12">
                 <ActivityIndicator IsRunning="True" Color="White" WidthRequest="60" HeightRequest="60" />
                 <Label x:Name="TestoAttesa" Text="Stampa in corso..." TextColor="White" FontSize="20" />

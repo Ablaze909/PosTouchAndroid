@@ -59,6 +59,8 @@ namespace PosTouch.App.Pagine
             await Navigation.PushAsync(new ProdottoPage(p, p.CategoriaId));
         }
 
+        private async void OnChiudi(object sender, EventArgs e) => await Navigation.PopAsync();
+
         private async void OnNuovaCategoria(object sender, EventArgs e)
             => await Navigation.PushAsync(new CategoriaPage(null));
 

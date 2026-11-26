@@ -26,8 +26,9 @@ namespace PosTouch.Core.Vendita
         {
             get
             {
-                string q = QuantitaBloccata.HasValue ? $"{QuantitaBloccata.Value:0.###} ×  " : "";
-                return q + (_testo.Length > 0 ? _testo : (q.Length > 0 ? "" : "0"));
+                // Come sul PC: vuoto se non si sta digitando, "Qta: 3 ×" dopo il tasto X
+                string q = QuantitaBloccata.HasValue ? $"Qta: {QuantitaBloccata.Value:0.###} ×  " : "";
+                return q + _testo;
             }
         }
 

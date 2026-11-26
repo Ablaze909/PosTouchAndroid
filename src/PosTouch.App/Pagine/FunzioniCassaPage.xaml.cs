@@ -37,11 +37,13 @@ namespace PosTouch.App.Pagine
 
         private void OnLettura(object sender, EventArgs e) => _ = EseguiAsync(Funzioni.LetturaGiornalieraAsync);
         private void OnRistampa(object sender, EventArgs e) => _ = EseguiAsync(Funzioni.RistampaUltimoAsync);
-        private void OnCassetto(object sender, EventArgs e) => _ = EseguiAsync(Funzioni.ApriCassettoAsync, mostraOk: false);
+        private void OnRapportoReparti(object sender, EventArgs e) => _ = EseguiAsync(Funzioni.RapportoRepartiAsync);
+        private void OnRistampaPenultimo(object sender, EventArgs e) => _ = EseguiAsync(Funzioni.RistampaPenultimoAsync);
+        private async void OnChiudi(object sender, EventArgs e) => await Navigation.PopAsync();
 
         private async void OnSblocca(object sender, EventArgs e)
         {
-            if (await DisplayAlert("Sblocca RT", "Annullare l'eventuale scontrino rimasto aperto sul registratore?", "Sì", "No"))
+            if (await DisplayAlert("RESET RT", "Annullare l'eventuale scontrino rimasto aperto sul registratore?", "Sì", "No"))
                 await EseguiAsync(Funzioni.SbloccaRTAsync);
         }
 
