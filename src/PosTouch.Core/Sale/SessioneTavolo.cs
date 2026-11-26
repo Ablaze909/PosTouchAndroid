@@ -46,19 +46,21 @@ namespace PosTouch.Core.Sale
         public TavoloAperto Tavolo { get; }
         public Sala Sala { get; }
         public Carrello Carrello { get; } = new Carrello();
-        public string NomeTavolo => $"TAVOLO {Tavolo.Numero}";
-        public string Titolo => $"{Sala?.Nome} — {NomeTavolo}";
+        public bool IsContoCliente => Tavolo.SalaId == ConfigSale.SalaConti;
+        public string NomeTavolo => IsContoCliente ? (string.IsNullOrWhiteSpace(Tavolo.NomeCliente) ? $"CONTO {Tavolo.Numero}" : Tavolo.NomeCliente) : $"TAVOLO {Tavolo.Numero}";
+        public string NomeSala => IsContoCliente ? "Conti sospesi" : Sala?.Nome ?? "";
+        public string Titolo => $"{NomeSala} — {NomeTavolo}";
         public bool HaStorniPendenti => _storniPendenti.Count > 0;
 
         private ConfigSale Cfg => _impostazioni().Sale;
 
-        public SessioneTavolo(ArchivioTavoli archivio, SpoolerComande spooler, Func<Impostazioni> impostazioni, int salaId, int numero)
+        public SessioneTavolo(ArchivioTavoli archivio, SpoolerComande spooler, Func<Impostazioni> impostazioni, int salaId, int numero, string nomeCliente = null)
         {
             _archivio = archivio;
             _spooler = spooler;
             _impostazioni = impostazioni;
             Sala = Cfg.SalaDa(salaId);
-            Tavolo = _archivio.ApriTavolo(salaId, numero);
+            Tavolo = _archivio.ApriTavolo(salaId, numero, nomeCliente);
             Carrello.SeparatoriPortate = Cfg.SeparatoriPortate;
             Carrello.Carica(_archivio.Righe(Tavolo.Id));
             Carrello.ComandateRimosse += r => _storniPendenti.AddRange(r.Select(x => x.Copia()));
@@ -163,7 +165,7 @@ namespace PosTouch.Core.Sale
 
                 var dati = new DatiComanda
                 {
-                    NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = Sala?.Nome ?? "",
+                    NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = NomeSala,
                     Progressivo = progressivo, Coperti = coperti, Riordino = riordino,
                     Righe = g.ToList(), AltriCentri = altri, FlussoPortate = flusso
                 };
@@ -172,7 +174,7 @@ namespace PosTouch.Core.Sale
                     Tipo = TipoJob.Comanda,
                     Descrizione = $"{(riordino ? "RIORDINO" : "COMANDA")} {Titolo} → {nomeCentro}",
                     Stampante = st.Nome, IP = st.IP, Porta = st.Porta,
-                    Dati = LayoutComanda.Comanda(dati, Cfg.StileComandaProdotto, Cfg.StileComandaSeparatore, Cfg.CicalinoComande, Cfg.AccorpaStampaComanda)
+                    Dati = LayoutComanda.Comanda(dati, Cfg.StileComandaProdotto, Cfg.StileComandaSeparatore, Cfg.CicalinoComande, Cfg.AccorpaStampaComanda, Cfg.StileComandaVariante)
                 });
             }
 
@@ -227,12 +229,12 @@ namespace PosTouch.Core.Sale
                 bool stampato = stampaStorni && st != null;
                 if (stampato)
                 {
-                    var dati = new DatiComanda { NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = Sala?.Nome ?? "", Righe = g.ToList() };
+                    var dati = new DatiComanda { NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = NomeSala, Righe = g.ToList() };
                     stampe.Add(new JobStampa
                     {
                         Tipo = TipoJob.Storno, Descrizione = $"STORNO {Titolo} → {nomeCentro}",
                         Stampante = st.Nome, IP = st.IP, Porta = st.Porta,
-                        Dati = LayoutComanda.Storno(dati, Cfg.StileComandaProdotto)
+                        Dati = LayoutComanda.Storno(dati, Cfg.StileComandaProdotto, Cfg.StileComandaVariante)
                     });
                 }
                 else if (stampaStorni && g.Key > 0)
@@ -241,7 +243,7 @@ namespace PosTouch.Core.Sale
                 foreach (var r in g)
                     registro.Add(new StornoRegistrato
                     {
-                        Sala = Sala?.Nome ?? "", Tavolo = NomeTavolo, Centro = nomeCentro, Descrizione = r.Descrizione,
+                        Sala = NomeSala, Tavolo = NomeTavolo, Centro = nomeCentro, Descrizione = r.Descrizione,
                         Quantita = r.Quantita, PrezzoCentesimi = r.PrezzoCentesimi, Stampato = stampato
                     });
             }
@@ -306,14 +308,14 @@ namespace PosTouch.Core.Sale
                         : null;
                     var dati = new DatiComanda
                     {
-                        NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = Sala?.Nome ?? "",
+                        NomeCentro = nomeCentro, CentroId = g.Key, NomeTavolo = NomeTavolo, NomeSala = NomeSala,
                         NomeSeparatore = a.NomeSeparatore, Righe = g.ToList(), AltriCentri = altri
                     };
                     stampe.Add(new JobStampa
                     {
                         Tipo = TipoJob.Vai, Descrizione = $"VAI {a.NomeSeparatore} {Titolo} → {nomeCentro}",
                         Stampante = st.Nome, IP = st.IP, Porta = st.Porta,
-                        Dati = LayoutComanda.Vai(dati, Cfg.StileComandaProdotto, Cfg.CicalinoComande)
+                        Dati = LayoutComanda.Vai(dati, Cfg.StileComandaProdotto, Cfg.CicalinoComande, Cfg.StileComandaVariante)
                     });
                 }
             }

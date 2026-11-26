@@ -119,6 +119,7 @@ namespace PosTouch.App.Pagine
 
         private void AggiornaTotale()
         {
+            if (_combinazione != null && !_combinazione.Presente) EsciDaCombinazione();   // tolta con elimina righe
             EtichettaTotale.Text = $"€ {Carrello.TotaleEuro:F2}".Replace('.', ',');
             EtichettaPezzi.Text = $"{Carrello.Pezzi} pz";
             if (Carrello.Righe.Count == 0) { _primaVisibile = 0; _ultimaVisibile = 0; }

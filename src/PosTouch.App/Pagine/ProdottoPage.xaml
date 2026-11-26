@@ -76,6 +76,35 @@
                             </Border>
                             <Button Grid.Column="2" Text="🔢" FontSize="20" BackgroundColor="#2196F3" CornerRadius="4" HeightRequest="44" VerticalOptions="Start" Clicked="OnTastieraBarcode" />
                         </Grid>
+
+                        <!-- ═══ TIPO ARTICOLO: peso / codice bilancia / combinazione (come il PC) ═══ -->
+                        <Label Text="Tipo articolo" Style="{StaticResource Etichetta}" />
+                        <Border Style="{StaticResource Campo}" Padding="10,6">
+                            <VerticalStackLayout Spacing="2">
+                                <HorizontalStackLayout>
+                                    <CheckBox x:Name="ChkPeso" Color="#4CAF50" CheckedChanged="OnTipoArticolo" />
+                                    <Label Text="⚖️ Vendita a PESO" FontSize="15" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Grid x:Name="PannelloPeso" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="34,0,0,4" IsVisible="False">
+                                    <Label Text="Prezzo al:" FontSize="14" VerticalOptions="Center" />
+                                    <ctl:CampoScelta x:Name="SceltaUnita" Grid.Column="1" FontSize="15" Titolo="Unità di peso" Colonne="3" />
+                                </Grid>
+                                <HorizontalStackLayout>
+                                    <CheckBox x:Name="ChkBilancia" Color="#4CAF50" />
+                                    <Label Text="🏷️ Codice bilancia (barcode = 5 cifre dell'etichetta)" FontSize="15" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout>
+                                    <CheckBox x:Name="ChkCombinazione" Color="#4CAF50" CheckedChanged="OnTipoArticolo" />
+                                    <Label Text="🍕 Combinazione (multi-gusto)" FontSize="15" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Grid x:Name="PannelloCombinazione" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6" Margin="34,0,0,4" IsVisible="False">
+                                    <Label Text="Gusti:" FontSize="14" VerticalOptions="Center" />
+                                    <ctl:CampoScelta x:Name="SceltaGusti" Grid.Column="1" FontSize="15" Titolo="Numero di gusti" Colonne="5" />
+                                    <Label Grid.Row="1" Text="Prezzo:" FontSize="14" VerticalOptions="Center" />
+                                    <ctl:CampoScelta x:Name="SceltaPolitica" Grid.Row="1" Grid.Column="1" FontSize="15" Titolo="Prezzo della combinazione" Colonne="1" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
                     </VerticalStackLayout>
 
                     <!-- ═══ COLONNA 2: categoria e aspetto ═══ -->

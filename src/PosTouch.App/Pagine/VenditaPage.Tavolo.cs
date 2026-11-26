@@ -20,6 +20,7 @@ namespace PosTouch.App.Pagine
 
         private void CollegaCarrello(SessioneTavolo sessione)
         {
+            _combinazione = null;
             if (_carrelloCollegato != null) _carrelloCollegato.Cambiato -= AggiornaTotale;
             if (_carrelloCollegato != null) _carrelloCollegato.Cambiato -= ProgrammaBozza;
             _sessione = sessione;
@@ -31,6 +32,7 @@ namespace PosTouch.App.Pagine
             if (_scontrinoEspanso) ApplicaModalitaEspansa(false);
             AggiornaTotale();
             AggiornaModoTavolo();
+            if (BannerCombinazione != null) { BannerCombinazione.IsVisible = false; MostraArticoli(); }
         }
 
         private void AggiornaModoTavolo()
@@ -39,7 +41,8 @@ namespace PosTouch.App.Pagine
             var sale = Cfg.Sale;
             BarraInferiore.IsVisible = !tavolo;
             BarraTavolo.IsVisible = tavolo;
-            BtnSale.IsVisible = !tavolo && sale.AbilitaSale && sale.Sale.Count > 0;
+            BtnSale.IsVisible = !tavolo && ((sale.AbilitaSale && sale.Sale.Count > 0) || sale.AbilitaContiClienti);
+            BtnSale.Text = sale.AbilitaSale ? "🍽️ SALE" : "👤 CONTI";
             BtnEsci.Text = tavolo ? "⬅" : "🚪";
             TitoloScontrino.Text = tavolo ? $"🍽️ {_sessione.Titolo.ToUpperInvariant()}" : "📋 SCONTRINO";
             BtnContoTavolo.IsVisible = BtnPreconto.IsVisible = Cfg.AbilitaStampanteTermica;
@@ -50,6 +53,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnSale(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (_sessione != null || _modalitaModifica) return;
             await Navigazione.Apri(this, () => new TavoliPage());
         }
@@ -85,6 +89,7 @@ namespace PosTouch.App.Pagine
 
         private async Task EsciDalTavoloAsync(Func<SessioneTavolo, EsitoTavolo> uscita)
         {
+            if (CombinazioneAperta()) return;
             if (_sessione == null || _uscitaInCorso || Attesa.IsVisible || _venditaAvviata) return;
             _uscitaInCorso = true;
             try
@@ -129,6 +134,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnPreconto(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (_sessione == null || Attesa.IsVisible || _venditaAvviata) return;
             MostraAttesa(true, "⏳ Stampa preconto...");
             string errore;
@@ -140,6 +146,7 @@ namespace PosTouch.App.Pagine
         /// <summary>📑 FUNZIONI: scelta del separatore (⚡ SUBITO, SEGUE, SEGUE 2...) dove vanno i prossimi articoli.</summary>
         private async void OnFunzioniPortate(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (_sessione == null) return;
             var separatori = Cfg.Sale.SeparatoriPortate;
             if (separatori == null || separatori.Count == 0)
@@ -162,6 +169,7 @@ namespace PosTouch.App.Pagine
         /// <summary>⏩ AVANZA: VAI con la prossima portata.</summary>
         private async void OnAvanza(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (_sessione == null || Attesa.IsVisible) return;
             var a = _sessione.PreparaAvanza();
             if (!a.Possibile)

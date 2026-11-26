@@ -4,7 +4,8 @@ namespace PosTouch.Core.Modelli
 {
     /// <summary>Stessi tipi di riga del PC. Subtotale e Separatore sono solo visivi (blocco sconto).</summary>
     /// <summary>Portata = separatore delle uscite al tavolo ("── SEGUE ──", "⚡⚡ SUBITO ⚡⚡"); non conta nel totale.</summary>
-    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore, Portata }
+    /// <summary>Gusto = riga figlia di un articolo a combinazione (prezzo nel padre), come sul PC.</summary>
+    public enum TipoRiga { Prodotto, Sconto, Subtotale, Separatore, Portata, Gusto }
 
     /// <summary>
     /// Riga del carrello. Stessa semantica della versione Windows:
@@ -82,6 +83,10 @@ namespace PosTouch.Core.Modelli
         public bool IsSubtotale => Tipo == TipoRiga.Subtotale;
         public bool IsSeparatore => Tipo == TipoRiga.Separatore;
         public bool IsPortata => Tipo == TipoRiga.Portata;
+        public bool IsGusto => Tipo == TipoRiga.Gusto;
+
+        /// <summary>Testo stampato in comanda sotto l'articolo (gusti della combinazione, separati da "|").</summary>
+        public string VariantiTesto { get; set; }
         /// <summary>Conta nel totale (articoli e sconti; subtotale e separatori no).</summary>
         public bool ContaNelTotale => Tipo == TipoRiga.Prodotto || Tipo == TipoRiga.Sconto;
 

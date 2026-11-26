@@ -105,6 +105,16 @@ namespace PosTouch.App.Pagine
                 Children =
                 {
                     Spunta("Abilita sale e tavoli (tasto 🍽️ SALE in vendita)", _c.AbilitaSale, x => _c.AbilitaSale = x),
+                    Spunta("Abilita conti clienti sospesi (scheda 👤 CONTI, con il nome del cliente)", _c.AbilitaContiClienti, x => _c.AbilitaContiClienti = x),
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 10, Margin = new Thickness(34, 0, 0, 6),
+                        Children =
+                        {
+                            new Label { Text = "Numero conti clienti:", FontSize = 15, VerticalOptions = LayoutOptions.Center },
+                            Campo(_c.NumeroSlotContiClienti.ToString(), t => _c.NumeroSlotContiClienti = int.TryParse(t, out var n) ? n : -1, Keyboard.Numeric, 90)
+                        }
+                    },
                     Ui.Testo("Il coperto (se scelto) viene chiesto all'apertura di un tavolo nuovo.", 13, "#999999")
                 }
             }));
@@ -326,6 +336,7 @@ namespace PosTouch.App.Pagine
                 if (string.IsNullOrWhiteSpace(s.Nome) || s.NumeroTavoli < 1 || s.NumeroTavoli > 500 || s.NumeroIniziale < 0)
                 { errore = $"Sala \"{s.Nome}\": nome obbligatorio, tavoli da 1 a 500, primo numero valido."; break; }
             if (errore == null && _c.Sale.GroupBy(s => s.Nome.ToUpperInvariant()).Any(g => g.Count() > 1)) errore = "Due sale hanno lo stesso nome.";
+            if (errore == null && (_c.NumeroSlotContiClienti < 1 || _c.NumeroSlotContiClienti > 200)) errore = "Numero conti clienti: da 1 a 200.";
             if (errore == null)
                 foreach (var st in _c.Stampanti)
                     if (string.IsNullOrWhiteSpace(st.Nome) || !IPAddress.TryParse(st.IP, out _) || st.Porta < 1 || st.Porta > 65535)

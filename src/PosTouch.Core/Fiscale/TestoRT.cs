@@ -32,6 +32,9 @@ namespace PosTouch.Core.Fiscale
                     case 'ñ': sb.Append('n'); break;
                     case 'Ñ': sb.Append('N'); break;
                     case '€': sb.Append("EUR"); break;
+                    case '½': sb.Append("1/2"); break;
+                    case '⅓': sb.Append("1/3"); break;
+                    case '¼': sb.Append("1/4"); break;
                     case '’': case '‘': sb.Append('\''); break;
                     case '“': case '”': sb.Append('\''); break;
                     default: sb.Append(c); break;

@@ -142,8 +142,19 @@ namespace PosTouch.Core.Vendita
         {
             bool togliSconto = false;
             var stornate = new List<RigaScontrino>();
+            // combinazioni: toccare un gusto o il padre toglie tutta la combinazione (padre + gusti), come il PC
+            var daTogliere = new List<RigaScontrino>();
             foreach (var r in righe.ToList())
             {
+                var x = r.Tipo == TipoRiga.Gusto ? PadreDi(r) : r;
+                if (x == null || daTogliere.Contains(x)) continue;
+                daTogliere.Add(x);
+                if (x.Tipo == TipoRiga.Prodotto)
+                    foreach (var f in FigliDi(x)) if (!daTogliere.Contains(f)) daTogliere.Add(f);
+            }
+            foreach (var r in daTogliere)
+            {
+                if (r.Tipo == TipoRiga.Gusto) { Righe.Remove(r); continue; }
                 if (r.Tipo == TipoRiga.Prodotto)
                 {
                     if (Righe.Remove(r) && r.Comandata) stornate.Add(r);
@@ -200,6 +211,67 @@ namespace PosTouch.Core.Vendita
             PortataTarget = null;
             Aggiornato();
         }
+
+        // ══════════════ COMBINAZIONI (gusti) ══════════════
+
+        /// <summary>Riga padre di una combinazione, a prezzo 0 finché non viene chiusa (vedi <see cref="CombinazioneInCorso"/>).</summary>
+        internal RigaScontrino AggiungiPadreCombinazione(Prodotto p, string descrizione)
+        {
+            var riga = new RigaScontrino
+            {
+                Tipo = TipoRiga.Prodotto, ProdottoId = p.Id, Descrizione = descrizione,
+                Barcode = string.IsNullOrEmpty(p.Barcode) ? p.Codice : p.Barcode,
+                RepartoFiscale = p.RepartoFiscale, CategoriaId = p.CategoriaId, CategoriaNome = p.CategoriaNome ?? "",
+                AliquotaIVA = p.AliquotaIVA, PrezzoCentesimi = 0, PrezzoOriginaleCentesimi = p.PrezzoCentesimi,
+                Quantita = 1, CentroProduzioneId = p.CentroStampa
+            };
+            InserisciArticolo(riga);
+            Aggiornato();
+            return riga;
+        }
+
+        /// <summary>Aggiunge una riga figlia (gusto) subito dopo il padre e i suoi figli.</summary>
+        internal void AggiungiFiglio(RigaScontrino padre, RigaScontrino figlio)
+        {
+            int i = Righe.IndexOf(padre);
+            if (i < 0) return;
+            int pos = i + 1;
+            while (pos < Righe.Count && Righe[pos].Tipo == TipoRiga.Gusto) pos++;
+            if (pos >= Righe.Count) Righe.Add(figlio); else Righe.Insert(pos, figlio);
+            Aggiornato();
+        }
+
+        /// <summary>Togli l'ultimo gusto del padre (tasto C durante la combinazione).</summary>
+        internal bool TogliUltimoFiglio(RigaScontrino padre)
+        {
+            var f = FigliDi(padre).LastOrDefault();
+            if (f == null) return false;
+            Righe.Remove(f);
+            Aggiornato();
+            return true;
+        }
+
+        public List<RigaScontrino> FigliDi(RigaScontrino padre)
+        {
+            var figli = new List<RigaScontrino>();
+            int i = Righe.IndexOf(padre);
+            if (i < 0) return figli;
+            for (int k = i + 1; k < Righe.Count && Righe[k].Tipo == TipoRiga.Gusto; k++) figli.Add(Righe[k]);
+            return figli;
+        }
+
+        public RigaScontrino PadreDi(RigaScontrino figlio)
+        {
+            for (int k = Righe.IndexOf(figlio) - 1; k >= 0; k--)
+            {
+                if (Righe[k].Tipo == TipoRiga.Prodotto) return Righe[k];
+                if (Righe[k].Tipo != TipoRiga.Gusto) break;
+            }
+            return null;
+        }
+
+        /// <summary>Ricalcola totali e lista dopo una modifica fatta da fuori (es. chiusura combinazione).</summary>
+        internal void Notifica() => Aggiornato();
 
         // ══════════════ PORTATE ══════════════
 

@@ -47,6 +47,7 @@ namespace PosTouch.App.Pagine
             };
             Tocco(tasto, () =>
             {
+                if (CombinazioneAperta()) return Task.CompletedTask;
                 _categoriaCorrente = c.Id;
                 MostraArticoli();
                 return Task.CompletedTask;
@@ -62,6 +63,7 @@ namespace PosTouch.App.Pagine
 
         private void OnPreferiti(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             _categoriaCorrente = IdPreferiti;
             MostraArticoli();
         }
@@ -71,7 +73,8 @@ namespace PosTouch.App.Pagine
         private void MostraArticoli()
         {
             var catalogo = ContestoCassa.Catalogo;
-            var articoli = _categoriaCorrente == IdPreferiti
+            var articoli = _combinazione != null ? _combinazione.Gusti.ToList()     // durante la combinazione: solo i gusti
+                : _categoriaCorrente == IdPreferiti
                 ? catalogo.Preferiti().ToList()
                 : catalogo.ProdottiDi(_categoriaCorrente).ToList();
 
@@ -133,12 +136,7 @@ namespace PosTouch.App.Pagine
         private async Task AggiungiProdottoAsync(Prodotto p)
         {
             NascondiResto();
-            if (p.IsCombinazione)
-            {
-                _tastierino.Azzera();
-                await MessaggioBox.Avviso("COMBINAZIONE", $"{p.Descrizione} è un articolo multi-gusto.\n\nLe combinazioni non sono ancora disponibili su Android.");
-                return;
-            }
+            if (_combinazione != null) { await AggiungiGustoAsync(p); return; }   // combinazione aperta: il tasto è un gusto
             if (Cfg.BloccoRigaSingola && Carrello.HaArticoli)
             {
                 _tastierino.Azzera();
@@ -146,14 +144,9 @@ namespace PosTouch.App.Pagine
                     "È consentito un solo prodotto per scontrino.\n\nChiudi lo scontrino corrente prima di aggiungere un altro articolo.");
                 return;
             }
+            if (p.IsCombinazione) { await AvviaCombinazioneAsync(p); return; }
             var (quantita, prezzoCent) = _tastierino.PrendiPerArticolo();
-            if (p.VenditaAPeso)
-            {
-                // Vendita a peso (dal PC): quantità = peso, prezzo per unità di peso
-                var peso = await TastierinoPrezzo.ChiediQuantita($"⚖️ PESO ({p.UnitaPeso}) — {p.Descrizione}");
-                if (peso == null || peso <= 0) return;
-                quantita = peso.Value;
-            }
+            if (p.VenditaAPeso) { await AggiungiAPesoAsync(p, prezzoCent); return; }
             int prezzo = prezzoCent ?? p.PrezzoCentesimi;
 
             if (prezzo == 0)
@@ -178,12 +171,63 @@ namespace PosTouch.App.Pagine
             ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
         }
 
+        /// <summary>
+        /// AggiungiProdottoAPeso del PC: prezzo al Kg/Etto (chiesto se è 0 o battuto con €), poi il peso;
+        /// riga con quantità = peso e prezzo unitario.
+        /// </summary>
+        private async Task AggiungiAPesoAsync(Prodotto p, int? prezzoBattuto)
+        {
+            string unita = string.IsNullOrWhiteSpace(p.UnitaPeso) ? "Kg" : p.UnitaPeso;
+            int prezzo = prezzoBattuto ?? p.PrezzoCentesimi;
+            if (prezzo <= 0)
+            {
+                var v = await TastierinoPrezzo.ChiediEuro($"💶 PREZZO AL {unita.ToUpperInvariant()} — {p.Descrizione}");
+                if (v == null || v <= 0) return;
+                prezzo = (int)Math.Round(v.Value * 100, MidpointRounding.AwayFromZero);
+            }
+            var peso = await TastierinoPrezzo.ChiediQuantita($"⚖️ PESO ({unita}) — {p.Descrizione}\n€ {prezzo / 100m:N2} al {unita}");
+            if (peso == null || peso <= 0) return;
+            var riga = Carrello.Aggiungi(p, peso.Value, prezzo, accorpa: false);
+            if (riga == null) { await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}"); return; }
+            ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
+        }
+
+        /// <summary>Etichetta bilancia (EAN-13 "2…"): articolo dal codice, prezzo dall'etichetta (non dal listino), come il PC.</summary>
+        private async Task AggiungiDaEtichettaBilanciaAsync(string barcode)
+        {
+            var l = BarcodeBilancia.Leggi(barcode);
+            if (!l.CheckValido)
+            {
+                await MessaggioBox.Avviso("BARCODE NON VALIDO", $"Il codice bilancia scansionato non è valido (checksum errato).\n\nCodice: {barcode}\n\nRiscansionare o inserire manualmente.");
+                return;
+            }
+            var p = ContestoCassa.Catalogo.CercaCodiceBilancia(l.CodiceProdotto);
+            if (p == null)
+            {
+                await MessaggioBox.Avviso("CODICE BILANCIA NON TROVATO", $"Barcode bilancia rilevato ma codice prodotto non trovato:\n\nCodice prodotto: {l.CodiceProdotto}\n" +
+                    $"Prezzo letto: € {l.PrezzoCentesimi / 100m:N2}\n\nCrea il prodotto in Back Office con questo codice\ne spunta 'Codice bilancia'.");
+                return;
+            }
+            if (!p.IsCodiceBilancia)
+            {
+                await MessaggioBox.Avviso("PRODOTTO NON CONFIGURATO", $"Il prodotto '{p.Descrizione}' (codice {l.CodiceProdotto}) esiste\nma NON è configurato come codice bilancia.\n\n" +
+                    "Vai in Back Office → Modifica Prodotto → spunta 'Codice bilancia'.");
+                return;
+            }
+            var (qta, _) = _tastierino.PrendiPerArticolo();
+            var riga = Carrello.Aggiungi(p, qta, l.PrezzoCentesimi, accorpa: false);
+            if (riga == null) { await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}"); return; }
+            riga.Barcode = barcode;   // nello storico l'etichetta letta
+            ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
+        }
+
         private void AggiungiDaBarcode(string codice)
         {
             // con un dialogo aperto, il popup CASSA o la stampa in corso il lettore non aggiunge articoli
             // (un articolo letto durante l'emissione verrebbe perso alla chiusura dello scontrino)
             if (HaLivelli || Attesa.IsVisible || OverlayPagamento.IsVisible || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso
-                || _modalitaModifica) return;
+                || _modalitaModifica || _combinazione != null) return;
+            if (Cfg.UsaBarcodeBilancia && BarcodeBilancia.IsBarcodeBilancia(codice)) { _ = AggiungiDaEtichettaBilanciaAsync(codice); return; }
             var p = ContestoCassa.Catalogo.CercaBarcode(codice);
             if (p == null) _ = MessaggioBox.Avviso("ARTICOLO NON TROVATO", $"Nessun articolo con codice:\n{codice}");
             else _ = AggiungiProdottoAsync(p);

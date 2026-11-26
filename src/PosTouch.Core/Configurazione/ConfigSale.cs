@@ -44,6 +44,10 @@ namespace PosTouch.Core.Configurazione
     public class ConfigSale
     {
         public bool AbilitaSale { get; set; } = false;
+        /// <summary>Conti clienti sospesi (scheda 👤 CONTI): conti con il nome del cliente, sala 0.</summary>
+        public bool AbilitaContiClienti { get; set; } = false;
+        public int NumeroSlotContiClienti { get; set; } = 10;
+        public const int SalaConti = 0;
         public List<Sala> Sale { get; set; } = new List<Sala> { new Sala { Id = 1, Nome = "Sala 1" } };
         public List<StampanteRete> Stampanti { get; set; } = new List<StampanteRete>();
         public List<CentroProduzione> Centri { get; set; } = new List<CentroProduzione>

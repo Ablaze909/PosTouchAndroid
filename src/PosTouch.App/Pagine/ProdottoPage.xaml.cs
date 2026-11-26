@@ -15,6 +15,17 @@ namespace PosTouch.App.Pagine
         /// <param name="categoriaId">categoria proposta per un nuovo prodotto</param>
         private List<PosTouch.Core.Configurazione.CentroProduzione> _centri = new();
 
+        private static readonly string[] Unita = { "Kg", "Etto", "g" };
+        private static readonly int[] Gusti = { 2, 3, 4, 5, 6 };
+        private static readonly List<string> Politiche = new() { "Prezzo del gusto più caro", "Media dei gusti", "Prezzo fisso dell'articolo" };
+
+        /// <summary>Mostra le opzioni del tipo scelto (unità di peso / gusti e prezzo).</summary>
+        private void OnTipoArticolo(object sender, CheckedChangedEventArgs e)
+        {
+            PannelloPeso.IsVisible = ChkPeso.IsChecked;
+            PannelloCombinazione.IsVisible = ChkCombinazione.IsChecked;
+        }
+
         public ProdottoPage(Prodotto esistente, int categoriaId)
         {
             InitializeComponent();
@@ -28,12 +39,26 @@ namespace PosTouch.App.Pagine
                     Id = esistente.Id, Codice = esistente.Codice, Barcode = esistente.Barcode, Descrizione = esistente.Descrizione,
                     PrezzoCentesimi = esistente.PrezzoCentesimi, CostoCentesimi = esistente.CostoCentesimi, CategoriaId = esistente.CategoriaId,
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, DimensioneFontTasto = esistente.DimensioneFontTasto,
-                    IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo, CentroProduzioneId = esistente.CentroProduzioneId
+                    IsPreferito = esistente.IsPreferito, Attivo = esistente.Attivo, CentroProduzioneId = esistente.CentroProduzioneId,
+                    VenditaAPeso = esistente.VenditaAPeso, UnitaPeso = esistente.UnitaPeso, IsCodiceBilancia = esistente.IsCodiceBilancia,
+                    IsCombinazione = esistente.IsCombinazione, NumeroGusti = esistente.NumeroGusti, PoliticaPrezzo = esistente.PoliticaPrezzo
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
             PannelloAttivo.IsVisible = BtnElimina.IsVisible = esistente != null;
             SwAttivo.IsToggled = _p.Attivo;
+
+            // tipo articolo
+            ChkPeso.IsChecked = _p.VenditaAPeso;
+            SceltaUnita.Voci = Unita;
+            SceltaUnita.Indice = Math.Max(0, Array.IndexOf(Unita, _p.UnitaPeso));
+            ChkBilancia.IsChecked = _p.IsCodiceBilancia;
+            ChkCombinazione.IsChecked = _p.IsCombinazione;
+            SceltaGusti.Voci = Gusti.Select(g => $"{g} gusti").ToList();
+            SceltaGusti.Indice = Math.Max(0, Array.IndexOf(Gusti, _p.NumeroGusti));
+            SceltaPolitica.Voci = Politiche;
+            SceltaPolitica.Indice = Math.Clamp(_p.PoliticaPrezzo, 0, 2);
+            OnTipoArticolo(null, null);
 
             // centro comande: come la categoria / nessuna stampa / centro specifico
             _centri = ContestoCassa.Impostazioni.Sale.Centri.ToList();
@@ -163,6 +188,17 @@ namespace PosTouch.App.Pagine
                     "Il prezzo è € 0,00.\n\nIn vendita verrà chiesto il prezzo ad ogni battitura. Continuare?"))
                 return;
 
+            if (ChkPeso.IsChecked && ChkCombinazione.IsChecked)
+            {
+                await MessaggioBox.Avviso("TIPO ARTICOLO", "Un articolo non può essere sia a peso sia a combinazione.");
+                return;
+            }
+            _p.VenditaAPeso = ChkPeso.IsChecked;
+            _p.UnitaPeso = Unita[Math.Max(0, SceltaUnita.Indice)];
+            _p.IsCodiceBilancia = ChkBilancia.IsChecked;
+            _p.IsCombinazione = ChkCombinazione.IsChecked;
+            _p.NumeroGusti = Gusti[Math.Max(0, SceltaGusti.Indice)];
+            _p.PoliticaPrezzo = Math.Max(0, SceltaPolitica.Indice);
             _p.CentroProduzioneId = SceltaCentro.Indice == 1 ? -1 : SceltaCentro.Indice >= 2 ? _centri[SceltaCentro.Indice - 2].Id : 0;
             _p.Descrizione = CampoDescrizione.Text.Trim().ToUpperInvariant();
             _p.CategoriaId = cat.Id;

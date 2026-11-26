@@ -43,6 +43,14 @@ namespace PosTouch.Core.Dati
         public IEnumerable<Prodotto> ProdottiDi(int categoriaId) => _prodotti.Where(p => p.CategoriaId == categoriaId && Vendibile(p));
         public IEnumerable<Prodotto> Preferiti() => _prodotti.Where(p => p.IsPreferito && Vendibile(p));
 
+        /// <summary>Articolo "codice bilancia" con questo codice (le 5 cifre dell'etichetta), anche se non è marcato come tale.</summary>
+        public Prodotto CercaCodiceBilancia(string codice5)
+        {
+            if (string.IsNullOrWhiteSpace(codice5)) return null;
+            return _prodotti.FirstOrDefault(p => Vendibile(p) && p.IsCodiceBilancia && (p.Barcode == codice5 || p.Codice == codice5))
+                ?? _prodotti.FirstOrDefault(p => Vendibile(p) && (p.Barcode == codice5 || p.Codice == codice5));
+        }
+
         public Prodotto CercaBarcode(string codice)
         {
             if (string.IsNullOrWhiteSpace(codice)) return null;
@@ -115,6 +123,9 @@ namespace PosTouch.Core.Dati
                         VenditaAPeso = l.Bool("VenditaAPeso"),
                         UnitaPeso = l.Testo("UnitaPeso", "Kg"),
                         IsCombinazione = l.Bool("IsCombinazione"),
+                        NumeroGusti = Math.Clamp(l.Int("NumeroGusti", 2), 2, 8),
+                        PoliticaPrezzo = Math.Clamp(l.Int("PoliticaPrezzo"), 0, 2),
+                        IsCodiceBilancia = l.Bool("IsCodiceBilancia"),
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
                         CentroStampa = CentroEffettivo(l.Int("CentroProduzioneId"), c.CentroProduzioneId)
                     });

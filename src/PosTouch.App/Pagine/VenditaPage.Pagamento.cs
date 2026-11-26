@@ -14,6 +14,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnCassa(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (Carrello.Vuoto)
             {
                 await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!");
@@ -27,6 +28,7 @@ namespace PosTouch.App.Pagine
         /// <summary>📄 CONTO (btnConto_Click del PC): conto non fiscale sulla stampante termica.</summary>
         private async void OnConto(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (_venditaAvviata || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso) return;
             if (Carrello.Vuoto)
             {
@@ -110,6 +112,7 @@ namespace PosTouch.App.Pagine
         /// <summary>Tocco sulla barra TOTALE: calcolo resto con banconote/monete, carta o misto.</summary>
         private async void OnTotaleToccato(object sender, TappedEventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (Carrello.TotaleCent <= 0 || ContestoCassa.ServizioVendita.InCorso) return;
             var esito = await CalcoloResto.Mostra(Carrello.TotaleEuro);
             if (esito == null) return;

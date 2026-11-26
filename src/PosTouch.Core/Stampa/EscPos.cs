@@ -102,7 +102,7 @@ namespace PosTouch.Core.Stampa
         private static string Sanitizza(string t)
         {
             if (string.IsNullOrEmpty(t)) return "";
-            return t.Replace("€", "euro").Replace("═", "=").Replace("─", "-")
+            return t.Replace("€", "euro").Replace("⅓", "1/3").Replace("═", "=").Replace("─", "-")
                     .Replace("✅", "").Replace("⚠️", "").Replace("❌", "").Replace("🖨️", "");
         }
 
@@ -110,7 +110,7 @@ namespace PosTouch.Core.Stampa
         {
             ['à'] = 0x85, ['è'] = 0x8A, ['é'] = 0x82, ['ì'] = 0x8D, ['ò'] = 0x95, ['ù'] = 0x97,
             ['À'] = 0xB7, ['È'] = 0xD4, ['É'] = 0x90, ['Ì'] = 0xDE, ['Ò'] = 0xE3, ['Ù'] = 0xEB,
-            ['ç'] = 0x87, ['ñ'] = 0xA4, ['ü'] = 0x81, ['ö'] = 0x94, ['ä'] = 0x84, ['°'] = 0xF8
+            ['ç'] = 0x87, ['ñ'] = 0xA4, ['ü'] = 0x81, ['ö'] = 0x94, ['ä'] = 0x84, ['°'] = 0xF8, ['½'] = 0xAB, ['¼'] = 0xAC
         };
 
         public static byte[] Cp858(string s)

@@ -92,8 +92,8 @@ namespace PosTouch.Core.Stampa
             var r = new List<RigaScontrino>();
             foreach (var x in righe)
             {
-                var es = !x.IsAPeso && x.ProdottoId.HasValue
-                    ? r.FirstOrDefault(y => !y.IsAPeso && y.ProdottoId == x.ProdottoId && y.PrezzoCentesimi == x.PrezzoCentesimi)
+                var es = !x.IsAPeso && x.ProdottoId.HasValue && string.IsNullOrEmpty(x.VariantiTesto)
+                    ? r.FirstOrDefault(y => !y.IsAPeso && y.ProdottoId == x.ProdottoId && y.PrezzoCentesimi == x.PrezzoCentesimi && string.IsNullOrEmpty(y.VariantiTesto))
                     : null;
                 if (es != null) es.Quantita += x.Quantita;
                 else r.Add(x.Copia());

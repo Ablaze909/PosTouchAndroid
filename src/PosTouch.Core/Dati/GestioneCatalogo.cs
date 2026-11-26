@@ -143,14 +143,17 @@ namespace PosTouch.Core.Dati
                 if (p.Id == 0)
                 {
                     p.Codice = ProssimoCodice(conn);
-                    cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo, CentroProduzioneId)
-                                        VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att, $centro)";
+                    cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo, CentroProduzioneId,
+                                                              VenditaAPeso, UnitaPeso, IsCodiceBilancia, IsCombinazione, NumeroGusti, PoliticaPrezzo)
+                                        VALUES ($cod, $b, $d, $pr, $costo, $cat, $col, $colT, $font, $pref, $att, $centro,
+                                                $peso, $unita, $bil, $comb, $gusti, $pol)";
                     cmd.Parameters.AddWithValue("$cod", p.Codice);
                 }
                 else
                 {
                     cmd.CommandText = @"UPDATE Prodotti SET Barcode=$b, Descrizione=$d, PrezzoCentesimi=$pr, CostoCentesimi=$costo, CategoriaId=$cat,
-                                        Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att, CentroProduzioneId=$centro WHERE Id=$id";
+                                        Colore=$col, ColoreTestoTasto=$colT, DimensioneFontTasto=$font, IsPreferito=$pref, Attivo=$att, CentroProduzioneId=$centro,
+                                        VenditaAPeso=$peso, UnitaPeso=$unita, IsCodiceBilancia=$bil, IsCombinazione=$comb, NumeroGusti=$gusti, PoliticaPrezzo=$pol WHERE Id=$id";
                     cmd.Parameters.AddWithValue("$id", p.Id);
                 }
                 cmd.Parameters.AddWithValue("$b", barcode);
@@ -164,6 +167,12 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$font", p.DimensioneFontTasto);
                 cmd.Parameters.AddWithValue("$att", p.Attivo ? 1 : 0);
                 cmd.Parameters.AddWithValue("$centro", p.CentroProduzioneId);
+                cmd.Parameters.AddWithValue("$peso", p.VenditaAPeso ? 1 : 0);
+                cmd.Parameters.AddWithValue("$unita", string.IsNullOrWhiteSpace(p.UnitaPeso) ? "Kg" : p.UnitaPeso);
+                cmd.Parameters.AddWithValue("$bil", p.IsCodiceBilancia ? 1 : 0);
+                cmd.Parameters.AddWithValue("$comb", p.IsCombinazione ? 1 : 0);
+                cmd.Parameters.AddWithValue("$gusti", Math.Clamp(p.NumeroGusti, 2, 8));
+                cmd.Parameters.AddWithValue("$pol", Math.Clamp(p.PoliticaPrezzo, 0, 2));
                 cmd.ExecuteNonQuery();
             });
             LogManager.Info($"Articolo salvato: {p.Descrizione} €{p.PrezzoCentesimi / 100m:F2} cat {p.CategoriaId}");
@@ -303,6 +312,12 @@ namespace PosTouch.Core.Dati
             AggiungiColonna(conn, "Categorie", "Icona", "TEXT DEFAULT ''");
             AggiungiColonna(conn, "Categorie", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
             AggiungiColonna(conn, "Prodotti", "CentroProduzioneId", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "VenditaAPeso", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "UnitaPeso", "TEXT DEFAULT 'Kg'");
+            AggiungiColonna(conn, "Prodotti", "IsCodiceBilancia", "INTEGER DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "IsCombinazione", "INTEGER NOT NULL DEFAULT 0");
+            AggiungiColonna(conn, "Prodotti", "NumeroGusti", "INTEGER NOT NULL DEFAULT 2");
+            AggiungiColonna(conn, "Prodotti", "PoliticaPrezzo", "INTEGER NOT NULL DEFAULT 0");
         }
 
         private static void AggiungiColonna(SqliteConnection conn, string tabella, string colonna, string tipo)

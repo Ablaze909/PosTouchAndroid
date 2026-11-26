@@ -43,7 +43,20 @@ namespace PosTouch.Core.Stampa
 
         // ══════════════ COMANDA / RIORDINO ══════════════
 
-        public static byte[] Comanda(DatiComanda d, int stileProdotto, int stileSeparatore, int cicalino, bool accorpa)
+        /// <summary>StampaVariantiComanda del PC: gusti/varianti sotto l'articolo; "*testo" = nota evidenziata.</summary>
+        private static void Varianti(EscPos p, RigaScontrino r, int stileVariante)
+        {
+            if (string.IsNullOrEmpty(r.VariantiTesto)) return;
+            foreach (var parte in r.VariantiTesto.Split('|'))
+            {
+                var t = parte.Trim();
+                if (t.Length == 0) continue;
+                if (t.StartsWith("*")) p.Grassetto(true).Inverso(true).Testo($" *** {t.Substring(1).Trim()} *** ").Inverso(false).Grassetto(false);
+                else p.Stile(stileVariante).Testo($" {t}").ResetStile();
+            }
+        }
+
+        public static byte[] Comanda(DatiComanda d, int stileProdotto, int stileSeparatore, int cicalino, bool accorpa, int stileVariante = 5)
         {
             var p = new EscPos();
             p.Normale().Sinistra();
@@ -90,6 +103,7 @@ namespace PosTouch.Core.Stampa
                     else if (art.CentroProduzioneId == d.CentroId)
                     {
                         p.Stile(stileProdotto).Testo($"{Qta(art)}  {art.Descrizione}").ResetStile();
+                        Varianti(p, art, stileVariante);
                     }
                     else
                     {
@@ -100,7 +114,10 @@ namespace PosTouch.Core.Stampa
             else
             {
                 foreach (var r in accorpa ? Accorpa(d.Righe) : Esplodi(d.Righe))
+                {
                     p.Stile(stileProdotto).Testo($"{Qta(r)}  {r.Descrizione}").ResetStile();
+                    Varianti(p, r, stileVariante);
+                }
 
                 if (d.AltriCentri != null && d.AltriCentri.Count > 0)
                 {
@@ -120,7 +137,7 @@ namespace PosTouch.Core.Stampa
 
         // ══════════════ STORNO ══════════════
 
-        public static byte[] Storno(DatiComanda d, int stileProdotto)
+        public static byte[] Storno(DatiComanda d, int stileProdotto, int stileVariante = 5)
         {
             var p = new EscPos();
             p.Normale().Grassetto(true).Sinistra()
@@ -141,6 +158,7 @@ namespace PosTouch.Core.Stampa
             foreach (var r in d.Righe.Where(x => x.Tipo == TipoRiga.Prodotto))
             {
                 p.Stile(stileProdotto).Testo($"- {Qta(r)}  {r.Descrizione}").ResetStile();
+                Varianti(p, r, stileVariante);
                 p.Testo("      ^^^ STORNATO ^^^");
             }
 
@@ -156,7 +174,7 @@ namespace PosTouch.Core.Stampa
 
         // ══════════════ VAI PORTATA ══════════════
 
-        public static byte[] Vai(DatiComanda d, int stileProdotto, int cicalino)
+        public static byte[] Vai(DatiComanda d, int stileProdotto, int cicalino, int stileVariante = 5)
         {
             var p = new EscPos();
             p.Normale().Grassetto(true).Sinistra().Testo(new string('=', L));
@@ -171,7 +189,10 @@ namespace PosTouch.Core.Stampa
             p.Sinistra().Testo(Trattini);
 
             foreach (var r in d.Righe.Where(x => x.Tipo == TipoRiga.Prodotto))
+            {
                 p.Stile(stileProdotto).Testo($" {Qta(r)}  {r.Descrizione}").ResetStile();
+                Varianti(p, r, stileVariante);
+            }
 
             if (d.AltriCentri != null && d.AltriCentri.Count > 0)
             {
@@ -196,8 +217,8 @@ namespace PosTouch.Core.Stampa
             var ris = new List<RigaScontrino>();
             foreach (var r in righe.Where(x => x.Tipo == TipoRiga.Prodotto))
             {
-                var es = !r.IsAPeso && r.ProdottoId.HasValue
-                    ? ris.FirstOrDefault(x => !x.IsAPeso && x.ProdottoId == r.ProdottoId && x.PrezzoCentesimi == r.PrezzoCentesimi)
+                var es = PuoAccorpare(r)
+                    ? ris.FirstOrDefault(x => PuoAccorpare(x) && x.ProdottoId == r.ProdottoId && x.PrezzoCentesimi == r.PrezzoCentesimi)
                     : null;
                 if (es != null) es.Quantita += r.Quantita; else ris.Add(r.Copia());
             }
@@ -213,11 +234,11 @@ namespace PosTouch.Core.Stampa
             {
                 if (r.Tipo == TipoRiga.Portata) { ris.Add(r); inizioSezione = ris.Count; continue; }
                 RigaScontrino es = null;
-                if (!r.IsAPeso && r.ProdottoId.HasValue)
+                if (PuoAccorpare(r))
                     for (int i = inizioSezione; i < ris.Count; i++)
                     {
                         var x = ris[i];
-                        if (x.Tipo == TipoRiga.Prodotto && !x.IsAPeso && x.ProdottoId == r.ProdottoId &&
+                        if (x.Tipo == TipoRiga.Prodotto && PuoAccorpare(x) && x.ProdottoId == r.ProdottoId &&
                             x.PrezzoCentesimi == r.PrezzoCentesimi && x.CentroProduzioneId == r.CentroProduzioneId) { es = x; break; }
                     }
                 if (es != null) es.Quantita += r.Quantita; else ris.Add(r.Copia());
@@ -225,12 +246,14 @@ namespace PosTouch.Core.Stampa
             return ris;
         }
 
+        private static bool PuoAccorpare(RigaScontrino r) => !r.IsAPeso && r.ProdottoId.HasValue && string.IsNullOrEmpty(r.VariantiTesto);
+
         private static List<RigaScontrino> Esplodi(IEnumerable<RigaScontrino> righe)
         {
             var ris = new List<RigaScontrino>();
             foreach (var r in righe.Where(x => x.Tipo == TipoRiga.Prodotto || x.Tipo == TipoRiga.Portata))
             {
-                if (r.Tipo == TipoRiga.Prodotto && !r.IsAPeso && r.Quantita > 1 && r.Quantita == Math.Floor(r.Quantita))
+                if (r.Tipo == TipoRiga.Prodotto && !r.IsAPeso && string.IsNullOrEmpty(r.VariantiTesto) && r.Quantita > 1 && r.Quantita == Math.Floor(r.Quantita))
                     for (int i = 0; i < (int)r.Quantita; i++) { var c = r.Copia(); c.Quantita = 1; ris.Add(c); }
                 else ris.Add(r.Copia());
             }

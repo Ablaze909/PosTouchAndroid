@@ -22,6 +22,7 @@ namespace PosTouch.App.Pagine
                 _tastierino.Azzera();
                 return;
             }
+            if (CancellaInCombinazione()) return;
             var selezionate = Carrello.Righe.Where(r => r.Selezionata).ToList();
             if (selezionate.Count > 0)
             {
@@ -61,6 +62,7 @@ namespace PosTouch.App.Pagine
 
         private async Task ScontoAsync(bool percentuale)
         {
+            if (CombinazioneAperta()) return;
             if (ContestoCassa.ServizioVendita.InCorso) return;
             if (!Cfg.AbilitaSconti)
             {
@@ -103,6 +105,7 @@ namespace PosTouch.App.Pagine
                 _tastierino.Azzera();
             }
             else SvuotaScontrino();
+            if (_combinazione != null) EsciDaCombinazione();
         }
 
         private RigaScontrino PrimaSelezionata() => Carrello.Righe.FirstOrDefault(r => r.Selezionata);

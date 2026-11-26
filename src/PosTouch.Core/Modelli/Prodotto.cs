@@ -27,6 +27,12 @@ namespace PosTouch.Core.Modelli
         public string UnitaPeso { get; set; } = "Kg";
         /// <summary>Articolo combinazione multi-gusto (dal PC): non ancora gestito su Android.</summary>
         public bool IsCombinazione { get; set; }
+        /// <summary>Combinazione: quanti gusti (2 = ½+½, 3, 4...).</summary>
+        public int NumeroGusti { get; set; } = 2;
+        /// <summary>Combinazione: 0 = prezzo del gusto più caro, 1 = media dei gusti, 2 = prezzo fisso dell'articolo.</summary>
+        public int PoliticaPrezzo { get; set; }
+        /// <summary>Codice bilancia: il barcode (5 cifre) viene cercato nelle etichette EAN-13 della bilancia.</summary>
+        public bool IsCodiceBilancia { get; set; }
         /// <summary>Visibile nel POS (false = nascosto).</summary>
         public bool Attivo { get; set; } = true;
 

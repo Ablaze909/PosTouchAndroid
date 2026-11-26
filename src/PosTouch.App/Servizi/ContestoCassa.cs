@@ -28,7 +28,8 @@ namespace PosTouch.App.Servizi
         public static SpoolerComande Spooler { get; private set; }
 
         /// <summary>Apre un tavolo (lo crea se libero) con le impostazioni correnti.</summary>
-        public static SessioneTavolo ApriTavolo(int salaId, int numero) => new SessioneTavolo(Tavoli, Spooler, () => Impostazioni, salaId, numero);
+        public static SessioneTavolo ApriTavolo(int salaId, int numero, string nomeCliente = null)
+            => new SessioneTavolo(Tavoli, Spooler, () => Impostazioni, salaId, numero, nomeCliente);
 
         private static PosTouch.App.Pagine.VenditaPage _paginaVendita;
         /// <summary>Una sola schermata vendita per tutta l'app (lo scontrino in corso è uno solo).</summary>

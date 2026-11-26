@@ -12,6 +12,8 @@ namespace PosTouch.Core.Sale
         public long Id { get; set; }
         public int SalaId { get; set; }
         public int Numero { get; set; }
+        /// <summary>Conti clienti (sala 0): nome del cliente.</summary>
+        public string NomeCliente { get; set; } = "";
         public DateTime Apertura { get; set; }
         public bool Preconto { get; set; }
         /// <summary>Ultima portata mandata con VAI (AVANZA).</summary>
@@ -156,6 +158,9 @@ namespace PosTouch.Core.Sale
                         Stampato INTEGER NOT NULL DEFAULT 1
                     );";
                 cmd.ExecuteNonQuery();
+                // colonne aggiunte nelle versioni successive (archivi già esistenti)
+                AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
+                AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
             }
         }
 
@@ -173,7 +178,8 @@ namespace PosTouch.Core.Sale
                                    WHERE r.TavoloId = t.Id AND r.Tipo IN (0, 1)), 0),
                            (SELECT COUNT(*) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0),
                            EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.Comandata = 0 AND r.CentroProduzioneId > 0),
-                           IFNULL((SELECT MAX(r.Portata) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 4), 0)
+                           IFNULL((SELECT MAX(r.Portata) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 4), 0),
+                           IFNULL(t.NomeCliente, '')
                     FROM TavoliAperti t";
                 var lista = new List<TavoloAperto>();
                 using var r = cmd.ExecuteReader();
@@ -184,28 +190,32 @@ namespace PosTouch.Core.Sale
                         Apertura = DateTime.TryParse(r.GetString(3), out var d) ? d : DateTime.Now,
                         Preconto = r.GetInt32(4) == 1, PortataCorrente = r.GetInt32(5),
                         TotaleCent = Convert.ToInt32(r.GetInt64(6)), Articoli = r.GetInt32(7), DaComandare = r.GetInt32(8) == 1,
-                        PortataMassima = r.GetInt32(9)
+                        PortataMassima = r.GetInt32(9), NomeCliente = r.GetString(10)
                     });
                 return lista;
             }
         }
 
         /// <summary>Tavolo aperto (lo crea se libero).</summary>
-        public TavoloAperto ApriTavolo(int salaId, int numero)
+        public TavoloAperto ApriTavolo(int salaId, int numero, string nomeCliente = null)
         {
             lock (_lock)
             {
                 using var c = Apri();
                 using (var ins = c.CreateCommand())
                 {
-                    ins.CommandText = "INSERT OR IGNORE INTO TavoliAperti (SalaId, Numero, DataApertura) VALUES ($s, $n, $d)";
+                    ins.CommandText = "INSERT OR IGNORE INTO TavoliAperti (SalaId, Numero, DataApertura, NomeCliente) VALUES ($s, $n, $d, $nome)";
+                    ins.Parameters.AddWithValue("$nome", nomeCliente ?? "");
                     ins.Parameters.AddWithValue("$s", salaId);
                     ins.Parameters.AddWithValue("$n", numero);
                     ins.Parameters.AddWithValue("$d", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     ins.ExecuteNonQuery();
                 }
+                if (!string.IsNullOrWhiteSpace(nomeCliente))   // conto cliente riaperto vuoto: vale il nome nuovo
+                    Esegui(c, null, "UPDATE TavoliAperti SET NomeCliente=$nome WHERE SalaId=$s AND Numero=$n AND NOT EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = TavoliAperti.Id)",
+                           ("$nome", nomeCliente), ("$s", salaId), ("$n", numero));
                 using var cmd = c.CreateCommand();
-                cmd.CommandText = "SELECT Id, DataApertura, Preconto, PortataCorrente FROM TavoliAperti WHERE SalaId=$s AND Numero=$n";
+                cmd.CommandText = "SELECT Id, DataApertura, Preconto, PortataCorrente, IFNULL(NomeCliente,'') FROM TavoliAperti WHERE SalaId=$s AND Numero=$n";
                 cmd.Parameters.AddWithValue("$s", salaId);
                 cmd.Parameters.AddWithValue("$n", numero);
                 using var r = cmd.ExecuteReader();
@@ -214,7 +224,7 @@ namespace PosTouch.Core.Sale
                 {
                     Id = r.GetInt64(0), SalaId = salaId, Numero = numero,
                     Apertura = DateTime.TryParse(r.GetString(1), out var d) ? d : DateTime.Now,
-                    Preconto = r.GetInt32(2) == 1, PortataCorrente = r.GetInt32(3)
+                    Preconto = r.GetInt32(2) == 1, PortataCorrente = r.GetInt32(3), NomeCliente = r.GetString(4)
                 };
             }
         }
@@ -227,7 +237,7 @@ namespace PosTouch.Core.Sale
                 using var cmd = c.CreateCommand();
                 cmd.CommandText = @"SELECT Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi, PrezzoOriginaleCentesimi,
                                            RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso, ScontoPercentualeCent,
-                                           CentroProduzioneId, Portata, Comandata
+                                           CentroProduzioneId, Portata, Comandata, VariantiTesto
                                     FROM RigheTavolo WHERE TavoloId=$t ORDER BY Ordine";
                 cmd.Parameters.AddWithValue("$t", tavoloId);
                 var lista = new List<RigaScontrino>();
@@ -250,7 +260,8 @@ namespace PosTouch.Core.Sale
                         ScontoPercentualeCent = r.IsDBNull(12) ? null : r.GetInt32(12),
                         CentroProduzioneId = r.GetInt32(13),
                         Portata = r.GetInt32(14),
-                        Comandata = r.GetInt32(15) == 1
+                        Comandata = r.GetInt32(15) == 1,
+                        VariantiTesto = r.IsDBNull(16) ? null : r.GetString(16)
                     });
                 return lista;
             }
@@ -284,8 +295,8 @@ namespace PosTouch.Core.Sale
                             cmd.Transaction = tx;
                             cmd.CommandText = @"INSERT INTO RigheTavolo (TavoloId, Ordine, Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi,
                                                     PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso,
-                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata)
-                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com)";
+                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto)
+                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var)";
                             cmd.Parameters.AddWithValue("$t", t.Id);
                             cmd.Parameters.AddWithValue("$o", ordine++);
                             cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
@@ -304,6 +315,7 @@ namespace PosTouch.Core.Sale
                             cmd.Parameters.AddWithValue("$centro", r.CentroProduzioneId);
                             cmd.Parameters.AddWithValue("$port", r.Portata);
                             cmd.Parameters.AddWithValue("$com", r.Comandata ? 1 : 0);
+                            cmd.Parameters.AddWithValue("$var", (object)r.VariantiTesto ?? DBNull.Value);
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -427,6 +439,17 @@ namespace PosTouch.Core.Sale
             cmd.Parameters.AddWithValue("$p", s.PrezzoCentesimi);
             cmd.Parameters.AddWithValue("$st", s.Stampato ? 1 : 0);
             cmd.ExecuteNonQuery();
+        }
+
+        private static void AggiungiColonna(SqliteConnection c, string tabella, string colonna, string tipo)
+        {
+            using (var chk = c.CreateCommand())
+            {
+                chk.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{tabella}') WHERE name = $n";
+                chk.Parameters.AddWithValue("$n", colonna);
+                if (Convert.ToInt64(chk.ExecuteScalar()) > 0) return;
+            }
+            Esegui(c, null, $"ALTER TABLE {tabella} ADD COLUMN {colonna} {tipo}");
         }
 
         private static void Esegui(SqliteConnection c, SqliteTransaction tx, string sql, params (string, object)[] parametri)

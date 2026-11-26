@@ -46,7 +46,8 @@ namespace PosTouch.App.Pagine
             radice.Add(new ScrollView { Content = _griglia, Padding = new Thickness(8) }, 0, 2);
             Content = radice;
 
-            _salaCorrente = Cfg.Sale.Any(s => s.Id == _ultimaSala) ? _ultimaSala : Cfg.Sale.FirstOrDefault()?.Id ?? 0;
+            var schede = Schede();
+            _salaCorrente = schede.Any(s => s.Id == _ultimaSala) ? _ultimaSala : schede.FirstOrDefault()?.Id ?? 0;
         }
 
         protected override void OnAppearing()
@@ -96,7 +97,7 @@ namespace PosTouch.App.Pagine
             _schede.Children.Clear();
             string[] colori = { "#26A69A", "#5C6BC0", "#AB47BC", "#FFA726", "#8D6E63", "#EC407A" };
             int i = 0;
-            foreach (var sala in Cfg.Sale)
+            foreach (var sala in Schede())
             {
                 bool attiva = sala.Id == _salaCorrente;
                 var b = Ui.Tasto(sala.Nome, attiva ? colori[i % colori.Length] : "#455A64", attiva ? "#FFFFFF" : "#CFD8DC", 15, 0, altezza: 48);
@@ -108,10 +109,19 @@ namespace PosTouch.App.Pagine
             }
         }
 
+        /// <summary>Le sale (se abilitate) e, in fondo, i 👤 CONTI clienti (sala 0), come la barra del PC.</summary>
+        private List<Sala> Schede()
+        {
+            var l = Cfg.AbilitaSale ? Cfg.Sale.ToList() : new List<Sala>();
+            if (Cfg.AbilitaContiClienti)
+                l.Add(new Sala { Id = ConfigSale.SalaConti, Nome = "👤 CONTI", NumeroTavoli = Math.Clamp(Cfg.NumeroSlotContiClienti, 1, 200), NumeroIniziale = 1 });
+            return l;
+        }
+
         private void CostruisciTavoli()
         {
             _griglia.Children.Clear();
-            var sala = Cfg.SalaDa(_salaCorrente);
+            var sala = Schede().FirstOrDefault(s => s.Id == _salaCorrente);
             if (sala == null) { _info.Text = "Nessuna sala configurata: IMPOSTAZIONI → SALE"; return; }
             var aperti = ContestoCassa.Tavoli.Aperti().Where(t => t.SalaId == sala.Id && t.Articoli > 0).ToDictionary(t => t.Numero);
             int occupati = 0, totale = 0;
@@ -137,8 +147,10 @@ namespace PosTouch.App.Pagine
                 else if (t.PortataMassima > 0 && t.PortataCorrente < t.PortataMassima) { sfondo = "#EF5350"; riga2 = tot; riga3 = $"Portata {t.PortataCorrente}/{t.PortataMassima}"; }
                 else { sfondo = "#66BB6A"; riga2 = tot; riga3 = t.Apertura.ToString("HH:mm"); }
             }
+            bool conto = sala.Id == ConfigSale.SalaConti;
+            string titolo = conto ? (t != null && !string.IsNullOrWhiteSpace(t.NomeCliente) ? t.NomeCliente : $"👤 {numero}") : numero.ToString();
             var stack = new VerticalStackLayout { VerticalOptions = LayoutOptions.Center, Spacing = 2 };
-            stack.Add(new Label { Text = numero.ToString(), FontSize = 26, FontAttributes = FontAttributes.Bold, TextColor = Ui.C(testo), HorizontalOptions = LayoutOptions.Center });
+            stack.Add(new Label { Text = titolo, FontSize = conto ? 16 : 26, LineBreakMode = LineBreakMode.TailTruncation, HorizontalTextAlignment = TextAlignment.Center, FontAttributes = FontAttributes.Bold, TextColor = Ui.C(testo), HorizontalOptions = LayoutOptions.Center });
             stack.Add(new Label { Text = riga2, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Ui.C(testo), HorizontalOptions = LayoutOptions.Center });
             if (riga3.Length > 0) stack.Add(new Label { Text = riga3, FontSize = 11, TextColor = Ui.C(testo), HorizontalOptions = LayoutOptions.Center });
 
@@ -161,8 +173,15 @@ namespace PosTouch.App.Pagine
             _apertura = true;
             try
             {
+                // conto cliente libero: chiedi il nome (come il PC)
+                string nome = null;
+                if (sala.Id == ConfigSale.SalaConti && !ContestoCassa.Tavoli.Aperti().Any(t => t.SalaId == sala.Id && t.Numero == numero && t.Articoli > 0))
+                {
+                    nome = await TestoBox.Chiedi("👤 NOME CLIENTE");
+                    if (string.IsNullOrWhiteSpace(nome)) return;
+                }
                 SessioneTavolo s;
-                try { s = ContestoCassa.ApriTavolo(sala.Id, numero); }
+                try { s = ContestoCassa.ApriTavolo(sala.Id, numero, nome?.ToUpperInvariant()); }
                 catch (Exception ex) { await MessaggioBox.Errore("TAVOLO", $"Impossibile aprire il tavolo:\n{ex.Message}"); return; }
                 await Navigazione.Chiudi(this);                       // torna alla vendita…
                 await ContestoCassa.PaginaVendita.ApriTavoloAsync(s);  // …che mostra il tavolo

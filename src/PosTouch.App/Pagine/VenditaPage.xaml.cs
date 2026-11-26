@@ -132,12 +132,14 @@ namespace PosTouch.App.Pagine
 
         private async void OnStrumenti(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (await Accesso.VerificaPinAsync("🔧 STRUMENTI"))
                 await Navigazione.Apri(this, () => new StrumentiPage());
         }
 
         private async void OnModifica(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (!Cfg.AbilitaModificaVendita)
             {
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
@@ -173,6 +175,7 @@ namespace PosTouch.App.Pagine
         /// <summary>🚪: torna alla schermata iniziale (come TornaAlLauncher del PC).</summary>
         private async void OnEsci(object sender, EventArgs e)
         {
+            if (CombinazioneAperta()) return;
             if (_sessione != null) { OnTornaSala(); return; }   // al tavolo 🚪 diventa ⬅ SALA
             if (!Carrello.Vuoto)
             {
