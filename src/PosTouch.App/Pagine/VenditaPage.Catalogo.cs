@@ -41,8 +41,10 @@ namespace PosTouch.App.Pagine
             foreach (var (id, b) in _tastiCategoria)
             {
                 bool attiva = id == _categoriaCorrente;
-                b.StrokeThickness = attiva ? 4 : 0;
-                b.Stroke = new SolidColorBrush(Ui.C("#212121"));
+                // spessore fisso (il testo non si ridispone); bordo bianco con ombra scura: si vede su ogni colore
+                b.StrokeThickness = 4;
+                b.Stroke = new SolidColorBrush(attiva ? Colors.White : Colors.Transparent);
+                b.Shadow = attiva ? new Shadow { Brush = new SolidColorBrush(Colors.Black), Offset = new Point(0, 0), Radius = 6, Opacity = 0.8f } : null;
             }
             if (_categoriaMostrata != _categoriaCorrente)
             {
@@ -186,6 +188,7 @@ namespace PosTouch.App.Pagine
                 return;
             }
             if (p.IsCombinazione) { await AvviaCombinazioneAsync(p); return; }
+            bool quantitaEsplicita = _tastierino.QuantitaBloccata;   // "150 X": nessun dubbio pezzi/prezzo
             var (quantita, prezzoCent) = _tastierino.PrendiPerArticolo();
             if (prezzoCent.HasValue && !Cfg.AbilitaCambioPrezzo)
             {
@@ -193,7 +196,7 @@ namespace PosTouch.App.Pagine
                 prezzoCent = null;
                 await MessaggioBox.Avviso("CAMBIO PREZZO DISABILITATO", $"Il prezzo digitato è stato ignorato: {p.Descrizione} va al prezzo di listino.");
             }
-            if (Cfg.VirgolaImplicita && prezzoCent == null && quantita > 99 && quantita == Math.Floor(quantita) && !p.VenditaAPeso)
+            if (Cfg.VirgolaImplicita && !quantitaEsplicita && prezzoCent == null && quantita > 99 && quantita == Math.Floor(quantita) && !p.VenditaAPeso)
             {
                 // virgola implicita: "150" + articolo è quasi sempre un prezzo dimenticato senza €
                 int scelta = await SceltaBox.Testi($"{quantita:0} — {p.Descrizione}",

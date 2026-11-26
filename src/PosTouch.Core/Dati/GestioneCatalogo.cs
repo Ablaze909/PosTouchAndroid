@@ -146,7 +146,7 @@ namespace PosTouch.Core.Dati
                 if (barcode.Length > 0)
                 {
                     using var chk = conn.CreateCommand();
-                    chk.CommandText = "SELECT Descrizione FROM Prodotti WHERE Barcode=$b AND Id<>$id";
+                    chk.CommandText = "SELECT Descrizione FROM Prodotti WHERE Barcode=$b AND Id<>$id AND IFNULL(Attivo,1) >= 0";   // eliminati sul PC (-1): non bloccano
                     chk.Parameters.AddWithValue("$b", barcode);
                     chk.Parameters.AddWithValue("$id", p.Id);
                     if (chk.ExecuteScalar() is string altro)
@@ -156,7 +156,7 @@ namespace PosTouch.Core.Dati
                     {
                         using var chk2 = conn.CreateCommand();
                         chk2.CommandText = @"SELECT p.Descrizione FROM ProdottiBarcode b JOIN Prodotti p ON p.Id = b.ProdottoId
-                                             WHERE TRIM(b.Barcode)=$b AND b.ProdottoId<>$id";
+                                             WHERE TRIM(b.Barcode)=$b AND b.ProdottoId<>$id AND IFNULL(p.Attivo,1) >= 0";
                         chk2.Parameters.AddWithValue("$b", barcode);
                         chk2.Parameters.AddWithValue("$id", p.Id);
                         if (chk2.ExecuteScalar() is string altro2)
@@ -299,6 +299,7 @@ namespace PosTouch.Core.Dati
         {
             if (string.IsNullOrWhiteSpace(v.Nome)) throw new ArgumentException("Il nome della variante è obbligatorio.");
             if (v.PrezzoAggiuntaCent < 0 || v.PrezzoRimozioneCent < 0) throw new ArgumentException("I prezzi della variante non possono essere negativi.");
+            int id = 0;
             Esegui(conn =>
             {
                 using var tx = conn.BeginTransaction();
@@ -318,13 +319,13 @@ namespace PosTouch.Core.Dati
                     cmd.Parameters.AddWithValue("$a", v.Attiva ? 1 : 0);
                     cmd.Parameters.AddWithValue("$t", (int)v.Tipo);
                     cmd.Parameters.AddWithValue("$id", v.Id);
-                    v.Id = Convert.ToInt32(cmd.ExecuteScalar());
+                    id = Convert.ToInt32(cmd.ExecuteScalar());
                 }
                 using (var del = conn.CreateCommand())
                 {
                     del.Transaction = tx;
                     del.CommandText = "DELETE FROM CategorieVarianti WHERE VarianteId=$id";
-                    del.Parameters.AddWithValue("$id", v.Id);
+                    del.Parameters.AddWithValue("$id", id);
                     del.ExecuteNonQuery();
                 }
                 foreach (int cat in v.Categorie.Distinct())
@@ -333,10 +334,11 @@ namespace PosTouch.Core.Dati
                     ins.Transaction = tx;
                     ins.CommandText = "INSERT OR IGNORE INTO CategorieVarianti (CategoriaId, VarianteId) VALUES ($c, $v)";
                     ins.Parameters.AddWithValue("$c", cat);
-                    ins.Parameters.AddWithValue("$v", v.Id);
+                    ins.Parameters.AddWithValue("$v", id);
                     ins.ExecuteNonQuery();
                 }
                 tx.Commit();
+                v.Id = id;   // solo a salvataggio riuscito: con un errore la variante resta "nuova" e si reinserisce
             });
             LogManager.Info($"Variante salvata: {v.Nome} (+{v.PrezzoAggiuntaCent} / -{v.PrezzoRimozioneCent}) su {v.Categorie.Count} categorie");
         }

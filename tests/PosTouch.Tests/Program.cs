@@ -9,7 +9,10 @@ Verifica.Esegui("Varianti", TestVarianti.Esegui);
 Verifica.Esegui("Barcode bilancia", TestBilancia.Esegui);
 Verifica.Esegui("Opzioni di stampa", TestStampe.Esegui);
 if (Environment.GetEnvironmentVariable("POSTOUCH_TEST_DB") != "0")
+{
     Verifica.Esegui("Archivio tavoli (SQLite)", TestArchivio.Esegui);
+    Verifica.Esegui("Import catalogo (SQLite)", TestCatalogo.Esegui);
+}
 
 Console.WriteLine($"\n{Verifica.Totale - Verifica.Errori}/{Verifica.Totale} controlli superati, {Verifica.Errori} errori");
 return Verifica.Errori == 0 ? 0 : 1;

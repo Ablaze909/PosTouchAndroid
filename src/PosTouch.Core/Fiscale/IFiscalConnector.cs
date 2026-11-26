@@ -69,6 +69,12 @@ namespace PosTouch.Core.Fiscale
         Task<(int Azzeramento, int Scontrino)?> LeggiProgressiviRTAsync();
         Task<bool> HaScontrinoApertoAsync();
 
+        /// <summary>
+        /// Dopo una chiusura senza conferma: true = scontrino ancora aperto, false = chiuso, null = stato non leggibile.
+        /// Predefinito: nessuna verifica affidabile (Epson conferma sempre la chiusura dalla risposta al comando).
+        /// </summary>
+        Task<bool?> StatoScontrinoDopoChiusuraAsync() => Task.FromResult<bool?>(null);
+
         // ========== RECOVERY ==========
         
         Task<bool> ClearAsync();

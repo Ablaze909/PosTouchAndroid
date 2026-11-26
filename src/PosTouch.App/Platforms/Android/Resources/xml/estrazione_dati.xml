@@ -5,16 +5,36 @@
         <exclude domain="file" path="tavoli.db" />
         <exclude domain="file" path="tavoli.db-wal" />
         <exclude domain="file" path="tavoli.db-shm" />
-        <exclude domain="file" path="vendite.db-wal" />
         <exclude domain="file" path="vendite.db-shm" />
-        <exclude domain="file" path="catalogo.db-wal" />
         <exclude domain="file" path="catalogo.db-shm" />
         <exclude domain="file" path="debug.log" />
+        <exclude domain="file" path="debug.log.1" />
+        <exclude domain="file" path="debug.log.2" />
+        <exclude domain="file" path="debug.log.3" />
+        <exclude domain="file" path="catalogo.db.bak" />
+        <exclude domain="file" path="catalogo.db.bak2" />
+        <exclude domain="file" path="catalogo.db.bak3" />
+        <exclude domain="file" path="catalogo.db.import" />
+        <exclude domain="file" path="catalogo.db.precedente" />
+        <exclude domain="file" path="catalogo.db.prima_del_ripristino" />
+        <exclude domain="file" path="impostazioni.json.tmp" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="tavoli.db" />
         <exclude domain="file" path="tavoli.db-wal" />
         <exclude domain="file" path="tavoli.db-shm" />
+        <exclude domain="file" path="vendite.db-shm" />
+        <exclude domain="file" path="catalogo.db-shm" />
         <exclude domain="file" path="debug.log" />
+        <exclude domain="file" path="debug.log.1" />
+        <exclude domain="file" path="debug.log.2" />
+        <exclude domain="file" path="debug.log.3" />
+        <exclude domain="file" path="catalogo.db.bak" />
+        <exclude domain="file" path="catalogo.db.bak2" />
+        <exclude domain="file" path="catalogo.db.bak3" />
+        <exclude domain="file" path="catalogo.db.import" />
+        <exclude domain="file" path="catalogo.db.precedente" />
+        <exclude domain="file" path="catalogo.db.prima_del_ripristino" />
+        <exclude domain="file" path="impostazioni.json.tmp" />
     </device-transfer>
 </data-extraction-rules>

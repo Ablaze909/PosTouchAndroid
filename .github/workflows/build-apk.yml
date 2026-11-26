@@ -11,6 +11,11 @@ on:
 permissions:
   contents: write
 
+# due push ravvicinati: una build alla volta, così il ramo apk non viene sovrascritto da quella più vecchia
+concurrency:
+  group: build-apk
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest

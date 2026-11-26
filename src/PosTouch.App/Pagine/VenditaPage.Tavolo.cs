@@ -1,6 +1,7 @@
 using PosTouch.App.Controlli;
 using PosTouch.App.Dialoghi;
 using PosTouch.App.Servizi;
+using PosTouch.Core.Diagnostica;
 using PosTouch.Core.Modelli;
 using PosTouch.Core.Sale;
 using PosTouch.Core.Vendita;
@@ -174,7 +175,14 @@ namespace PosTouch.App.Pagine
 
         /// <summary>⬅ SALA: salva, manda la comanda delle righe nuove e gli storni.</summary>
         private void OnTornaSala() => _ = EsciDalTavoloAsync(s => s.EsciConComanda());
-        private void OnNoStampa(object sender, EventArgs e) => _ = EsciDalTavoloAsync(s => s.EsciNoStampa());
+        private async void OnNoStampa(object sender, EventArgs e)
+        {
+            // NO STAMPA segna tutto come inviato senza stampare: con articoli nuovi si chiede (la cucina non riceverebbe nulla)
+            int nuovi = Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto && !r.Comandata);
+            if (nuovi > 0 && !await MessaggioBox.Conferma("🚫 NO STAMPA",
+                    $"{nuovi} articoli non ancora inviati verranno segnati come comandati SENZA stampare la comanda.\n\nLa cucina non li riceverà. Continuare?")) return;
+            await EsciDalTavoloAsync(s => s.EsciNoStampa());
+        }
         private void OnAnnullaTavolo(object sender, EventArgs e) => _ = EsciDalTavoloAsync(s => s.EsciSenzaInvio());
 
         private bool _uscitaInCorso;
@@ -201,16 +209,28 @@ namespace PosTouch.App.Pagine
             finally { _uscitaInCorso = false; }
         }
 
-        /// <summary>Dopo scontrino o conto: il tavolo si libera e si torna alla sala.</summary>
-        private async Task DopoPagamentoAsync(List<RigaScontrino> venduti, int restoCent = 0)
+        /// <summary>
+        /// Documento uscito al tavolo: comande degli articoli non inviati, storni e liberazione in un solo salvataggio,
+        /// prima di svuotare lo scontrino e di mostrare messaggi (niente finestra in cui il tavolo resta vuoto ma non chiuso).
+        /// </summary>
+        private async Task<EsitoTavolo> ChiudiTavoloPagatoAsync(List<RigaScontrino> venduti)
+        {
+            if (_sessione == null) return null;
+            _timerBozza?.Stop();
+            try { return _sessione.ChiudiPagato(venduti); }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Tavolo pagato ma non liberato: {ex}");
+                await MessaggioBox.Errore("TAVOLO", $"Tavolo pagato ma non liberato:\n{ex.Message}\n\nControlla il tavolo in sala: NON incassarlo di nuovo.");
+                return null;
+            }
+        }
+
+        /// <summary>Dopo scontrino o conto (tavolo già chiuso): resto, avvisi comande e ritorno alla sala.</summary>
+        private async Task DopoPagamentoAsync(EsitoTavolo esito, int restoCent = 0)
         {
             if (_sessione == null) return;
-            // al tavolo si torna subito alla sala: il resto lo mostro prima di uscire
             if (restoCent > 0) await MessaggioBox.Info("💶 RESTO", $"Resto da dare:\n\n€ {restoCent / 100m:N2}");
-            _timerBozza?.Stop();
-            EsitoTavolo esito = null;
-            try { esito = _sessione.ChiudiPagato(venduti); }
-            catch (Exception ex) { await MessaggioBox.Errore("TAVOLO", $"Tavolo pagato ma non liberato:\n{ex.Message}"); }
             CollegaCarrello(null);
             if (esito != null) await MostraAvvisiAsync(esito);
             await Navigazione.Apri(this, () => new TavoliPage());

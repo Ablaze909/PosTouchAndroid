@@ -81,6 +81,16 @@ namespace PosTouch.App.Dialoghi
         /// <summary>Domanda su un esito fiscale incerto: si risponde solo con i tasti (indietro disattivato).</summary>
         public static Task<bool> DomandaFiscale(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❓", "NO", "SÌ", "#9E9E9E", "#4CAF50", bloccaIndietro: true));
         /// <summary>Conferma critica ANNULLA / CONFERMA (rosso).</summary>
+        /// <summary>
+        /// Chiusura con modifiche: SALVA (true), NON SALVARE (false), indietro/annulla = resta nella pagina (null).
+        /// Un doppio indietro non butta più le modifiche.
+        /// </summary>
+        public static async Task<bool?> SalvaPrimaDiChiudere(string messaggio)
+        {
+            int k = await SceltaBox.Testi($"💾 MODIFICHE NON SALVATE — {messaggio}", new List<string> { "💾 SALVA", "✖ NON SALVARE" }, 2);
+            return k == 0 ? true : k == 1 ? false : (bool?)null;
+        }
+
         public static Task<bool> Conferma(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "⚠️", "ANNULLA", "CONFERMA", "#9E9E9E", "#F44336"));
     }
 }

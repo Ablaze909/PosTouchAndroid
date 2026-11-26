@@ -53,8 +53,12 @@ namespace PosTouch.App.Pagine
             _chiusura = true;
             try
             {
-                if (_c.Firma() != _firma && await MessaggioBox.Domanda("MODIFICHE NON SALVATE", "Salvare sale e opzioni comande prima di chiudere?"))
-                { await SalvaAsync(); return; }
+                if (_c.Firma() != _firma)
+                {
+                    var scelta = await MessaggioBox.SalvaPrimaDiChiudere("sale e comande");
+                    if (scelta == null) return;                       // resta nella pagina
+                    if (scelta == true) { await SalvaAsync(); return; }
+                }
                 await Navigazione.Chiudi(this);
             }
             finally { _chiusura = false; }

@@ -34,7 +34,7 @@ namespace PosTouch.Core.Sale
             var c = new SqliteConnection(_connString);
             c.Open();
             using var cmd = c.CreateCommand();
-            cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON;";
+            cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON;";
             cmd.ExecuteNonQuery();
             return c;
         }
@@ -399,6 +399,10 @@ namespace PosTouch.Core.Sale
                             max = Convert.ToInt64(cmd.ExecuteScalar());   // vero MAX ogni volta (FIX BUG-I2 del PC)
                         }
                         Esegui(c, tx, "UPDATE RigheTavolo SET TavoloId=$d, Ordine = Ordine + $o WHERE TavoloId=$s", ("$d", destinazioneId), ("$o", max), ("$s", id));
+                        // stampe in coda/errore del tavolo unito: passano al tavolo di destinazione (come SPOSTA)
+                        Esegui(c, tx, @"UPDATE CodaStampa SET SalaId = (SELECT SalaId FROM TavoliAperti WHERE Id=$d), NumeroTavolo = (SELECT Numero FROM TavoliAperti WHERE Id=$d)
+                                        WHERE SalaId = (SELECT SalaId FROM TavoliAperti WHERE Id=$s) AND NumeroTavolo = (SELECT Numero FROM TavoliAperti WHERE Id=$s)",
+                               ("$d", destinazioneId), ("$s", id));
                         Esegui(c, tx, "DELETE FROM TavoliAperti WHERE Id=$s", ("$s", id));
                     }
                     tx.Commit();

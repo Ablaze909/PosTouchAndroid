@@ -43,6 +43,7 @@ namespace PosTouch.App.Pagine
 
         private async Task ModificaQuantitaAsync(RigaScontrino riga)
         {
+            if (Occupata) return;
             if (!Cfg.AbilitaModificaVendita)
             {
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
@@ -56,6 +57,7 @@ namespace PosTouch.App.Pagine
 
         private async Task ModificaPrezzoAsync(RigaScontrino riga)
         {
+            if (Occupata) return;
             if (!Cfg.AbilitaCambioPrezzo)
             {
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
@@ -74,12 +76,14 @@ namespace PosTouch.App.Pagine
         /// <summary>Lista espansa: cancella le righe selezionate (con un tocco sulla riga).</summary>
         private async void OnCancellaRigheEspanso(object sender, EventArgs e)
         {
+            if (Occupata) return;
             var selezionate = Carrello.Righe.Where(r => r.Selezionata).ToList();
             if (selezionate.Count == 0)
             {
                 await MessaggioBox.Info("CANCELLA RIGHE", "Tocca le righe da cancellare per selezionarle, poi premi 🗑️ CANCELLA RIGHE.");
                 return;
             }
+            if (!await ConfermaStornoAsync(selezionate)) return;
             Carrello.Rimuovi(selezionate);
             if (Carrello.UltimoErrore != null) _ = MessaggioBox.Avviso("ELIMINA", Carrello.UltimoErrore);
             if (Carrello.Vuoto) ApplicaModalitaEspansa(false);

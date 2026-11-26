@@ -76,9 +76,18 @@ namespace PosTouch.App.Dialoghi
         };
 
         /// <summary>FunctionButton del PC: blu, angoli 8, testo 16 grassetto.</summary>
+        private static bool _tastoInCorso;
+
         private static Button Tasto(string testo, string colore, Func<Task> azione)
         {
-            var b = Ui.Tasto(testo, colore, "#FFFFFF", 16, 8, async (s, e) => await azione(), 64);
+            // un tocco alla volta: un doppio tocco su CHIUSURA Z apriva due conferme (seconda Z)
+            var b = Ui.Tasto(testo, colore, "#FFFFFF", 16, 8, async (s, e) =>
+            {
+                if (_tastoInCorso) return;
+                _tastoInCorso = true;
+                try { await azione(); }
+                finally { _tastoInCorso = false; }
+            }, 64);
             b.Margin = new Thickness(10);
             return b;
         }

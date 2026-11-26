@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Backup automatico Android (fino ad Android 11): esclusi tavoli e coda di stampa (un ripristino ristamperebbe
-     comande vecchie), i file temporanei del database e il log. -->
+<!-- Backup automatico Android (fino ad Android 11).
+     Esclusi: tavoli e coda di stampa (un ripristino ristamperebbe comande vecchie), log e copie temporanee
+     (il limite Android è 25 MB: superato, il backup smette senza avvisi).
+     vendite.db-wal e catalogo.db-wal restano: contengono le ultime vendite/modifiche non ancora nel file principale. -->
 <full-backup-content>
     <exclude domain="file" path="tavoli.db" />
     <exclude domain="file" path="tavoli.db-wal" />
     <exclude domain="file" path="tavoli.db-shm" />
-    <exclude domain="file" path="vendite.db-wal" />
     <exclude domain="file" path="vendite.db-shm" />
-    <exclude domain="file" path="catalogo.db-wal" />
     <exclude domain="file" path="catalogo.db-shm" />
     <exclude domain="file" path="debug.log" />
+    <exclude domain="file" path="debug.log.1" />
+    <exclude domain="file" path="debug.log.2" />
+    <exclude domain="file" path="debug.log.3" />
+    <exclude domain="file" path="catalogo.db.bak" />
+    <exclude domain="file" path="catalogo.db.bak2" />
+    <exclude domain="file" path="catalogo.db.bak3" />
+    <exclude domain="file" path="catalogo.db.import" />
+    <exclude domain="file" path="catalogo.db.precedente" />
+    <exclude domain="file" path="catalogo.db.prima_del_ripristino" />
+    <exclude domain="file" path="impostazioni.json.tmp" />
 </full-backup-content>

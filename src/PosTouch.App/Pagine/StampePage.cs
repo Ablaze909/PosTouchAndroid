@@ -175,7 +175,9 @@ namespace PosTouch.App.Pagine
                 var nuovo = await GestioneIPBox.Modifica(_c.IndirizziIP);
                 if (nuovo == null) return;
                 _c.IndirizziIP = nuovo;
+                int tolti = _c.TogliIndirizziAssenti();
                 Disegna();
+                if (tolti > 0) await MessaggioBox.Avviso("STAMPANTI TOLTE", $"{tolti} stampe usavano un indirizzo eliminato: ora sono senza stampante.\nAssegnale di nuovo con CONFIGURA.");
             }, 58);
             ip.Margin = new Thickness(0, 20, 0, 0);
             _destra.Add(ip);
@@ -255,10 +257,11 @@ namespace PosTouch.App.Pagine
 
         private async Task ChiudiAsync()
         {
-            if (Firma() != _firma && await MessaggioBox.Domanda("MODIFICHE NON SALVATE", "Salvare le opzioni di stampa prima di chiudere?"))
+            if (Firma() != _firma)
             {
-                await SalvaAsync();
-                return;
+                var scelta = await MessaggioBox.SalvaPrimaDiChiudere("opzioni di stampa");
+                if (scelta == null) return;                       // resta nella pagina
+                if (scelta == true) { await SalvaAsync(); return; }
             }
             await Navigazione.Chiudi(this);
         }

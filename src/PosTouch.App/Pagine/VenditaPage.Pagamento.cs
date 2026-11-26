@@ -62,12 +62,13 @@ namespace PosTouch.App.Pagine
                     esito = ContestoCassa.ServizioConto.ConfermaContoStampato(esito);
                 }
 
-                // Conto stampato: come sul PC si svuota senza messaggi
+                // Conto stampato: al tavolo si chiude SUBITO (comande e liberazione) prima di qualsiasi messaggio
+                var esitoTavolo = await ChiudiTavoloPagatoAsync(righe);
                 SvuotaScontrino();
                 await InviaComandaBancoAsync(righe, eliminacode);
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.StampatoSenzaArchivio)
                     await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
-                await DopoPagamentoAsync(righe);
+                await DopoPagamentoAsync(esitoTavolo);
             }
             finally { _venditaAvviata = false; }
         }
@@ -176,12 +177,14 @@ namespace PosTouch.App.Pagine
                 esito = ContestoCassa.ServizioVendita.ConfermaScontrinoUscito(esito);
             }
 
+            // al tavolo si chiude SUBITO (comande e liberazione): se l'app viene chiusa sul messaggio del resto non si perde nulla
+            var esitoTavolo = await ChiudiTavoloPagatoAsync(righe);
             SvuotaScontrino();
             if (restoCent > 0) MostraRestoConTimer(restoCent);
             await InviaComandaBancoAsync(righe, eliminacode);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
-            await DopoPagamentoAsync(righe, restoCent);
+            await DopoPagamentoAsync(esitoTavolo, restoCent);
         }
 
         /// <summary>Documento al banco uscito: accoda la comanda con l'eliminacode (avvisa se un'uscita non ha stampante).</summary>

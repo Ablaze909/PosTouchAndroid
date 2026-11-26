@@ -23,6 +23,12 @@ namespace PosTouch.Tests
             Ok(c.StampanteUscita(1, 7) == null, "uscita inesistente: nessuna stampante");
             var copia = c.Copia(); copia.PerSala[1].Uscite[1].IP = "1.1.1.1";
             Uguale("10.0.0.6", c.PerSala[1].Uscite[1].IP, "copia profonda");
+
+            var t = c.Copia();
+            t.IndirizziIP.Remove("10.0.0.6:9101");
+            int tolti = t.TogliIndirizziAssenti();
+            Ok(tolti >= 1 && string.IsNullOrEmpty(t.PerSala[1].Uscite[1].IP), "IP eliminato: la stampa resta senza stampante");
+            Uguale("10.0.0.5", t.Base.Uscite[1].IP, "gli altri IP restano");
             Ok(c.Firma().Length > 10, "impronta JSON");
 
             var corpo = new EscPos().Testo("CIAO").Byte();

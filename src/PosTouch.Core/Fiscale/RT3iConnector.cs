@@ -1247,6 +1247,25 @@ namespace PosTouch.Core.Fiscale
         ///   3. Disconnetti, riconnetti, riprova 25F — reset connessione TCP
         /// Restituisce true se l'RT è stato recuperato (scontrino chiuso).
         /// </summary>
+        /// <summary>
+        /// Dopo una chiusura non confermata: NAK/XOFF arrivati durante l'attesa del footer (carta, coperchio) bloccherebbero
+        /// il 89F e la risposta mancante sembrerebbe "chiuso". Si azzerano i flag e si distingue lo stato non letto.
+        /// </summary>
+        public async Task<bool?> StatoScontrinoDopoChiusuraAsync()
+        {
+            _xoffRicevuto = false;
+            _nakRicevuto = false;
+            try
+            {
+                var raw = await LeggiStatoRegistratoreRawAsync();
+                if (raw == null || raw.Length < 15) { LogManager.Warning("89F dopo chiusura: stato non leggibile"); return null; }
+                char stato = (char)raw[14];
+                LogManager.Info($"89F dopo chiusura: '{stato}'");
+                return stato == 'A' ? true : stato == 'C' ? false : (bool?)null;
+            }
+            catch (Exception ex) { LogManager.Warning($"89F dopo chiusura: {ex.Message}"); return null; }
+        }
+
         public async Task<bool> RecuperaScontrinoApertoAsync()
         {
             LogManager.Info("=== INIZIO RECOVERY SCONTRINO 3i ===");

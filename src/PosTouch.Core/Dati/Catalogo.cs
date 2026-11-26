@@ -308,26 +308,31 @@ namespace PosTouch.Core.Dati
             }
 
             SqliteConnection.ClearAllPools();
-            // copie del catalogo precedente: .bak (ultimo), .bak2, .bak3 — due import sbagliati di fila non lo perdono
-            if (File.Exists(_percorso))
-            {
-                if (File.Exists(_percorso + ".bak2")) File.Copy(_percorso + ".bak2", _percorso + ".bak3", overwrite: true);
-                if (File.Exists(_percorso + ".bak")) File.Copy(_percorso + ".bak", _percorso + ".bak2", overwrite: true);
-                File.Copy(_percorso, _percorso + ".bak", overwrite: true);
-            }
+            // il catalogo attuale va da parte; le copie .bak/.bak2/.bak3 scalano SOLO se l'import riesce
+            // (un import fallito non deve spingere fuori la copia buona di prima)
+            string precedente = _percorso + ".precedente";
+            bool cera = File.Exists(_percorso);
+            if (cera) File.Copy(_percorso, precedente, overwrite: true);
             bool cerano = _prodotti.Count > 0;
             File.Move(tmp, _percorso, overwrite: true);
             try
             {
                 int n = Carica();
                 if (n == 0 && cerano) throw new InvalidDataException("Il file scelto non contiene articoli leggibili.");
+                if (cera)
+                {
+                    if (File.Exists(_percorso + ".bak2")) File.Copy(_percorso + ".bak2", _percorso + ".bak3", overwrite: true);
+                    if (File.Exists(_percorso + ".bak")) File.Copy(_percorso + ".bak", _percorso + ".bak2", overwrite: true);
+                    File.Move(precedente, _percorso + ".bak", overwrite: true);
+                }
                 return n;
             }
             catch
             {
                 // catalogo nuovo illeggibile o vuoto: si rimette quello di prima, come se l'import non fosse avvenuto
                 SqliteConnection.ClearAllPools();
-                if (File.Exists(_percorso + ".bak")) File.Copy(_percorso + ".bak", _percorso, overwrite: true);
+                if (cera) File.Move(precedente, _percorso, overwrite: true);
+                else File.Delete(_percorso);   // primo import: niente file illeggibile al suo posto
                 try { Carica(); } catch (Exception ex2) { LogManager.Error($"Ripristino catalogo dopo import fallito: {ex2.Message}"); }
                 throw;
             }

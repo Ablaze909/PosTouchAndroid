@@ -54,8 +54,9 @@ namespace PosTouch.Core.Diagnostica
             string riga = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{livello}] {msg}{Environment.NewLine}";
             if (livelloNum >= 3)
             {
-                // ERROR (rari e i più importanti): scritti subito, dopo quelli già in coda, così non si perdono se l'app si chiude
-                Svuota();
+                // ERROR (rari e i più importanti): scritti subito. Si aspetta la coda solo un attimo (max 100 ms):
+                // il thread dello schermo non resta fermo; la coda completa si scrive con Svuota() in background/errore fatale.
+                Svuota(100);
                 ScriviSubito(riga);
                 return;
             }
@@ -114,9 +115,9 @@ namespace PosTouch.Core.Diagnostica
         }
 
         /// <summary>Attende (max ~1 s) che le righe in coda siano scritte: da chiamare prima di condividere il log.</summary>
-        public static void Svuota()
+        public static void Svuota(int maxMs = 1000)
         {
-            for (int i = 0; i < 50 && System.Threading.Volatile.Read(ref _inSospeso) > 0; i++) System.Threading.Thread.Sleep(20);
+            for (int i = 0; i < maxMs / 20 && System.Threading.Volatile.Read(ref _inSospeso) > 0; i++) System.Threading.Thread.Sleep(20);
         }
     }
 }

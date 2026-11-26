@@ -575,6 +575,26 @@ namespace PosTouch.Core.Fiscale
         // RX (chiuso): OP(2) + "1" + CHG(9) + DATE(6) + TIME(4) + FRN(4)
         // RX (parziale): OP(2) + "0" + MIS(9)
 
+        /// <summary>
+        /// Esito di 1-084 finale. Codice 2 (carta in esaurimento) è solo un avviso: lo scontrino è chiuso,
+        /// come per OkAsync (prima diventava "incerto" e si chiedeva all'operatore senza motivo).
+        /// </summary>
+        private bool EsitoChiusura(EpsonResponse resp)
+        {
+            if (resp.Success) { ParseChiusura(resp); return true; }
+            if (resp.IsError && resp.ErrorCode == 2)
+            {
+                LogManager.Warning("Epson: chiusura con avviso carta in esaurimento");
+                UltimoErrore = "Attenzione: carta in esaurimento";
+                try { ParseChiusura(resp); } catch { }
+                return true;
+            }
+            UltimoErrore = resp.IsError
+                ? $"Errore stampante: {resp.ErrorMessage} (cod. {resp.ErrorCode})"
+                : $"Errore comunicazione: {resp.ErrorMessage}";
+            return false;
+        }
+
         public async Task<bool> ChiudiContantiAsync(int importoCent)
         {
             string descr = "CONTANTI";
@@ -585,11 +605,7 @@ namespace PosTouch.Core.Fiscale
                         + "1";                   // L/R: 1
 
             var resp = await SendAsync(1, 84, data);
-            if (resp.Success) ParseChiusura(resp);
-            else UltimoErrore = resp.IsError 
-                ? $"Errore stampante: {resp.ErrorMessage} (cod. {resp.ErrorCode})" 
-                : $"Errore comunicazione: {resp.ErrorMessage}";
-            return resp.Success;
+            return EsitoChiusura(resp);
         }
 
         public async Task<bool> ChiudiContantiAutoAsync()
@@ -598,11 +614,7 @@ namespace PosTouch.Core.Fiscale
             string descr = "CONTANTI";
             string data = Op2 + descr + Amt9(0) + "0" + "01" + "1";
             var resp = await SendAsync(1, 84, data);
-            if (resp.Success) ParseChiusura(resp);
-            else UltimoErrore = resp.IsError 
-                ? $"Errore stampante: {resp.ErrorMessage} (cod. {resp.ErrorCode})" 
-                : $"Errore comunicazione: {resp.ErrorMessage}";
-            return resp.Success;
+            return EsitoChiusura(resp);
         }
 
         public async Task<bool> ChiudiCartaCreditoAsync()
@@ -611,11 +623,7 @@ namespace PosTouch.Core.Fiscale
             string data = Op2 + descr + Amt9(0) + "2" + "01" + "1";
             //                                     TYPE=2 Credit Card
             var resp = await SendAsync(1, 84, data);
-            if (resp.Success) ParseChiusura(resp);
-            else UltimoErrore = resp.IsError 
-                ? $"Errore stampante: {resp.ErrorMessage} (cod. {resp.ErrorCode})" 
-                : $"Errore comunicazione: {resp.ErrorMessage}";
-            return resp.Success;
+            return EsitoChiusura(resp);
         }
 
         /// <summary>
@@ -670,18 +678,9 @@ namespace PosTouch.Core.Fiscale
             string data2 = Op2 + "CARTA" + Amt9(cartaCent) + "2" + "01" + "1";
             //                                                TYPE  IND   L/R=finale
             var resp2 = await SendAsync(1, 84, data2);
-            if (resp2.Success)
-            {
-                ParseChiusura(resp2); // Solo qui: formato completo con CHG+DATE+TIME+FRN
-            }
-            else
-            {
-                UltimoErrore = resp2.IsError 
-                    ? $"Errore stampante: {resp2.ErrorMessage} (cod. {resp2.ErrorCode})" 
-                    : $"Errore comunicazione: {resp2.ErrorMessage}";
-                LogManager.Error($"ChiudiMisto Epson: secondo tender carta fallito — {UltimoErrore}");
-            }
-            return resp2.Success;
+            bool ok = EsitoChiusura(resp2);   // solo qui il formato completo con CHG+DATE+TIME+FRN
+            if (!ok) LogManager.Error($"ChiudiMisto Epson: secondo tender carta fallito — {UltimoErrore}");
+            return ok;
         }
 
         /// <summary>

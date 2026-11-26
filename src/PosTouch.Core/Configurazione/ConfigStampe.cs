@@ -168,6 +168,29 @@ namespace PosTouch.Core.Configurazione
         }
 
         /// <summary>Impronta del contenuto (per capire se ci sono modifiche non salvate).</summary>
+        /// <summary>
+        /// Dopo aver tolto indirizzi da "Gestione porte TCP/IP": le stampe che li usavano restano senza stampante
+        /// (prima continuavano a uscire sull'indirizzo eliminato). Restituisce quante stampe sono state svuotate.
+        /// </summary>
+        public int TogliIndirizziAssenti()
+        {
+            var ammessi = new HashSet<string>(IndirizziIP.Select(x => x.Trim()), StringComparer.OrdinalIgnoreCase);
+            int tolti = 0;
+            void Controlla(ParametriStampa p)
+            {
+                if (p == null || string.IsNullOrWhiteSpace(p.IP)) return;
+                string ind = p.Porta == 9100 ? p.IP.Trim() : $"{p.IP.Trim()}:{p.Porta}";
+                if (ammessi.Contains(ind)) return;
+                p.IP = ""; tolti++;
+            }
+            foreach (var s in new[] { Base }.Concat(PerSala.Values))
+            {
+                Controlla(s.Preconto); Controlla(s.Riepiloghi);
+                foreach (var u in s.Uscite.Values) Controlla(u);
+            }
+            return tolti;
+        }
+
         public string Firma()
         {
             Normalizza();

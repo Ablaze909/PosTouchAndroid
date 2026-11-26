@@ -70,6 +70,7 @@ namespace PosTouch.Core.Vendita
         private readonly ArchivioVendite _archivio;
 
         private int _inCorso;                 // 1 = vendita in corso (blocca doppio tocco)
+        private string _txFooterTentativo;   // chiave dell'RT che ha già rifiutato TX_FOOTER una volta
         private bool _ultimaVenditaFallita;   // FIX #16 originale: recovery preventivo alla vendita successiva
         private string _txFooterConfiguratoPer;  // tipo|ip|porta del registratore già configurato
         private int _fase;                       // 0 = prima delle righe, 1 = righe inviate, 2 = chiusura inviata, 3 = chiuso
@@ -220,8 +221,15 @@ namespace PosTouch.Core.Vendita
             if (_txFooterConfiguratoPer != chiaveRT)
             {
                 // memorizzato solo se l'RT ha accettato: altrimenti si riprova alla vendita dopo
-                if (await rt.ConfiguraTxFooterJsonAsync()) _txFooterConfiguratoPer = chiaveRT;
-                else LogManager.Warning("Configurazione TX_FOOTER non accettata: si riprova alla prossima vendita");
+                // un solo nuovo tentativo dopo un rifiuto (RT che non lo supporta: non si rallenta ogni vendita)
+                bool ok = await rt.ConfiguraTxFooterJsonAsync();
+                if (ok || _txFooterTentativo == chiaveRT) _txFooterConfiguratoPer = chiaveRT;
+                if (!ok)
+                {
+                    _txFooterTentativo = chiaveRT;
+                    LogManager.Warning("Configurazione TX_FOOTER non accettata dall'RT");
+                    try { await rt.RecuperaScontrinoApertoAsync(); } catch { }   // azzera NAK/XOFF lasciati dal rifiuto
+                }
             }
 
             // ── OPERATORE ──
@@ -323,14 +331,29 @@ namespace PosTouch.Core.Vendita
             {
                 LogManager.Warning($"⚠️ TX_FOOTER non confermato: {footer.Errore ?? "risposta assente"}");
                 // nessuna conferma: se lo scontrino è ancora APERTO la chiusura non è avvenuta → si annulla e la vendita resta a video
-                bool aperto = false;
-                try { aperto = await rt.HaScontrinoApertoAsync(); }
+                bool? aperto = null;
+                try { aperto = await rt.StatoScontrinoDopoChiusuraAsync(); }
                 catch (Exception ex) { LogManager.Warning($"Verifica scontrino aperto: {ex.Message}"); }
-                if (aperto)
+                if (aperto == true)
                 {
                     LogManager.Error("RT: dopo la chiusura lo scontrino risulta ancora aperto");
                     return await AnnullaEdEsci(rt, "SCONTRINO NON CHIUSO",
                         "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato).\n\nLo scontrino è stato annullato: la vendita resta a video, riprova.");
+                }
+                if (aperto == null && cfg.TipoCassa == TipoCassaFiscale.RT3i)
+                {
+                    // né conferma né stato leggibile: non si dà per buono, decide l'operatore guardando l'RT
+                    LogManager.Error("RT: chiusura non confermata e stato scontrino non leggibile");
+                    _ultimaVenditaFallita = true;
+                    rt.Disconnect();
+                    return new EsitoVendita
+                    {
+                        Stato = StatoEsito.Incerto,
+                        Titolo = "VERIFICARE LO SCONTRINO",
+                        Messaggio = "Il registratore non ha confermato lo scontrino e non risponde (carta o coperchio?).\n\nControllare il registratore.",
+                        DaRegistrare = _ultimoDaRegistrare,
+                        RestoCent = restoFinale
+                    };
                 }
             }
 

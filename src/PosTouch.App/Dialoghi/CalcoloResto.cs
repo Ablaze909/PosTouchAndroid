@@ -290,7 +290,17 @@ namespace PosTouch.App.Dialoghi
 
         private void Scontrino()
         {
-            if (_input.Length > 0) ConfermaImporto();   // importo digitato senza ✓: vale come confermato
+            if (_input.Length > 0 && Valore() <= 0) _input = "";   // "0" o "0,": niente da confermare
+            if (_input.Length > 0)
+            {
+                ConfermaImporto();   // importo digitato senza ✓: vale come confermato
+                if (_input.Length > 0)
+                {
+                    // rifiutato (oltre il massimo contanti o carta già inserita): non si emette ignorando la cifra
+                    _ = MessaggioBox.Avviso("IMPORTO NON ACCETTATO", "L'importo digitato non è stato accettato.\n\nCorreggilo o cancellalo con C prima di emettere.");
+                    return;
+                }
+            }
             if (!PagamentoCompleto) return;
             int carta = Cent(_cartaImporto);
             int contanti = Cent(ParteContanti);

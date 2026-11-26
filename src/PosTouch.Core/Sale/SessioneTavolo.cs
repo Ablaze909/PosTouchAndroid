@@ -170,8 +170,10 @@ namespace PosTouch.Core.Sale
 
         // ══════════════ COMANDA (InviaComandaAutomaticaAsync del PC) ══════════════
 
+        /// <param name="righe">Righe da comandare: null = carrello; le righe vendute quando il tavolo si chiude pagato.</param>
         private List<JobStampa> PreparaComande(bool stampa, EsitoTavolo esito, IList<RigaScontrino> righe = null)
         {
+            bool chiusura = righe != null;   // tavolo che si chiude: ciò che non parte ora non partirà più
             righe ??= Carrello.Righe;
             var stampe = new List<JobStampa>();
             bool primaComanda = !righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata);
@@ -186,7 +188,7 @@ namespace PosTouch.Core.Sale
             }
 
             int progressivo = _archivio.ProssimoProgressivoComanda();
-            int coperti = Coperti();
+            int coperti = Coperti(righe);   // pagato subito: il carrello è già vuoto, i coperti sono nelle righe vendute
             List<RigaScontrino> flusso = Cfg.AbilitaPortate ? FlussoPortate(righe) : null;
             var gruppi = nuove.GroupBy(r => r.CentroProduzioneId).ToList();
             var nonInviate = new List<RigaScontrino>();
@@ -198,8 +200,11 @@ namespace PosTouch.Core.Sale
                 if (st == null)
                 {
                     // righe lasciate "da comandare": partiranno quando la stampante sarà impostata
-                    esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, comanda NON stampata ({g.Sum(r => r.Quantita):0.###} pz).\nGli articoli restano da comandare.");
-                    LogManager.Warning($"COMANDA {Titolo}: centro {nomeCentro} senza stampante");
+                    esito.Avvisi.Add(chiusura
+                        ? $"{nomeCentro}: nessuna stampante impostata, comanda NON stampata ({g.Sum(r => r.Quantita):0.###} pz).\nIl tavolo è chiuso: AVVISA A VOCE il reparto:\n" +
+                          string.Join("\n", g.Select(r => $"• {r.Quantita:0.###} x {r.Descrizione}"))
+                        : $"{nomeCentro}: nessuna stampante impostata, comanda NON stampata ({g.Sum(r => r.Quantita):0.###} pz).\nGli articoli restano da comandare.");
+                    LogManager.Warning($"COMANDA {Titolo}: centro {nomeCentro} senza stampante" + (chiusura ? " (tavolo pagato: articoli NON inviati)" : ""));
                     nonInviate.AddRange(g);
                     continue;
                 }
@@ -431,11 +436,11 @@ namespace PosTouch.Core.Sale
         public int NumeroCoperti => Coperti();
 
         /// <summary>Coperti = quantità della riga "coperto" della sala.</summary>
-        private int Coperti()
+        private int Coperti(IEnumerable<RigaScontrino> righe = null)
         {
             int id = Sala?.CopertoProdottoId ?? 0;
             if (id <= 0) return 0;
-            return (int)Carrello.Righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.ProdottoId == id).Sum(r => r.Quantita);
+            return (int)(righe ?? Carrello.Righe).Where(r => r.Tipo == TipoRiga.Prodotto && r.ProdottoId == id).Sum(r => r.Quantita);
         }
 
         private void Sveglia(List<JobStampa> stampe) { if (stampe.Count > 0) _spooler.Sveglia(); }

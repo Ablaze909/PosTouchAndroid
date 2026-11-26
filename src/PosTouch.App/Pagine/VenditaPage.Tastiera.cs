@@ -51,7 +51,9 @@ namespace PosTouch.App.Pagine
         /// <summary>Al tavolo, C su un articolo già in cucina lo storna: si chiede prima (un tocco sbagliato stamperebbe uno storno).</summary>
         private async Task<bool> ConfermaStornoAsync(IEnumerable<RigaScontrino> righe)
         {
-            var comandate = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Comandata).ToList();
+            // un gusto o una variante cancellati portano via il loro articolo (Carrello.Rimuovi risale al padre)
+            var comandate = righe.Select(r => r.Tipo == TipoRiga.Prodotto ? r : Carrello.PadreDi(r) ?? r)
+                                 .Where(r => r.Tipo == TipoRiga.Prodotto && r.Comandata).Distinct().ToList();
             if (_sessione == null || comandate.Count == 0) return true;
             string elenco = string.Join("\n", comandate.Take(5).Select(r => $"• {r.Quantita:0.##} x {r.Descrizione}")) + (comandate.Count > 5 ? "\n…" : "");
             return await MessaggioBox.Conferma("STORNO ARTICOLI",
