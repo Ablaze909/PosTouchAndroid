@@ -33,6 +33,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # Test automatici della logica: se uno fallisce l'APK NON viene prodotto
+      - name: Test automatici
+        run: dotnet run --project tests/PosTouch.Tests/PosTouch.Tests.csproj -c Release
+
       - name: Installa workload Android
         run: dotnet workload install maui-android
 
