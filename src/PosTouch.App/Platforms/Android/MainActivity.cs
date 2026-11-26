@@ -14,7 +14,7 @@ namespace PosTouch.App
               ScreenOrientation = ScreenOrientation.SensorLandscape,
               ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode |
                                      ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density |
-                                     ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
+                                     ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden | ConfigChanges.Navigation)]
     public class MainActivity : MauiAppCompatActivity
     {
         /// <summary>
@@ -30,6 +30,7 @@ namespace PosTouch.App
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            ProteggiDaErrori();
             // Cassa: lo schermo non deve spegnersi durante il servizio
             Window?.AddFlags(WindowManagerFlags.KeepScreenOn);
             SchermoIntero();
@@ -37,6 +38,35 @@ namespace PosTouch.App
             // Quando si chiude la tastiera a schermo Android rimostra le barre: le rinascondiamo
             if (Window?.DecorView?.ViewTreeObserver is ViewTreeObserver osservatore)
                 osservatore.GlobalLayout += (s, e) => ControllaBarre();
+        }
+
+        private static bool _protetto;
+
+        /// <summary>
+        /// Rete di sicurezza: un errore imprevisto in un tasto non deve chiudere la cassa.
+        /// Viene scritto nel log e mostrato all'operatore; lo scontrino a video resta com'è.
+        /// </summary>
+        private static void ProteggiDaErrori()
+        {
+            if (_protetto) return;
+            _protetto = true;
+            Android.Runtime.AndroidEnvironment.UnhandledExceptionRaiser += (s, e) =>
+            {
+                PosTouch.Core.Diagnostica.LogManager.Error($"ERRORE IMPREVISTO: {e.Exception}");
+                e.Handled = true;
+                try
+                {
+                    Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(async () =>
+                        await PosTouch.App.Dialoghi.MessaggioBox.Errore("ERRORE IMPREVISTO",
+                            "Si è verificato un errore imprevisto (registrato nel log).\n\n" + e.Exception.Message));
+                }
+                catch { }
+            };
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                PosTouch.Core.Diagnostica.LogManager.Error($"Errore in attività di fondo: {e.Exception}");
+                e.SetObserved();
+            };
         }
 
         protected override void OnResume()

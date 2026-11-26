@@ -26,6 +26,7 @@ namespace PosTouch.App.Dialoghi
         private decimal _cartaImporto;
         private string _input = "";
         private bool _modoCarta;
+        private const decimal MaxContanti = 99999.99m;
 
         private readonly Label _mancano, _importo, _riepilogo, _resto;
         private readonly Border _boxMancano, _boxRiepilogo, _boxResto;
@@ -233,7 +234,7 @@ namespace PosTouch.App.Dialoghi
 
         private void Taglio(decimal valore)
         {
-            if (_cartaImporto > 0) return;
+            if (_cartaImporto > 0 || _contantiRicevuti + valore > MaxContanti) return;
             _contantiRicevuti += valore;
             _modoCarta = false;
             Aggiorna();
@@ -242,11 +243,13 @@ namespace PosTouch.App.Dialoghi
         private void Cifra(string t)
         {
             if (_cartaImporto > 0 && !_modoCarta) return;
+            string prima = _input;
             if (t == ",") { if (!_input.Contains(",")) _input += _input.Length == 0 ? "0," : ","; }
             else if (t == "00") { if (_input.Length > 0 && _input != "0") _input += "00"; }
             else _input = _input == "0" && t != "0" ? t : _input + t;
             int virgola = _input.IndexOf(',');
             if (virgola >= 0 && _input.Length - virgola > 3) _input = _input.Substring(0, virgola + 3);
+            if ((virgola < 0 ? _input.Length : virgola) > 5) _input = prima;   // max € 99.999,99
             AggiornaImporto();
         }
 
@@ -278,7 +281,7 @@ namespace PosTouch.App.Dialoghi
             }
             else
             {
-                if (_cartaImporto > 0) return;
+                if (_cartaImporto > 0 || _contantiRicevuti + importo > MaxContanti) return;
                 _contantiRicevuti += importo;
                 _input = "";
             }

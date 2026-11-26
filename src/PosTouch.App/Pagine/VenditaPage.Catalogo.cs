@@ -163,7 +163,12 @@ namespace PosTouch.App.Pagine
 
             bool accorpa = Cfg.AccorpaRigheVideo && !Cfg.BloccoModificaQuantita && !p.VenditaAPeso;
             var riga = Carrello.Aggiungi(p, quantita, prezzo, accorpa);
-            if (riga != null) ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
+            if (riga == null)
+            {
+                await MessaggioBox.Avviso("ARTICOLO NON AGGIUNTO", $"{p.Descrizione}\n\n{Carrello.UltimoErrore}");
+                return;
+            }
+            ListaRighe.ScrollTo(riga, position: ScrollToPosition.End, animate: false);
         }
 
         private void AggiungiDaBarcode(string codice)

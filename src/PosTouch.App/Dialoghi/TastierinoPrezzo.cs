@@ -75,16 +75,23 @@ namespace PosTouch.App.Dialoghi
 
         private void Premi(string t)
         {
+            if (_modo == ModoTastierino.Codice)
+            {
+                if (_input.Length + t.Length <= 20) _input += t;   // barcode, reparto, password
+                Aggiorna();
+                return;
+            }
+            // Importi e quantità: max 5 cifre intere (99.999), 2 decimali per gli euro, 3 per i pesi
+            int virgola = _input.IndexOf(',');
+            int maxDecimali = _modo == ModoTastierino.Euro ? 2 : 3;
             if (t == ",")
             {
-                if (!_input.Contains(",")) _input += _input.Length == 0 ? "0," : ",";
+                if (virgola < 0) _input += _input.Length == 0 ? "0," : ",";
             }
-            else if (_input.Length < 12)
+            else if (virgola < 0 ? _input.Length < 5 : _input.Length - virgola - 1 < maxDecimali)
             {
-                _input += t;
+                _input = _input == "0" ? t : _input + t;
             }
-            int virgola = _input.IndexOf(',');
-            if (virgola >= 0 && _input.Length - virgola > 3) _input = _input.Substring(0, virgola + 3);
             Aggiorna();
         }
 

@@ -34,13 +34,17 @@ namespace PosTouch.Core.Vendita
 
         public void Premi(string tasto)
         {
+            // Limiti: 5 cifre intere (max 99.999) e 3 decimali (pesi): oltre, il tasto viene ignorato.
+            // Evita numeri enormi che manderebbero in errore i calcoli (e l'app).
+            int virgola = _input.IndexOf(',');
             if (tasto == "," || tasto == "." || tasto == "•")
             {
-                if (!_input.Contains(",")) _input += ",";
+                if (virgola < 0) _input += _input.Length == 0 ? "0," : ",";
             }
-            else if (_input.Length < 9)
+            else if (tasto.Length == 1 && char.IsDigit(tasto[0]))
             {
-                _input += tasto;
+                bool spazio = virgola < 0 ? _input.Length < 5 : _input.Length - virgola - 1 < 3;
+                if (spazio) _input = _input == "0" ? tasto : _input + tasto;
             }
 
             if (ProvaNumero(_input, out decimal q))
@@ -77,7 +81,7 @@ namespace PosTouch.Core.Vendita
         public EsitoTastoEuro Euro()
         {
             if (_input.Length == 0) return EsitoTastoEuro.Vuoto;
-            if (!ProvaNumero(_input, out decimal prezzo) || prezzo <= 0) return EsitoTastoEuro.NonValido;
+            if (!ProvaNumero(_input, out decimal prezzo) || prezzo <= 0 || Cent(prezzo) <= 0) return EsitoTastoEuro.NonValido;
             PrezzoPersonalizzato = prezzo;
             _input = "";
             if (!QuantitaBloccata) QuantitaCorrente = 1;

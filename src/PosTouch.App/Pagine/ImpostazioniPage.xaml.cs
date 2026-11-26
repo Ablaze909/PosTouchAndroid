@@ -228,6 +228,10 @@ namespace PosTouch.App.Pagine
 
         private async void OnImportaCatalogo(object sender, EventArgs e)
         {
+            if (ContestoCassa.Catalogo.TuttiProdotti.Count > 0 &&
+                !await MessaggioBox.Conferma("IMPORTA CATALOGO",
+                    "Il catalogo attuale del tablet (categorie e articoli) verrà SOSTITUITO da quello del file scelto.\n\nContinuare?"))
+                return;
             try
             {
                 var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Scegli il file pos.db" });

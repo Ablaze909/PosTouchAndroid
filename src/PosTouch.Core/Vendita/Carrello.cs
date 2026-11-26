@@ -22,6 +22,29 @@ namespace PosTouch.Core.Vendita
         /// <summary>Notifica ogni modifica (per aggiornare totale e pezzi).</summary>
         public event Action Cambiato;
 
+        /// <summary>Quantità massima per riga (come la modifica quantità del PC: 1–999).</summary>
+        public const decimal MaxQuantita = 999;
+        /// <summary>Importo massimo di una riga: € 99.999,99.</summary>
+        public const int MaxImportoRigaCent = 9_999_999;
+
+        /// <summary>Motivo dell'ultimo rifiuto di Aggiungi/ImpostaQuantita/CambiaPrezzo (null = nessun errore).</summary>
+        public string UltimoErrore { get; private set; }
+
+        /// <summary>Controlla quantità e importo di una riga prima di accettarla.</summary>
+        public bool RigaAmmessa(int prezzoCent, decimal quantita)
+        {
+            UltimoErrore = null;
+            if (quantita <= 0 || quantita > MaxQuantita)
+                UltimoErrore = $"La quantità deve essere tra 1 e {MaxQuantita:0}.";
+            else if (prezzoCent <= 0)
+                UltimoErrore = "Il prezzo deve essere maggiore di zero.";
+            else if (prezzoCent * quantita > MaxImportoRigaCent)
+                UltimoErrore = "Importo della riga troppo alto (massimo € 99.999,99).";
+            else if (Math.Round(prezzoCent * quantita, MidpointRounding.AwayFromZero) < 1)
+                UltimoErrore = "Importo della riga inferiore a un centesimo.";
+            return UltimoErrore == null;
+        }
+
         public bool Vuoto => Righe.Count == 0;
         public bool HaArticoli => Righe.Any(r => r.Tipo == TipoRiga.Prodotto);
         public bool HaSconto => Righe.Any(r => r.Tipo == TipoRiga.Sconto);
@@ -40,9 +63,9 @@ namespace PosTouch.Core.Vendita
         /// <param name="accorpa">true = se c'è già lo stesso articolo allo stesso prezzo aumenta la quantità</param>
         public RigaScontrino Aggiungi(Prodotto p, decimal quantita, int? prezzoCent, bool accorpa)
         {
-            if (p == null || quantita <= 0) return null;
+            if (p == null) return null;
             int prezzo = prezzoCent ?? p.PrezzoCentesimi;
-            if (prezzo <= 0) return null;
+            if (!RigaAmmessa(prezzo, quantita)) return null;
 
             if (accorpa)
             {
@@ -51,6 +74,7 @@ namespace PosTouch.Core.Vendita
                                                        && r.PrezzoCentesimi == prezzo);
                 if (esistente != null)
                 {
+                    if (!RigaAmmessa(prezzo, esistente.Quantita + quantita)) return null;
                     esistente.Quantita += quantita;
                     Aggiornato();
                     return esistente;
@@ -74,18 +98,20 @@ namespace PosTouch.Core.Vendita
             return riga;
         }
 
-        public void ImpostaQuantita(RigaScontrino riga, decimal quantita)
+        public bool ImpostaQuantita(RigaScontrino riga, decimal quantita)
         {
-            if (riga == null || riga.Tipo != TipoRiga.Prodotto || quantita <= 0) return;
+            if (riga == null || riga.Tipo != TipoRiga.Prodotto || !RigaAmmessa(riga.PrezzoCentesimi, quantita)) return false;
             riga.Quantita = quantita;
             Aggiornato();
+            return true;
         }
 
-        public void CambiaPrezzo(RigaScontrino riga, int prezzoCent)
+        public bool CambiaPrezzo(RigaScontrino riga, int prezzoCent)
         {
-            if (riga == null || riga.Tipo != TipoRiga.Prodotto || prezzoCent <= 0) return;
+            if (riga == null || riga.Tipo != TipoRiga.Prodotto || !RigaAmmessa(prezzoCent, riga.Quantita)) return false;
             riga.PrezzoCentesimi = prezzoCent;
             Aggiornato();
+            return true;
         }
 
         /// <summary>Elimina le righe indicate. Una riga del blocco sconto elimina tutto il blocco.</summary>

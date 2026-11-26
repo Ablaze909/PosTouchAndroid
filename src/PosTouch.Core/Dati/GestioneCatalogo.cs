@@ -48,8 +48,11 @@ namespace PosTouch.Core.Dati
                 using var cmd = conn.CreateCommand();
                 if (c.Id == 0)
                 {
-                    cmd.CommandText = @"INSERT INTO Categorie (Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva)
-                                        VALUES ($n, $rep, $iva, $col, $colT, $ico, (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie), $att)";
+                    // Id esplicito sotto 9000: nel pos.db del PC le categorie tabacchi partono da 9000 e
+                    // l'autoincremento darebbe 9001, 9002... (categoria nuova invisibile nella vendita)
+                    cmd.CommandText = @"INSERT INTO Categorie (Id, Nome, RepartoFiscale, AliquotaIVA, Colore, ColoreTestoCategoria, Icona, Ordine, Attiva)
+                                        VALUES ((SELECT IFNULL(MAX(Id),0)+1 FROM Categorie WHERE Id < 9000), $n, $rep, $iva, $col, $colT, $ico,
+                                                (SELECT IFNULL(MAX(Ordine),0)+1 FROM Categorie WHERE Id < 9000), $att)";
                 }
                 else
                 {

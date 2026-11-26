@@ -50,8 +50,8 @@ namespace PosTouch.App.Pagine
             }
             var q = await TastierinoPrezzo.ChiediQuantita("🔢 QUANTITÀ", riga.Quantita);
             if (q == null) return;
-            if (q > 0 && q <= 999) Carrello.ImpostaQuantita(riga, q.Value);
-            else await MessaggioBox.Avviso("QUANTITÀ NON VALIDA", "La quantità deve essere tra 1 e 999");
+            if (!Carrello.ImpostaQuantita(riga, q.Value))
+                await MessaggioBox.Avviso("QUANTITÀ NON VALIDA", Carrello.UltimoErrore);
         }
 
         private async Task ModificaPrezzoAsync(RigaScontrino riga)
@@ -63,8 +63,8 @@ namespace PosTouch.App.Pagine
             }
             var p = await TastierinoPrezzo.ChiediEuro("💶 PREZZO UNITARIO", riga.PrezzoEuro);
             if (p == null) return;
-            if (p > 0) Carrello.CambiaPrezzo(riga, (int)Math.Round(p.Value * 100, MidpointRounding.AwayFromZero));
-            else await MessaggioBox.Avviso("PREZZO NON VALIDO", "Il prezzo deve essere maggiore di zero");
+            if (!Carrello.CambiaPrezzo(riga, (int)Math.Round(p.Value * 100, MidpointRounding.AwayFromZero)))
+                await MessaggioBox.Avviso("PREZZO NON VALIDO", Carrello.UltimoErrore);
         }
 
         /// <summary>Tocco su 📋 SCONTRINO: lista espansa (nasconde la tastiera) / normale.</summary>
