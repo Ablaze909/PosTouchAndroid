@@ -92,6 +92,9 @@ namespace PosTouch.App.Pagine
             _password = i.PinImpostazioni ?? "";
             AggiornaPassword();
             CaricaOperatori();
+            ChkFondoCassa.IsChecked = i.ChiediFondoCassa;
+            ChkMovimentiCassa.IsChecked = i.AbilitaMovimentiCassa;
+            ChkFondoLasciato.IsChecked = i.ChiediFondoLasciato;
 
             CampoTimeoutConn.Text = i.TimeoutConnessioneRT_ms.ToString();
             CampoTimeoutRisp.Text = i.TimeoutRispostaRT_ms.ToString();
@@ -152,6 +155,9 @@ namespace PosTouch.App.Pagine
             n.DimensioniTastiCategorie = RbPiccola.IsChecked ? "Piccola" : RbGrande.IsChecked ? "Grande" : "Media";
             n.FontSizeCategorie = _fontCategorie;
             n.PinImpostazioni = _password;
+            n.ChiediFondoCassa = ChkFondoCassa.IsChecked;
+            n.AbilitaMovimentiCassa = ChkMovimentiCassa.IsChecked;
+            n.ChiediFondoLasciato = ChkFondoLasciato.IsChecked;
             n.TimeoutConnessioneRT_ms = tc;
             n.TimeoutRispostaRT_ms = tr;
             n.LivelloLog = RbLogError.IsChecked ? "ERROR" : RbLogWarn.IsChecked ? "WARN" : RbLogInfo.IsChecked ? "INFO" : "DEBUG";
@@ -164,7 +170,8 @@ namespace PosTouch.App.Pagine
             ChkMostraStrumenti.IsChecked, ChkPrezzoZero.IsChecked, ChkBloccoQuantita.IsChecked, ChkVirgolaImplicita.IsChecked, ChkRigaSingola.IsChecked, ChkBilancia.IsChecked, ChkVarScontrino.IsChecked, ChkVarConto.IsChecked, ChkVarGruppi.IsChecked, ChkRigaPiuMeno.IsChecked, ChkTermica.IsChecked,
             CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
-            CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked);
+            CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked,
+            ChkFondoCassa.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked);
 
     }
 }

@@ -25,6 +25,7 @@ namespace PosTouch.App.Pagine
         {
             bool acceso = ContestoCassa.Impostazioni.AbilitaGestioneOperatori;
             BtnGestioneOperatori.IsVisible = acceso;
+            OpzioniTurno.IsVisible = acceso;   // fondo e movimenti esistono solo con i turni
             CardPassword.Opacity = acceso ? 0.5 : 1;
             NotaOperatori.Text = acceso
                 ? "Accesa: per vendere serve il PIN all'apertura del turno; Back office, Impostazioni, sconti, prezzi, annulli, storni e chiusura Z seguono i permessi dell'operatore. La password amministratore qui sopra non viene usata."

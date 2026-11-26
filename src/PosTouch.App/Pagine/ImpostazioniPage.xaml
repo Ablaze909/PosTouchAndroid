@@ -239,6 +239,21 @@
                             <Label Text="Gestione operatori (PIN all'apertura del turno, permessi)" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" />
                         </HorizontalStackLayout>
                         <Label x:Name="NotaOperatori" FontSize="13" TextColor="#607D8B" />
+                        <!-- opzioni di cassa del turno (salvate con 💾 SALVA, valgono con la gestione operatori) -->
+                        <VerticalStackLayout x:Name="OpzioniTurno" Spacing="2" Margin="0,4,0,4">
+                            <HorizontalStackLayout>
+                                <CheckBox x:Name="ChkFondoCassa" Color="#4527A0" />
+                                <Label Text="💶 Chiedi il fondo cassa all'apertura del turno" FontSize="15" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout>
+                                <CheckBox x:Name="ChkMovimentiCassa" Color="#4527A0" />
+                                <Label Text="💸 Prelievi e versamenti di contanti durante il turno (menu 👤)" FontSize="15" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout>
+                                <CheckBox x:Name="ChkFondoLasciato" Color="#4527A0" />
+                                <Label Text="📥 Alla chiusura indica il fondo lasciato per il turno dopo" FontSize="15" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
                         <Button x:Name="BtnGestioneOperatori" Text="👥 GESTIONE OPERATORI" BackgroundColor="#4527A0" TextColor="White" FontAttributes="Bold"
                                 HeightRequest="52" CornerRadius="6" Clicked="OnGestioneOperatori" />
                     </VerticalStackLayout>

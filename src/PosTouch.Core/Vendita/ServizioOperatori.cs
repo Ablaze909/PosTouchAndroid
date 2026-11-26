@@ -92,23 +92,51 @@ namespace PosTouch.Core.Vendita
             }
         }
 
-        /// <summary>Riepilogo del turno (incassi fino ad adesso, senza chiuderlo).</summary>
-        public RiepilogoTurno Riepilogo(Turno t) => _vendite.Riepilogo(t);
+        /// <summary>Riepilogo del turno (incassi fino ad adesso, senza chiuderlo), con fondo e movimenti di cassa.</summary>
+        public RiepilogoTurno Riepilogo(Turno t)
+        {
+            var r = _vendite.Riepilogo(t);
+            r.Movimenti = _archivio.Movimenti(t.Id);
+            return r;
+        }
+
+        /// <summary>Fondo cassa del turno corrente (all'apertura).</summary>
+        public void ImpostaFondo(int fondoCent)
+        {
+            lock (_lock)
+            {
+                if (TurnoCorrente == null) throw new InvalidOperationException("Nessun turno aperto.");
+                _archivio.ImpostaFondoIniziale(TurnoCorrente.Id, fondoCent);
+                TurnoCorrente.FondoInizialeCent = fondoCent;
+            }
+        }
+
+        public int FondoProposto() => _archivio.FondoProposto();
+
+        /// <summary>Prelievo o versamento sul turno corrente, registrato con il nome dell'operatore.</summary>
+        public MovimentoCassa Movimento(TipoMovimento tipo, int importoCent, string causale)
+        {
+            lock (_lock)
+            {
+                if (TurnoCorrente == null || !PuoLavorare) throw new InvalidOperationException("Nessun turno aperto.");
+                return _archivio.AggiungiMovimento(TurnoCorrente.Id, tipo, importoCent, causale, Corrente?.Nome);
+            }
+        }
 
         /// <summary>
         /// Chiude un turno (il corrente o quello rimasto aperto di un altro). Chi chiude deve essere il suo operatore
         /// o un amministratore. Restituisce il riepilogo con i contanti contati (null = non contati).
         /// </summary>
-        public RiepilogoTurno Chiudi(Turno t, Operatore chi, int? contantiContatiCent)
+        public RiepilogoTurno Chiudi(Turno t, Operatore chi, int? contantiContatiCent, int? fondoLasciatoCent = null)
         {
             if (t == null) throw new ArgumentNullException(nameof(t));
             if (chi == null || (chi.Id != t.OperatoreId && !chi.Amministratore))
                 throw new UnauthorizedAccessException($"Il turno di {t.OperatoreNome} lo può chiudere solo lui o un amministratore.");
             lock (_lock)
             {
-                var chiuso = _archivio.ChiudiTurno(t.Id, contantiContatiCent) ?? t;
+                var chiuso = _archivio.ChiudiTurno(t.Id, contantiContatiCent, fondoLasciatoCent) ?? t;
                 if (TurnoCorrente?.Id == t.Id) { TurnoCorrente = null; Corrente = null; }
-                var r = _vendite.Riepilogo(chiuso);
+                var r = Riepilogo(chiuso);
                 LogManager.Info($"Riepilogo turno {chiuso.OperatoreNome}: {r.Scontrini} scontrini €{r.TotaleScontriniCent / 100m:F2}, contanti €{r.ContantiCent / 100m:F2}, carta €{r.CartaCent / 100m:F2}" +
                                 (r.DifferenzaCent is int d ? $", differenza contanti €{d / 100m:F2}" : "") + $" (chiuso da {chi.Nome})");
                 return r;

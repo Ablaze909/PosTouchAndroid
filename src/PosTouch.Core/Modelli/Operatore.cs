@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PosTouch.Core.Modelli
 {
@@ -62,8 +63,26 @@ namespace PosTouch.Core.Modelli
         public DateTime Apertura { get; set; }
         public DateTime? Chiusura { get; set; }
         public StatoTurno Stato { get; set; }
-        /// <summary>Contanti contati alla chiusura (null = non contati).</summary>
+        /// <summary>Contanti contati alla chiusura (null = non contati). Con il fondo cassa: tutto il cassetto, fondo compreso.</summary>
         public int? ContantiContatiCent { get; set; }
+        /// <summary>Fondo cassa all'apertura (null = non chiesto).</summary>
+        public int? FondoInizialeCent { get; set; }
+        /// <summary>Fondo lasciato nel cassetto per il turno dopo (null = non indicato).</summary>
+        public int? FondoLasciatoCent { get; set; }
+    }
+
+    public enum TipoMovimento { Prelievo = 0, Versamento = 1 }
+
+    /// <summary>Contanti tolti o messi nel cassetto durante il turno (es. 200 € per la banca, spiccioli).</summary>
+    public class MovimentoCassa
+    {
+        public long Id { get; set; }
+        public long TurnoId { get; set; }
+        public DateTime DataOra { get; set; }
+        public TipoMovimento Tipo { get; set; }
+        public int ImportoCent { get; set; }
+        public string Causale { get; set; } = "";
+        public string OperatoreNome { get; set; } = "";
     }
 
     /// <summary>Riepilogo di un turno: incassi dell'operatore tra apertura e chiusura.</summary>
@@ -76,7 +95,14 @@ namespace PosTouch.Core.Modelli
         public int CartaCent { get; set; }
         public int Conti { get; set; }
         public int TotaleContiCent { get; set; }
-        /// <summary>Differenza contati − contanti incassati (null se non contati). Positiva = eccedenza.</summary>
-        public int? DifferenzaCent => Turno?.ContantiContatiCent is int c ? c - ContantiCent : (int?)null;
+        public List<MovimentoCassa> Movimenti { get; set; } = new List<MovimentoCassa>();
+        public int PrelieviCent => Movimenti.Where(m => m.Tipo == TipoMovimento.Prelievo).Sum(m => m.ImportoCent);
+        public int VersamentiCent => Movimenti.Where(m => m.Tipo == TipoMovimento.Versamento).Sum(m => m.ImportoCent);
+        /// <summary>Contanti che devono esserci nel cassetto: fondo + incassi in contanti + versamenti − prelievi.</summary>
+        public int ContantiAttesiCent => (Turno?.FondoInizialeCent ?? 0) + ContantiCent + VersamentiCent - PrelieviCent;
+        /// <summary>Differenza contati − attesi (null se non contati). Positiva = eccedenza, negativa = ammanco.</summary>
+        public int? DifferenzaCent => Turno?.ContantiContatiCent is int c ? c - ContantiAttesiCent : (int?)null;
+        /// <summary>Contanti da togliere lasciando il fondo per il turno dopo (null se non contati o fondo non indicato).</summary>
+        public int? DaVersareCent => Turno?.ContantiContatiCent is int c && Turno.FondoLasciatoCent is int f ? c - f : (int?)null;
     }
 }

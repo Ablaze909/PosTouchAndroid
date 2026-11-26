@@ -66,9 +66,22 @@ namespace PosTouch.Tests
                 try { s.Chiudi(turno, luigi, null); } catch (UnauthorizedAccessException) { negato = true; }
                 Ok(negato, "Luigi non chiude il turno di Mario");
                 Ok(Rifiuta(() => arch.Elimina(mario.Id)), "operatore con turno aperto non si elimina");
-                var r = s.Chiudi(turno, mario, 450);
+                // fondo cassa e movimenti: attesi = 100,00 + 5,00 incassati + 5,00 versati − 20,00 prelevati = 90,00
+                s.ImpostaFondo(10000);
+                s.Movimento(TipoMovimento.Prelievo, 2000, "BANCA");
+                s.Movimento(TipoMovimento.Versamento, 500, "SPICCIOLI");
+                Ok(Rifiuta(() => s.Movimento(TipoMovimento.Prelievo, 0, "")), "movimento a zero rifiutato");
+                var prima = s.Riepilogo(turno);
+                Uguale(9000, prima.ContantiAttesiCent, "contanti attesi con fondo e movimenti");
+                var r = s.Chiudi(turno, mario, 8950, 5000);
                 Ok(r.Scontrini == 2 && r.TotaleScontriniCent == 800 && r.ContantiCent == 500 && r.CartaCent == 300, "riepilogo del turno di Mario");
-                Uguale(-50, r.DifferenzaCent, "contati 4,50 su 5,00: ammanco 0,50");
+                Uguale(-50, r.DifferenzaCent, "contati 89,50 su 90,00: ammanco 0,50");
+                Uguale(3950, r.DaVersareCent, "lasciati 50,00 di fondo: da togliere 39,50");
+                Uguale(2, r.Movimenti.Count, "movimenti nel riepilogo");
+                Uguale(5000, s.FondoProposto(), "il prossimo turno propone il fondo lasciato");
+                bool chiusoRifiuta = false;
+                try { arch.AggiungiMovimento(turno.Id, TipoMovimento.Prelievo, 100, "", "MARIO"); } catch (InvalidOperationException) { chiusoRifiuta = true; }
+                Ok(chiusoRifiuta, "nessun movimento su un turno chiuso");
                 Ok(s.TurnoAttivo() == null && !s.PuoLavorare, "turno chiuso");
 
                 var a4 = s.Accedi("5678");

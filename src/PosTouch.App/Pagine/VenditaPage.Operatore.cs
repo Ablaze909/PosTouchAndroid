@@ -41,29 +41,40 @@ namespace PosTouch.App.Pagine
             if (Occupata || CombinazioneAperta()) return;
             var op = ContestoCassa.Operatori;
             if (!op.Abilitata || op.TurnoCorrente == null) return;
-            var voci = new List<string> { "📊 RIEPILOGO TURNO", "⏸ SOSPENDI TURNO", "🔒 CHIUDI TURNO" };
-            if (op.Corrente?.Amministratore == true) voci.Add("👥 GESTIONE OPERATORI");
+            const string Riepilogo = "📊 RIEPILOGO TURNO", Prelievo = "💸 PRELIEVO", Versamento = "💰 VERSAMENTO",
+                         Sospendi = "⏸ SOSPENDI TURNO", ChiudiTurno = "🔒 CHIUDI TURNO", Gestione = "👥 GESTIONE OPERATORI";
+            var voci = new List<string> { Riepilogo };
+            if (Cfg.AbilitaMovimentiCassa) { voci.Add(Prelievo); voci.Add(Versamento); }
+            voci.Add(Sospendi); voci.Add(ChiudiTurno);
+            if (op.Corrente?.Amministratore == true) voci.Add(Gestione);
             int k = await SceltaBox.Testi($"👤 {op.Corrente?.Nome} — turno dalle {op.TurnoCorrente.Apertura:HH:mm}", voci, 2);
+            if (k < 0 || k >= voci.Count) return;
             try
             {
-                switch (k)
+                switch (voci[k])
                 {
-                    case 0:
+                    case Riepilogo:
                         await MessaggioBox.Info("📊 RIEPILOGO TURNO", Turni.TestoRiepilogo(op.Riepilogo(op.TurnoCorrente)));
                         break;
-                    case 1:
+                    case Prelievo:
+                        await Turni.MovimentoAsync(TipoMovimento.Prelievo);
+                        break;
+                    case Versamento:
+                        await Turni.MovimentoAsync(TipoMovimento.Versamento);
+                        break;
+                    case Sospendi:
                         if (!await PuoLasciareAsync("sospendere")) return;
                         AzzeraStatoOperatore();
                         op.Sospendi();
                         await Navigazione.TornaAllInizio(this);
                         break;
-                    case 2:
+                    case ChiudiTurno:
                         if (!await PuoLasciareAsync("chiudere")) return;
                         AzzeraStatoOperatore();
                         if (await Turni.ChiudiAsync(op.TurnoCorrente, op.Corrente))
                             await Navigazione.TornaAllInizio(this);
                         break;
-                    case 3:
+                    case Gestione:
                         var admin = await Accesso.VerificaAmministratoreAsync("GESTIONE OPERATORI");
                         if (admin != null) await Navigazione.Apri(this, () => new OperatoriPage(admin));
                         break;

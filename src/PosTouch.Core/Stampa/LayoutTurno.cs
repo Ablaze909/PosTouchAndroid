@@ -25,6 +25,12 @@ namespace PosTouch.Core.Stampa
             p.Testo(EscPos.DueColonne("  di cui carta", E(r.CartaCent)));
             if (r.Conti > 0) p.Testo(EscPos.DueColonne($"Conti non fiscali ({r.Conti})", E(r.TotaleContiCent)));
             p.Linea('-');
+            // cassetto: fondo + incassi in contanti + versamenti − prelievi
+            if (t.FondoInizialeCent is int fondo) p.Testo(EscPos.DueColonne("Fondo cassa iniziale", E(fondo)));
+            foreach (var m in r.Movimenti)
+                p.Testo(EscPos.DueColonne($"{(m.Tipo == TipoMovimento.Prelievo ? "Prelievo" : "Versamento")} {m.DataOra:HH:mm} {m.Causale}".Trim(),
+                                          (m.Tipo == TipoMovimento.Prelievo ? "- " : "+ ") + E(m.ImportoCent)));
+            p.Grassetto(true).Testo(EscPos.DueColonne("Contanti attesi", E(r.ContantiAttesiCent))).Grassetto(false);
             if (t.ContantiContatiCent is int contati)
             {
                 p.Testo(EscPos.DueColonne("Contanti contati", E(contati)));
@@ -32,6 +38,11 @@ namespace PosTouch.Core.Stampa
                 p.Grassetto(true).Testo(EscPos.DueColonne(d == 0 ? "Cassa in pari" : d > 0 ? "ECCEDENZA" : "AMMANCO", E(Math.Abs(d)))).Grassetto(false);
             }
             else p.Testo("Contanti non contati");
+            if (t.FondoLasciatoCent is int lasciato)
+            {
+                p.Testo(EscPos.DueColonne("Fondo lasciato", E(lasciato)));
+                if (r.DaVersareCent is int dv) p.Grassetto(true).Testo(EscPos.DueColonne("Da togliere dal cassetto", E(dv))).Grassetto(false);
+            }
             p.Vuota().Centrato(DateTime.Now.ToString("dd/MM/yyyy - HH:mm:ss", It), false, false);
             return p.Byte();
         }

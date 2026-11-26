@@ -43,6 +43,7 @@ namespace PosTouch.App.Servizi
                     switch (esito)
                     {
                         case EsitoAccesso.Ok:
+                            await ChiediFondoAsync();
                             return true;
                         case EsitoAccesso.PinErrato:
                             await MessaggioBox.Errore("PIN ERRATO", "Nessun operatore attivo con questo PIN.");
@@ -57,7 +58,9 @@ namespace PosTouch.App.Servizi
                             if (chi == null) return false;
                             if (!await ChiudiAsync(altrui, chi)) return false;
                             var dopo = await Task.Run(() => Op.Accedi(pin));   // stesso PIN: apre il nuovo turno
-                            return dopo.esito == EsitoAccesso.Ok;
+                            if (dopo.esito != EsitoAccesso.Ok) return false;
+                            await ChiediFondoAsync();
+                            return true;
                     }
                 }
             }
@@ -68,6 +71,41 @@ namespace PosTouch.App.Servizi
                 return false;
             }
             finally { _inCorso = false; }
+        }
+
+        /// <summary>
+        /// Fondo cassa all'apertura (opzione): proposto quello lasciato dal turno precedente. Chiesto anche su un turno
+        /// ripreso se non era stato inserito (app chiusa prima). ANNULLA = si tiene il valore proposto.
+        /// </summary>
+        private static async Task ChiediFondoAsync()
+        {
+            if (!ContestoCassa.Impostazioni.ChiediFondoCassa || Op.TurnoCorrente == null || Op.TurnoCorrente.FondoInizialeCent != null) return;
+            try
+            {
+                int proposto = Op.FondoProposto();
+                var v = await TastierinoPrezzo.ChiediEuro($"💶 FONDO CASSA — {Op.Corrente?.Nome}\n(ANNULLA = {Importi.Euro(proposto)})", proposto / 100m);
+                int fondo = v.HasValue && v.Value >= 0 ? (int)Math.Round(v.Value * 100, MidpointRounding.AwayFromZero) : proposto;
+                Op.ImpostaFondo(fondo);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Fondo cassa: {ex}");
+                await MessaggioBox.Errore("FONDO CASSA", $"Fondo non salvato:\n{ex.Message}\n\nIl riepilogo del turno lo conterà come 0.");
+            }
+        }
+
+        /// <summary>💸 Prelievo / 💰 versamento di contanti durante il turno (opzione).</summary>
+        public static async Task MovimentoAsync(TipoMovimento tipo)
+        {
+            string nome = tipo == TipoMovimento.Prelievo ? "PRELIEVO" : "VERSAMENTO";
+            var v = await TastierinoPrezzo.ChiediEuro($"{(tipo == TipoMovimento.Prelievo ? "💸" : "💰")} {nome} — contanti {(tipo == TipoMovimento.Prelievo ? "tolti dal" : "messi nel")} cassetto");
+            if (v == null || v <= 0) return;
+            int cent = (int)Math.Round(v.Value * 100, MidpointRounding.AwayFromZero);
+            string causale = await TestoBox.Chiedi($"{nome} {Importi.Euro(cent)} — causale (es. BANCA, SPICCIOLI)", "", 30);
+            if (causale == null) return;   // annullato: nessun movimento
+            if (!await MessaggioBox.Conferma(nome, $"{nome} di {Importi.Euro(cent)}\n{causale}\n\nConfermi?")) return;
+            Op.Movimento(tipo, cent, causale);
+            await MessaggioBox.Successo(nome, $"{nome} di {Importi.Euro(cent)} registrato nel turno di {Op.Corrente?.Nome}.");
         }
 
         private static async Task<Operatore> ChiChiudeAsync(Turno t)
@@ -91,9 +129,27 @@ namespace PosTouch.App.Servizi
             var anteprima = Op.Riepilogo(t);
             if (!await MessaggioBox.Conferma($"🔒 CHIUSURA TURNO — {t.OperatoreNome}", TestoRiepilogo(anteprima) + "\n\nChiudere il turno?"))
                 return false;
-            var contati = await TastierinoPrezzo.ChiediEuro("💶 CONTANTI INCASSATI NEL TURNO\n(senza fondo cassa — ANNULLA = non contare)");
-            int? contatiCent = contati.HasValue ? (int)Math.Round(contati.Value * 100, MidpointRounding.AwayFromZero) : (int?)null;
-            var r = Op.Chiudi(t, chi, contatiCent);
+            var cfg = ContestoCassa.Impostazioni;
+            // con fondo cassa o movimenti si conta tutto il cassetto; altrimenti solo gli incassi (come prima)
+            bool tuttoIlCassetto = t.FondoInizialeCent != null || anteprima.Movimenti.Count > 0;
+            var contati = await TastierinoPrezzo.ChiediEuro(tuttoIlCassetto
+                ? $"💶 CONTANTI NEL CASSETTO (fondo compreso)\nAttesi {Importi.Euro(anteprima.ContantiAttesiCent)} — ANNULLA = non contare"
+                : "💶 CONTANTI INCASSATI NEL TURNO\n(senza fondo cassa — ANNULLA = non contare)");
+            int? contatiCent = contati.HasValue && contati.Value >= 0 ? (int)Math.Round(contati.Value * 100, MidpointRounding.AwayFromZero) : (int?)null;
+            int? lasciatoCent = null;
+            if (cfg.ChiediFondoLasciato)
+            {
+                int proposto = t.FondoInizialeCent ?? 0;
+                if (contatiCent is int cc && proposto > cc) proposto = cc;   // non si lascia più di quanto c'è
+                var l = await TastierinoPrezzo.ChiediEuro($"💶 FONDO LASCIATO PER IL PROSSIMO TURNO\n(ANNULLA = {Importi.Euro(proposto)})", proposto / 100m);
+                lasciatoCent = l.HasValue && l.Value >= 0 ? (int)Math.Round(l.Value * 100, MidpointRounding.AwayFromZero) : proposto;
+                if (contatiCent is int c2 && lasciatoCent > c2)
+                {
+                    await MessaggioBox.Avviso("FONDO LASCIATO", $"Il fondo lasciato ({Importi.Euro(lasciatoCent.Value)}) è più dei contanti contati ({Importi.Euro(c2)}): uso {Importi.Euro(c2)}.");
+                    lasciatoCent = c2;
+                }
+            }
+            var r = Op.Chiudi(t, chi, contatiCent, lasciatoCent);
             await StampaAsync(r);
             await MessaggioBox.Info("✅ TURNO CHIUSO", TestoRiepilogo(r));
             return true;
@@ -107,11 +163,21 @@ namespace PosTouch.App.Servizi
                        $"Scontrini: {r.Scontrini}   {E(r.TotaleScontriniCent)}\n" +
                        $"  contanti {E(r.ContantiCent)}   carta {E(r.CartaCent)}";
             if (r.Conti > 0) s += $"\nConti non fiscali: {r.Conti}   {E(r.TotaleContiCent)}";
+            if (t.FondoInizialeCent != null || r.Movimenti.Count > 0)
+            {
+                s += "\n";
+                if (t.FondoInizialeCent is int fi) s += $"\nFondo iniziale: {E(fi)}";
+                if (r.VersamentiCent > 0) s += $"\nVersamenti: + {E(r.VersamentiCent)}";
+                if (r.PrelieviCent > 0) s += $"\nPrelievi: − {E(r.PrelieviCent)}";
+                s += $"\nContanti attesi nel cassetto: {E(r.ContantiAttesiCent)}";
+            }
             if (t.ContantiContatiCent is int c)
             {
                 int d = r.DifferenzaCent ?? 0;
                 s += $"\n\nContati: {E(c)}   " + (d == 0 ? "cassa in pari" : d > 0 ? $"ECCEDENZA {E(d)}" : $"AMMANCO {E(-d)}");
             }
+            if (t.FondoLasciatoCent is int fl)
+                s += $"\nFondo lasciato: {E(fl)}" + (r.DaVersareCent is int dv ? $"   da togliere: {E(dv)}" : "");
             return s;
         }
 
