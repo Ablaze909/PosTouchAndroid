@@ -11,14 +11,16 @@ Ogni file ha una responsabilità sola; i commenti in testa a ogni classe dicono 
 | | `TestoRT` | Accentate e frazioni → ASCII per il 3i |
 | `Vendita/` | `Carrello` | Righe scontrino: articoli, sconti, portate, gusti, righe comandate (storno) |
 | | `Tastierino` | Tastiera numerica (qta, X, €) |
-| | `CombinazioneInCorso` | Articoli multi-gusto e prezzo (più caro / media / fisso) |
+| | `CombinazioneInCorso` | Articoli multi-gusto (apertura, gusti, chiusura, annulla) |
+| | `Combinazioni` | Prezzo della combinazione (più caro / media / fisso + varianti, anche proporzionali) |
+| | `Varianti` | VAR＋ / VAR﹣: riga a cui applicarle, prezzo con segno, testo comanda |
 | | `BarcodeBilancia` | Etichette EAN-13 della bilancia |
 | | `ServizioVendita` | Emissione scontrino (fasi, esito incerto, archivio) |
 | `Conti/` | `ServizioConto` | Tasto CONTO (conto non fiscale su termica) |
 | `Sale/` | `SessioneTavolo` | Tavolo / conto cliente aperto: comanda, riordino, storno, NO STAMPA, VAI, preconto, chiusura |
 | | `Portate` | Numero logico dei separatori (mai per posizione), riordino sezioni |
 | | `InstradamentoStampa` | Sala × centro → stampante (eccezioni tipo POSBY) |
-| | `ArchivioTavoli` | `tavoli.db`: tavoli aperti, coda di stampa, progressivo comande, registro storni |
+| | `ArchivioTavoli` | `tavoli.db`: tavoli aperti, sposta/scambia/unisci, coda di stampa, deviazioni, progressivo comande, registro storni |
 | | `SpoolerComande` | Coda di stampa in sottofondo con riprova |
 | `Stampa/` | `EscPos`, `StampanteTermica`, `AccessoStampanti` | Comandi ESC/POS, collegamento TCP, una stampa alla volta per stampante |
 | | `LayoutConto`, `LayoutComanda` | Impaginazioni di conto, comanda, storno, VAI (identiche al PC) |
@@ -32,3 +34,5 @@ Ogni file ha una responsabilità sola; i commenti in testa a ogni classe dicono 
 3. Toccare un gusto o il padre di una combinazione toglie **tutta** la combinazione (storno compreso), senza domande.
 4. Togliere un articolo **non** comandato è una correzione silenziosa; togliere uno comandato genera STORNO.
 5. Lo storico non dipende dal catalogo: ogni riga venduta ne salva una copia.
+6. La riga variante tiene il prezzo **con segno**: togliere un "senza" restituisce il prezzo (sul PC lo scalava due volte).
+7. Su un articolo già comandato non si aggiungono/tolgono varianti né si cambia la quantità: si elimina (storno) e si ribatte.
