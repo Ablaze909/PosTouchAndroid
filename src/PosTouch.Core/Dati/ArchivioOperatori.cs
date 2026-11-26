@@ -65,7 +65,10 @@ namespace PosTouch.Core.Dati
                         Stato INTEGER NOT NULL DEFAULT 0,
                         ContantiContatiCent INTEGER
                     );
-                    CREATE INDEX IF NOT EXISTS IX_Turni_Stato ON Turni(Stato);";
+                    CREATE INDEX IF NOT EXISTS IX_Turni_Stato ON Turni(Stato);
+                    -- gli Id partono da 2: 1 è il valore delle vendite senza operatore (come il PC), mai di una persona
+                    INSERT INTO sqlite_sequence (name, seq) SELECT 'Operatori', 1
+                        WHERE NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'Operatori');";
                 cmd.ExecuteNonQuery();
             }
         }

@@ -30,6 +30,7 @@ namespace PosTouch.App.Pagine
         {
             if (CombinazioneAperta()) return;
             if (_venditaAvviata || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso) return;
+            if (!await TurnoValidoAsync()) return;
             if (Carrello.Vuoto)
             {
                 await MessaggioBox.Avviso("ATTENZIONE", "Lo scontrino è vuoto!\n\nAggiungi almeno un prodotto prima di stampare il conto.");
@@ -133,9 +134,18 @@ namespace PosTouch.App.Pagine
 
         private bool _venditaAvviata;
 
+        /// <summary>Con la gestione operatori niente documento senza un turno aperto (la vendita non avrebbe operatore).</summary>
+        private async Task<bool> TurnoValidoAsync()
+        {
+            if (ContestoCassa.Operatori.PuoLavorare) return true;
+            await MessaggioBox.Avviso("TURNO NON APERTO", "Per emettere serve un turno aperto.\n\nTorna alla schermata iniziale e apri il turno con il tuo PIN.");
+            return false;
+        }
+
         private async Task EseguiVenditaAsync(Pagamento pagamento, int restoCent)
         {
             if (Carrello.Vuoto || ContestoCassa.ServizioVendita.InCorso || ContestoCassa.ServizioConto.InCorso || _venditaAvviata) return;
+            if (!await TurnoValidoAsync()) return;
             _venditaAvviata = true;
             try { await EseguiVenditaInternaAsync(pagamento, restoCent); }
             finally { _venditaAvviata = false; }

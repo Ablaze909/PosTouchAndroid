@@ -43,10 +43,20 @@ namespace PosTouch.App.Pagine
                 riga.Add(Ui.Testo($"🟢 Turno {(turno.Stato == StatoTurno.Sospeso ? "SOSPESO" : "APERTO")}: {turno.OperatoreNome} dalle {turno.Apertura:HH:mm} del {turno.Apertura:dd/MM}", 17, "#1B5E20", true), 0, 0);
                 var btn = Ui.Tasto("🔒 CHIUDI TURNO", "#E65100", fontSize: 14, altezza: 46, clic: async (s, e) =>
                 {
-                    // non si chiude un turno mentre la vendita ha righe battute o un tavolo aperto
-                    if (ContestoCassa.Operatori.TurnoCorrente?.Id == turno.Id && !ContestoCassa.Carrello.Vuoto)
-                    { await MessaggioBox.Avviso("SCONTRINO IN CORSO", "Chiudi o svuota lo scontrino prima di chiudere il turno."); return; }
-                    if (await Turni.ChiudiAsync(turno, _amministratore)) Carica();
+                    try
+                    {
+                        // non si chiude un turno mentre la vendita ha righe battute o un tavolo aperto
+                        if (ContestoCassa.PaginaVenditaAperta?.TavoloAperto == true)
+                        { await MessaggioBox.Avviso("TAVOLO APERTO", "Esci dal tavolo prima di chiudere il turno."); return; }
+                        if (!ContestoCassa.Carrello.Vuoto)
+                        { await MessaggioBox.Avviso("SCONTRINO IN CORSO", "Chiudi o svuota lo scontrino prima di chiudere il turno."); return; }
+                        if (await Turni.ChiudiAsync(turno, _amministratore)) Carica();
+                    }
+                    catch (Exception ex)
+                    {
+                        PosTouch.Core.Diagnostica.LogManager.Error($"Chiusura turno: {ex}");
+                        await MessaggioBox.Errore("TURNO", ex.Message);
+                    }
                 });
                 btn.WidthRequest = 180;
                 riga.Add(btn, 1, 0);

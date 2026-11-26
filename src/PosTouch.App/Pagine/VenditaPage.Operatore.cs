@@ -7,10 +7,28 @@ namespace PosTouch.App.Pagine
     /// <summary>VenditaPage — operatore del turno (gestione operatori): tasto 👤, sospensione, chiusura turno, riepilogo.</summary>
     public partial class VenditaPage
     {
+        private int? _operatoreMostrato;
+
+        /// <summary>Tavolo aperto in vendita (le pagine degli operatori non chiudono turni a metà tavolo).</summary>
+        public bool TavoloAperto => _sessione != null;
+
+        /// <summary>
+        /// Cambio di operatore: niente di quello che l'operatore precedente aveva attivato o autorizzato
+        /// (modalità modifica, prezzo battuto con €) passa a quello nuovo.
+        /// </summary>
+        private void AzzeraStatoOperatore()
+        {
+            if (_modalitaModifica) ImpostaModalitaModifica(false);
+            _tastierino.Azzera();
+            _prezzoAutorizzato = false;
+        }
+
         private void AggiornaOperatore()
         {
             var op = ContestoCassa.Operatori;
             BtnOperatore.IsVisible = op.Abilitata;
+            int? id = op.Abilitata ? op.Corrente?.Id : null;
+            if (id != _operatoreMostrato) { AzzeraStatoOperatore(); _operatoreMostrato = id; }
             if (!op.Abilitata) return;
             BtnOperatore.Text = $"👤 {op.Corrente?.Nome ?? "—"}";
             // turno chiuso altrove, operatore disattivato o gestione appena accesa: senza turno non si vende
@@ -35,11 +53,13 @@ namespace PosTouch.App.Pagine
                         break;
                     case 1:
                         if (!await PuoLasciareAsync("sospendere")) return;
+                        AzzeraStatoOperatore();
                         op.Sospendi();
                         await Navigazione.TornaAllInizio(this);
                         break;
                     case 2:
                         if (!await PuoLasciareAsync("chiudere")) return;
+                        AzzeraStatoOperatore();
                         if (await Turni.ChiudiAsync(op.TurnoCorrente, op.Corrente))
                             await Navigazione.TornaAllInizio(this);
                         break;

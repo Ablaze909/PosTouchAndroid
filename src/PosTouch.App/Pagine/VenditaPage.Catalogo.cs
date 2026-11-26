@@ -213,6 +213,7 @@ namespace PosTouch.App.Pagine
                 if (scelta == 1)
                 {
                     if (!Cfg.AbilitaCambioPrezzo) { await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Cambio prezzo disabilitato dall'amministratore."); return; }
+                    if (!await Accesso.VerificaAsync(Permesso.ModificaPrezzi, "CAMBIO PREZZO")) return;
                     prezzoCent = (int)quantita; quantita = 1;
                 }
             }

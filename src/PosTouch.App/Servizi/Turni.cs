@@ -29,9 +29,17 @@ namespace PosTouch.App.Servizi
             {
                 while (true)
                 {
+                    if (!Op.Archivio.CeAmministratore())
+                    {
+                        // operatori.db perso o rovinato: nessuno può aprire turni, si sblocca da Impostazioni con la password amministratore
+                        await MessaggioBox.Errore("OPERATORI NON TROVATI", "La gestione operatori è accesa ma non c'è nessun amministratore.\n\nApri IMPOSTAZIONI → SICUREZZA (password amministratore) e spegni o ricrea la gestione operatori.");
+                        return false;
+                    }
+                    if (!await Accesso.TentativoConsentitoAsync()) return false;
                     string pin = await TastierinoPrezzo.ChiediCodice("👤 APERTURA TURNO\nInserisci il tuo PIN", nascondi: true);
                     if (pin == null) return false;
-                    var (esito, op, altrui) = Op.Accedi(pin);
+                    var (esito, op, altrui) = await Task.Run(() => Op.Accedi(pin));   // hash del PIN fuori dal thread grafico
+                    Accesso.EsitoPin(esito != EsitoAccesso.PinErrato);
                     switch (esito)
                     {
                         case EsitoAccesso.Ok:
@@ -48,7 +56,7 @@ namespace PosTouch.App.Servizi
                             var chi = op.Id == altrui.OperatoreId || op.Amministratore ? op : await ChiChiudeAsync(altrui);
                             if (chi == null) return false;
                             if (!await ChiudiAsync(altrui, chi)) return false;
-                            var dopo = Op.Accedi(pin);   // stesso PIN: apre il nuovo turno
+                            var dopo = await Task.Run(() => Op.Accedi(pin));   // stesso PIN: apre il nuovo turno
                             return dopo.esito == EsitoAccesso.Ok;
                     }
                 }
@@ -66,7 +74,9 @@ namespace PosTouch.App.Servizi
         {
             string pin = await TastierinoPrezzo.ChiediCodice($"🔒 CHIUSURA TURNO DI {t.OperatoreNome}\nPIN di {t.OperatoreNome} o di un amministratore", nascondi: true);
             if (pin == null) return null;
-            var chi = Op.Archivio.TrovaPerPin(pin);
+            if (!await Accesso.TentativoConsentitoAsync()) return null;
+            var chi = await Task.Run(() => Op.Archivio.TrovaPerPin(pin));
+            Accesso.EsitoPin(chi != null);
             if (chi != null && (chi.Id == t.OperatoreId || chi.Amministratore)) return chi;
             await MessaggioBox.Errore("NON AUTORIZZATO", $"Il turno di {t.OperatoreNome} lo può chiudere solo lui o un amministratore.");
             return null;

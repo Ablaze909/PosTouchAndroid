@@ -119,7 +119,7 @@ namespace PosTouch.Core.Dati
         public RiepilogoTurno Riepilogo(Turno t)
         {
             var fine = t.Chiusura ?? DateTime.Now;
-            string da = t.Apertura.ToString("yyyy-MM-dd HH:mm:ss"), a = fine.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss");
+            string da = t.Apertura.ToString("yyyy-MM-dd HH:mm:ss"), a = fine.ToString("yyyy-MM-dd HH:mm:ss");
             var ris = new RiepilogoTurno { Turno = t };
             lock (_lock)
             {
@@ -127,7 +127,7 @@ namespace PosTouch.Core.Dati
                 using (var cmd = c.CreateCommand())
                 {
                     cmd.CommandText = @"SELECT COUNT(*), IFNULL(SUM(TotaleCentesimi),0), IFNULL(SUM(ContantiCent),0), IFNULL(SUM(CartaCent),0)
-                                        FROM Vendite WHERE Annullato = 0 AND OperatoreId = $op AND DataOra >= $da AND DataOra < $a";
+                                        FROM Vendite WHERE Annullato = 0 AND OperatoreId = $op AND DataOra >= $da AND DataOra <= $a";
                     cmd.Parameters.AddWithValue("$op", t.OperatoreId);
                     cmd.Parameters.AddWithValue("$da", da);
                     cmd.Parameters.AddWithValue("$a", a);
@@ -142,7 +142,7 @@ namespace PosTouch.Core.Dati
                 }
                 using (var cmd = c.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT COUNT(*), IFNULL(SUM(TotaleCentesimi),0) FROM Conti WHERE OperatoreId = $op AND DataOra >= $da AND DataOra < $a";
+                    cmd.CommandText = "SELECT COUNT(*), IFNULL(SUM(TotaleCentesimi),0) FROM Conti WHERE OperatoreId = $op AND DataOra >= $da AND DataOra <= $a";
                     cmd.Parameters.AddWithValue("$op", t.OperatoreId);
                     cmd.Parameters.AddWithValue("$da", da);
                     cmd.Parameters.AddWithValue("$a", a);

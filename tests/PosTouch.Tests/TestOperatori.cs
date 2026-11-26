@@ -28,7 +28,7 @@ namespace PosTouch.Tests
                 Ok(Rifiuta(() => arch.Salva(new Operatore { Nome = "MARIO" }, "1234")), "il primo operatore deve essere amministratore");
                 var admin = new Operatore { Nome = "titolare", Amministratore = true };
                 arch.Salva(admin, "1990");
-                Ok(admin.Id > 0 && admin.Nome == "TITOLARE", "amministratore creato (nome in maiuscolo)");
+                Ok(admin.Id >= 2 && admin.Nome == "TITOLARE", "amministratore creato (nome in maiuscolo, Id mai 1 = vendite senza operatore)");
                 var mario = new Operatore { Nome = "MARIO", Permessi = new HashSet<Permesso> { Permesso.Sconti } };
                 arch.Salva(mario, "1234");
                 var luigi = new Operatore { Nome = "LUIGI" };
