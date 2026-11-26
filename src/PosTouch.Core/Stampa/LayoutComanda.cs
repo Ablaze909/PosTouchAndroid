@@ -25,6 +25,8 @@ namespace PosTouch.Core.Stampa
         public List<RigaScontrino> FlussoPortate { get; set; }
         public string NomeSeparatore { get; set; } = "SEGUE";
         public DateTime Quando { get; set; } = DateTime.Now;
+        /// <summary>Operatore del turno (vuoto = gestione operatori spenta).</summary>
+        public string Operatore { get; set; } = OperatoreStampa.Corrente();
     }
 
     /// <summary>
@@ -61,7 +63,8 @@ namespace PosTouch.Core.Stampa
             var p = new EscPos();
             p.Normale().Sinistra();
             p.Testo(EscPos.DueColonne(d.NomeCentro.ToUpperInvariant(), d.Quando.ToString("dd/MM/yy HH:mm", It)));
-            if (d.Progressivo > 0) p.Testo($"Com.{d.Progressivo}");
+            string op = string.IsNullOrEmpty(d.Operatore) ? "" : $"Op: {d.Operatore}";
+            if (d.Progressivo > 0 || op.Length > 0) p.Testo(EscPos.DueColonne(d.Progressivo > 0 ? $"Com.{d.Progressivo}" : "", op));
 
             if (d.Riordino)
             {
@@ -160,6 +163,7 @@ namespace PosTouch.Core.Stampa
              .Testo(new string('*', L)).Grassetto(false);
 
             p.Normale().Testo(EscPos.DueColonne(d.NomeCentro.ToUpperInvariant(), d.Quando.ToString("dd/MM/yy HH:mm", It)));
+            if (!string.IsNullOrEmpty(d.Operatore)) p.Testo($"Op: {d.Operatore}");
             if (!string.IsNullOrWhiteSpace(d.NomeSala)) p.Grassetto(true).Testo(d.NomeSala.ToUpperInvariant()).Grassetto(false);
 
             p.Testo(Trattini);
@@ -193,6 +197,7 @@ namespace PosTouch.Core.Stampa
             p.Sinistra().Testo(new string('=', L)).Grassetto(false);
 
             p.Testo(EscPos.DueColonne(d.NomeCentro.ToUpperInvariant(), d.Quando.ToString("dd/MM/yy HH:mm", It)));
+            if (!string.IsNullOrEmpty(d.Operatore)) p.Testo($"Op: {d.Operatore}");
             if (!string.IsNullOrWhiteSpace(d.NomeSala)) p.Grassetto(true).Testo(d.NomeSala.ToUpperInvariant()).Grassetto(false);
 
             p.Testo(Trattini);

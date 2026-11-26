@@ -42,8 +42,11 @@ namespace PosTouch.Core.Dati
                     using (var cmd = c.CreateCommand())
                     {
                         cmd.Transaction = tx;
-                        cmd.CommandText = @"INSERT INTO Conti (DataOra, TotaleCentesimi, NumeroProgressivo, Stampato)
-                                            VALUES ($d, $t, $n, $s); SELECT last_insert_rowid();";
+                        cmd.CommandText = @"INSERT INTO Conti (DataOra, TotaleCentesimi, NumeroProgressivo, Stampato, OperatoreId, OperatoreNome)
+                                            VALUES ($d, $t, $n, $s, $op, $opNome); SELECT last_insert_rowid();";
+                        var (opId, opNome) = OperatoreDi(0, null);
+                        cmd.Parameters.AddWithValue("$op", opId);
+                        cmd.Parameters.AddWithValue("$opNome", opNome);
                         cmd.Parameters.AddWithValue("$d", quando.ToString("yyyy-MM-dd HH:mm:ss"));
                         cmd.Parameters.AddWithValue("$t", totale);
                         cmd.Parameters.AddWithValue("$n", numero);
@@ -110,6 +113,44 @@ namespace PosTouch.Core.Dati
                     CartaCent = Convert.ToInt32(r.GetInt64(3))
                 };
             }
+        }
+
+        /// <summary>Incassi di un operatore tra apertura e chiusura del turno (scontrini e conti non fiscali).</summary>
+        public RiepilogoTurno Riepilogo(Turno t)
+        {
+            var fine = t.Chiusura ?? DateTime.Now;
+            string da = t.Apertura.ToString("yyyy-MM-dd HH:mm:ss"), a = fine.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss");
+            var ris = new RiepilogoTurno { Turno = t };
+            lock (_lock)
+            {
+                using var c = Apri();
+                using (var cmd = c.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT COUNT(*), IFNULL(SUM(TotaleCentesimi),0), IFNULL(SUM(ContantiCent),0), IFNULL(SUM(CartaCent),0)
+                                        FROM Vendite WHERE Annullato = 0 AND OperatoreId = $op AND DataOra >= $da AND DataOra < $a";
+                    cmd.Parameters.AddWithValue("$op", t.OperatoreId);
+                    cmd.Parameters.AddWithValue("$da", da);
+                    cmd.Parameters.AddWithValue("$a", a);
+                    using var r = cmd.ExecuteReader();
+                    if (r.Read())
+                    {
+                        ris.Scontrini = r.GetInt32(0);
+                        ris.TotaleScontriniCent = Convert.ToInt32(r.GetInt64(1));
+                        ris.ContantiCent = Convert.ToInt32(r.GetInt64(2));
+                        ris.CartaCent = Convert.ToInt32(r.GetInt64(3));
+                    }
+                }
+                using (var cmd = c.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT COUNT(*), IFNULL(SUM(TotaleCentesimi),0) FROM Conti WHERE OperatoreId = $op AND DataOra >= $da AND DataOra < $a";
+                    cmd.Parameters.AddWithValue("$op", t.OperatoreId);
+                    cmd.Parameters.AddWithValue("$da", da);
+                    cmd.Parameters.AddWithValue("$a", a);
+                    using var r = cmd.ExecuteReader();
+                    if (r.Read()) { ris.Conti = r.GetInt32(0); ris.TotaleContiCent = Convert.ToInt32(r.GetInt64(1)); }
+                }
+            }
+            return ris;
         }
     }
 }

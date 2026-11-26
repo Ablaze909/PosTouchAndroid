@@ -70,6 +70,8 @@ namespace PosTouch.Core.Stampa
 
             p.Vuota().Linea().Vuota();
             if (stampaNumero) p.Centrato($"Conto N. {numero}", true, false);
+            string operatore = OperatoreStampa.Corrente();
+            if (operatore.Length > 0) p.Centrato($"Operatore: {operatore}", false, false);
             if (eliminacode > 0)   // comanda da banco: numero da consegnare al cliente
             {
                 p.Centrato("*** BANCO - ELIMINACODE ***", true, false);

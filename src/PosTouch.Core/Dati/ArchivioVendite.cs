@@ -26,6 +26,19 @@ namespace PosTouch.Core.Dati
             CreaSchema();
         }
 
+        /// <summary>
+        /// Operatore del turno in corso (gestione operatori): impostato dalla cassa. Null = operatori spenti.
+        /// Le vendite e i conti lo registrano senza che chi li emette debba conoscerlo.
+        /// </summary>
+        public Func<(int id, string nome)?> OperatoreCorrente { get; set; }
+
+        private (int id, string nome) OperatoreDi(int id, string nome)
+        {
+            if (id > 0) return (id, nome ?? "");
+            var c = OperatoreCorrente?.Invoke();
+            return c.HasValue && c.Value.id > 0 ? (c.Value.id, c.Value.nome ?? "") : (1, "");   // 1 = come il PC senza operatori
+        }
+
         private SqliteConnection Apri()
         {
             var c = new SqliteConnection(_connString);
@@ -122,6 +135,8 @@ namespace PosTouch.Core.Dati
                 AggiungiColonna(c, "ContiRighe", "UnitaPesoRiga", "TEXT");
                 AggiungiColonna(c, "RigheVendita", "VariantiTesto", "TEXT");   // "+MOZZARELLA|-CIPOLLA": storico completo (regola 5)
                 AggiungiColonna(c, "ContiRighe", "VariantiTesto", "TEXT");
+                AggiungiColonna(c, "Vendite", "OperatoreNome", "TEXT DEFAULT ''");
+                AggiungiColonna(c, "Conti", "OperatoreNome", "TEXT DEFAULT ''");
             }
         }
 
@@ -153,10 +168,13 @@ namespace PosTouch.Core.Dati
                         cmd.Transaction = tx;
                         cmd.CommandText = @"
                             INSERT INTO Vendite (DataOra, NumeroScontrino, NumeroAzzeramento, TotaleCentesimi, MetodoPagamento,
-                                                 StampatoSuRT, DataEmissioneRT, ContantiCent, CartaCent)
-                            VALUES ($data, $num, $azz, $tot, $metodo, $rt, $dataRT, $cont, $carta);
+                                                 StampatoSuRT, DataEmissioneRT, ContantiCent, CartaCent, OperatoreId, OperatoreNome)
+                            VALUES ($data, $num, $azz, $tot, $metodo, $rt, $dataRT, $cont, $carta, $op, $opNome);
                             SELECT last_insert_rowid();";
                         cmd.Parameters.AddWithValue("$data", v.DataOra.ToString("yyyy-MM-dd HH:mm:ss"));
+                        var (opId, opNome) = OperatoreDi(v.OperatoreId, v.OperatoreNome);
+                        cmd.Parameters.AddWithValue("$op", opId);
+                        cmd.Parameters.AddWithValue("$opNome", opNome);
                         cmd.Parameters.AddWithValue("$num", v.NumeroScontrino);
                         cmd.Parameters.AddWithValue("$azz", v.NumeroAzzeramento);
                         cmd.Parameters.AddWithValue("$tot", v.TotaleCentesimi);

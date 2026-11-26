@@ -96,6 +96,8 @@ namespace PosTouch.Core.Configurazione
         // ── 🔒 SICUREZZA ──
         /// <summary>Password amministratore (solo cifre): richiesta per Strumenti, Back office e Impostazioni. Vuota = nessuna.</summary>
         public string PinImpostazioni { get; set; } = "";
+        /// <summary>Gestione operatori e turni (PIN all'apertura del turno, permessi). Spenta = come prima, password amministratore.</summary>
+        public bool AbilitaGestioneOperatori { get; set; }
 
         // ── ⚙️ AVANZATE ──
         public int TimeoutConnessioneRT_ms { get; set; } = 5000;

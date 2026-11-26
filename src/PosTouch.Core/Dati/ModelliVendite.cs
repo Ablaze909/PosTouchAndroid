@@ -21,6 +21,9 @@ namespace PosTouch.Core.Dati
         /// <summary>Data/ora emissione letta dall'RT (yyyy-MM-dd HH:mm), se disponibile.</summary>
         public string DataEmissioneRT { get; set; }
         public List<RigaScontrino> Righe { get; set; } = new List<RigaScontrino>();
+        /// <summary>Operatore del turno (0 = gestione operatori spenta: si registra come 1, come il PC).</summary>
+        public int OperatoreId { get; set; }
+        public string OperatoreNome { get; set; } = "";
     }
 
     public class TotaliGiorno
