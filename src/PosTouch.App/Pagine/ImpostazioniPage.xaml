@@ -63,8 +63,31 @@
             <Button x:Name="TabConnessioni" Text="🖨️ CONNESSIONI" Style="{StaticResource Scheda}" Clicked="OnTabConnessioni" />
             <Button x:Name="TabVendita" Text="💰 VENDITA" Style="{StaticResource Scheda}" Clicked="OnTabVendita" />
             <Button x:Name="TabSicurezza" Text="🔒 SICUREZZA" Style="{StaticResource Scheda}" Clicked="OnTabSicurezza" />
+            <Button x:Name="TabSaleStampe" Text="🍽️ SALE E STAMPE" Style="{StaticResource Scheda}" Clicked="OnTabSaleStampe" />
             <Button x:Name="TabAvanzate" Text="⚙️ AVANZATE" Style="{StaticResource Scheda}" Clicked="OnTabAvanzate" />
         </HorizontalStackLayout>
+
+        <!-- ═══ 🍽️ SALE E STAMPE: due strade separate e chiare ═══ -->
+        <ScrollView x:Name="PannelloSaleStampe" Grid.Row="2" Padding="10" IsVisible="False">
+            <Grid ColumnDefinitions="*,*">
+                <Border Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="🍽️ SALE E TAVOLI" Style="{StaticResource TitoloCard}" TextColor="#00897B" />
+                        <Label Text="• Abilita sale e conti clienti&#10;• Sale: nome, numero tavoli, primo numero, coperto&#10;• Portate (SEGUE), sposta / unisci tavoli&#10;• Opzioni comande: riepilogo altri centri, storni, stili di stampa, cicalino"
+                               FontSize="14" TextColor="#555555" Margin="0,0,0,10" />
+                        <Button Text="🍽️ APRI SALE E TAVOLI" BackgroundColor="#00897B" Style="{StaticResource TastoTouch}" Clicked="OnConfiguraSale" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource Card}" VerticalOptions="Start">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="🖨️ OPZIONI DI STAMPA" Style="{StaticResource TitoloCard}" TextColor="#9C27B0" />
+                        <Label Text="• Stampanti in rete (Gestione porte TCP/IP)&#10;• Preconti e conti, riepiloghi&#10;• Uscite delle comande (BAR, CUCINA…)&#10;• Stampanti diverse per sala, comande da banco"
+                               FontSize="14" TextColor="#555555" Margin="0,0,0,10" />
+                        <Button Text="🖨️ APRI OPZIONI DI STAMPA" BackgroundColor="#9C27B0" Style="{StaticResource TastoTouch}" Clicked="OnStampe" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </ScrollView>
 
         <!-- ═══ 🖨️ CONNESSIONI ═══ -->
         <ScrollView x:Name="PannelloConnessioni" Grid.Row="2" Padding="10">
@@ -138,18 +161,9 @@
                             <CheckBox x:Name="ChkNumeroConto" Color="#4CAF50" />
                             <Label Text="🔢 Stampa il numero del conto" Style="{StaticResource Spunta}" />
                         </HorizontalStackLayout>
-                        <Button x:Name="BtnStampe" Text="🖨️ STAMPE (stampanti, uscite, sale)" BackgroundColor="#9C27B0" Style="{StaticResource TastoTouch}" Clicked="OnStampe" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Style="{StaticResource Card}" VerticalOptions="Start">
-                    <VerticalStackLayout>
-                        <Label Text="🍽️ SALE E COMANDE" Style="{StaticResource TitoloCard}" TextColor="#00897B" Margin="0,0,0,5" />
-                        <Label Text="Sale e tavoli, stampanti delle comande, centri di produzione (CUCINA, BAR…), stampanti per sala, portate."
-                               FontSize="13" TextColor="#999999" Margin="0,0,0,10" />
-                        <Button Text="⚙️ CONFIGURA SALE E COMANDE" BackgroundColor="#00897B" Style="{StaticResource TastoTouch}" Clicked="OnConfiguraSale" />
-                    </VerticalStackLayout>
-                </Border>
                 </VerticalStackLayout>
             </Grid>
         </ScrollView>

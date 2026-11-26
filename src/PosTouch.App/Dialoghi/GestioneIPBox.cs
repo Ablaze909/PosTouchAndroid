@@ -14,9 +14,12 @@ namespace PosTouch.App.Dialoghi
     {
         private readonly List<string> _ip;
         private readonly VerticalStackLayout _elenco = new VerticalStackLayout { Spacing = 2 };
-        private readonly Label _display = new Label { FontSize = 30, FontAttributes = FontAttributes.Bold, TextColor = Colors.Black, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
+        /// <summary>I 4 numeri dell'indirizzo: si tocca quello da cambiare (anche la classe di rete), le cifre lo riscrivono.</summary>
+        private readonly string[] _ottetti = { "", "", "", "" };
+        private readonly Label[] _caselle = new Label[4];
+        private int _attivo;
+        private bool _sovrascrivi = true;   // la prima cifra dopo aver scelto una casella la riscrive da capo
         private readonly Button _cerca;
-        private string _scritto = "";
         private string _selezionato;
         private bool _ricerca;
 
@@ -24,13 +27,24 @@ namespace PosTouch.App.Dialoghi
         {
             _ip = attuali.ToList();
             var ultimo = _ip.LastOrDefault();
-            if (ultimo != null && IPAddress.TryParse(PosTouch.Core.Configurazione.ConfigStampe.Separa(ultimo).ip, out _))
-                _scritto = ultimo[..(ultimo.LastIndexOf('.') + 1)];   // es. "10.10.10." per scrivere solo l'ultimo numero
+            if (ultimo != null) Carica(PosTouch.Core.Configurazione.ConfigStampe.Separa(ultimo).ip, ultimaCasella: true);   // si cambia solo l'ultimo numero
 
             // ── sinistra: elenco + display ──
             var sinistra = new Grid { RowDefinitions = { new(GridLength.Star), new(new GridLength(70)) }, RowSpacing = 8 };
             sinistra.Add(Ui.Riquadro(new ScrollView { Content = _elenco }, "#F5EEE6", 6, new Thickness(6)), 0, 0);
-            sinistra.Add(Ui.Riquadro(_display, "#FFF9C4", 6), 0, 1);
+            var display = new Grid { ColumnSpacing = 4, Padding = new Thickness(6, 4) };
+            for (int i = 0; i < 4; i++)
+            {
+                int k = i;
+                display.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+                if (i < 3) display.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+                _caselle[i] = new Label { FontSize = 28, FontAttributes = FontAttributes.Bold, TextColor = Colors.Black, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
+                var casella = Ui.Riquadro(_caselle[i], "#FFFFFF", 4, null, "#BDBDBD", 2);
+                Ui.Tocco(casella, () => { _attivo = k; _sovrascrivi = true; Aggiorna(); });
+                display.Add(casella, i * 2, 0);
+                if (i < 3) display.Add(new Label { Text = ".", FontSize = 28, FontAttributes = FontAttributes.Bold, TextColor = Colors.Black, VerticalTextAlignment = TextAlignment.End }, i * 2 + 1, 0);
+            }
+            sinistra.Add(Ui.Riquadro(display, "#FFF9C4", 6), 0, 1);
 
             // ── destra: tastierino ──
             var tasti = Ui.Griglia(4, 4, 4);
@@ -39,7 +53,7 @@ namespace PosTouch.App.Dialoghi
             tasti.Add(Tasto(".", () => Scrivi(".")), 0, 3);
             var zero = Tasto("0", () => Scrivi("0"));
             tasti.Add(zero, 1, 3); Grid.SetColumnSpan(zero, 2);
-            var canc = Ui.Tasto("C", "#5D4037", "#FF4081", 26, 4, (s, e) => { _scritto = _scritto.Length > 0 ? _scritto[..^1] : ""; Aggiorna(); });
+            var canc = Ui.Tasto("C", "#5D4037", "#FF4081", 26, 4, (s, e) => { _ottetti[_attivo] = ""; _sovrascrivi = false; Aggiorna(); });
             tasti.Add(canc, 3, 0); Grid.SetRowSpan(canc, 4);
             var aggiungi = Ui.Tasto("➕ AGGIUNGI", "#37474F", "#FFFFFF", 16, 6, (s, e) => _ = AggiungiAsync(), 60);
 
@@ -78,29 +92,43 @@ namespace PosTouch.App.Dialoghi
 
         private static Button Tasto(string t, Action a) => Ui.Tasto(t, "#424242", "#4DD0E1", 26, 4, (s, e) => a());
 
+        /// <summary>Carica un indirizzo nelle 4 caselle (tocco su un IP dell'elenco, o l'ultimo all'apertura).</summary>
+        private void Carica(string ip, bool ultimaCasella)
+        {
+            var parti = (ip ?? "").Split('.');
+            for (int i = 0; i < 4; i++) _ottetti[i] = i < parti.Length ? parti[i] : "";
+            _attivo = ultimaCasella ? 3 : 0;
+            _sovrascrivi = true;
+        }
+
         private void Scrivi(string c)
         {
-            if (_scritto.Length >= 15) return;
-            if (c == ".")
-            {
-                if (_scritto.Length == 0 || _scritto.EndsWith(".") || _scritto.Count(x => x == '.') >= 3) return;
-            }
-            else
-            {
-                var ottetto = _scritto.Split('.').Last();
-                if (ottetto.Length >= 3) { if (_scritto.Count(x => x == '.') >= 3) return; _scritto += "."; ottetto = ""; }
-                if (int.Parse(ottetto + c) > 255) return;
-            }
-            _scritto += c;
+            if (c == ".") { Avanza(); return; }
+            string attuale = _sovrascrivi ? "" : _ottetti[_attivo];
+            _sovrascrivi = false;
+            if (attuale.Length >= 3 || int.Parse(attuale + c) > 255) { Avanza(); attuale = ""; _sovrascrivi = false; }
+            _ottetti[_attivo] = attuale + c;
+            if (_ottetti[_attivo].Length == 3) Avanza();   // 3 cifre: passa al numero successivo
             Aggiorna();
         }
 
+        private void Avanza()
+        {
+            if (_attivo < 3) { _attivo++; _sovrascrivi = true; }
+            Aggiorna();
+        }
+
+        private string Scritto => string.Join(".", _ottetti);
+
         private void Aggiorna()
         {
-            var parti = _scritto.Split('.');
-            var mostra = new string[4];
-            for (int i = 0; i < 4; i++) mostra[i] = i < parti.Length ? parti[i] : "";
-            _display.Text = string.Join("  .  ", mostra.Select(p => p.Length == 0 ? "_" : p));
+            if (_caselle[0] == null) return;
+            for (int i = 0; i < 4; i++)
+            {
+                _caselle[i].Text = _ottetti[i].Length == 0 ? "_" : _ottetti[i];
+                ((Border)_caselle[i].Parent).Stroke = new SolidColorBrush(Ui.C(i == _attivo ? "#1565C0" : "#BDBDBD"));
+                ((Border)_caselle[i].Parent).BackgroundColor = Ui.C(i == _attivo ? "#E3F2FD" : "#FFFFFF");
+            }
         }
 
         private void DisegnaElenco()
@@ -115,18 +143,25 @@ namespace PosTouch.App.Dialoghi
                     Text = ip, FontSize = 26, TextColor = Ui.C(sel ? "#FFFFFF" : "#000000"), Padding = new Thickness(8, 4),
                     BackgroundColor = Ui.C(sel ? "#1565C0" : "#00000000")
                 };
-                Ui.Tocco(l, () => { _selezionato = sel ? null : ip; DisegnaElenco(); });
+                Ui.Tocco(l, () =>
+                {
+                    _selezionato = sel ? null : ip;
+                    if (_selezionato != null) Carica(PosTouch.Core.Configurazione.ConfigStampe.Separa(ip).ip, ultimaCasella: true);
+                    DisegnaElenco(); Aggiorna();
+                });
                 _elenco.Add(l);
             }
         }
 
         private async Task AggiungiAsync()
         {
-            if (!IPAddress.TryParse(_scritto, out var a) || a.AddressFamily != AddressFamily.InterNetwork || _scritto.Count(x => x == '.') != 3)
-            { await MessaggioBox.Avviso("IP NON VALIDO", "Scrivi un indirizzo completo, es. 10.10.10.52"); return; }
-            if (_ip.Contains(_scritto)) { await MessaggioBox.Avviso("IP GIÀ PRESENTE", $"{_scritto} è già nell'elenco."); return; }
-            _ip.Add(_scritto);
-            _scritto = _scritto[..(_scritto.LastIndexOf('.') + 1)];
+            string ip = Scritto;
+            if (_ottetti.Any(o => o.Length == 0) || !IPAddress.TryParse(ip, out var a) || a.AddressFamily != AddressFamily.InterNetwork)
+            { await MessaggioBox.Avviso("IP NON VALIDO", "Completa i 4 numeri, es. 192.168.1.52.\nTocca una casella per cambiarla."); return; }
+            ip = string.Join(".", _ottetti.Select(o => int.Parse(o).ToString()));   // "010" → "10"
+            if (_ip.Contains(ip)) { await MessaggioBox.Avviso("IP GIÀ PRESENTE", $"{ip} è già nell'elenco."); return; }
+            _ip.Add(ip);
+            _ottetti[3] = ""; _attivo = 3; _sovrascrivi = true;   // pronto per la prossima stampante della stessa rete
             DisegnaElenco(); Aggiorna();
         }
 
@@ -176,8 +211,7 @@ namespace PosTouch.App.Dialoghi
 
         private string ReteDaCercare()
         {
-            var parti = _scritto.Split('.');
-            if (parti.Length >= 4 && parti.Take(3).All(p => int.TryParse(p, out var v) && v <= 255)) return string.Join(".", parti.Take(3)) + ".";
+            if (_ottetti.Take(3).All(p => int.TryParse(p, out var v) && v <= 255)) return string.Join(".", _ottetti.Take(3).Select(o => int.Parse(o))) + ".";
             try
             {
                 foreach (var a in Dns.GetHostAddresses(Dns.GetHostName()))

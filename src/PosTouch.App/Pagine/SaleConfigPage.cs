@@ -17,7 +17,7 @@ namespace PosTouch.App.Pagine
         private readonly ContentView _contenuto = new ContentView();
         private readonly HorizontalStackLayout _schede = new HorizontalStackLayout { Spacing = 2 };
         private int _scheda;
-        private static readonly string[] NomiSchede = { "🍽️ SALE", "⚙️ OPZIONI", "🖨️ STAMPE" };
+        private static readonly string[] NomiSchede = { "🍽️ SALE", "⚙️ OPZIONI COMANDE" };
         private static readonly string[] Stili = { "1 Normale", "2 Grassetto", "3 Doppia altezza", "4 Doppia altezza + grassetto", "5 Doppia larghezza",
             "6 Doppia larghezza + grassetto", "7 Doppia (2×2)", "8 Doppia (2×2) + grassetto", "9 Tripla (3×3)", "10 Tripla + grassetto", "11 Tripla altezza", "12 Tripla larghezza" };
         private static readonly string[] Cicalini = { "Spento", "BEL (3 bip)", "Epson ESC(A", "ESC B", "DLE DC4" };
@@ -25,7 +25,7 @@ namespace PosTouch.App.Pagine
         public SaleConfigPage()
         {
             BackgroundColor = Ui.C("#F5F5F5");
-            var titolo = new Label { Text = "🍽️ SALE E COMANDE", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center };
+            var titolo = new Label { Text = "🍽️ SALE E TAVOLI", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center };
             var chiudi = Ui.Tasto("✖ CHIUDI", "#78909C", fontSize: 15, altezza: 46, clic: async (s, e) => await Navigazione.Chiudi(this));
             var salva = Ui.Tasto("💾 SALVA", "#43A047", fontSize: 15, altezza: 46, clic: async (s, e) => await SalvaAsync());
             chiudi.WidthRequest = 130; salva.WidthRequest = 130;
@@ -53,7 +53,6 @@ namespace PosTouch.App.Pagine
                 b.Padding = new Thickness(16, 0);
                 _schede.Add(b);
             }
-            if (n == 2) { _ = Navigazione.Apri(this, () => new StampePage()); n = _scheda = 0; }   // stampanti e uscite: pagina STAMPE (come POSBY)
             _contenuto.Content = n == 1 ? SchedaOpzioni() : SchedaSale();
         }
 

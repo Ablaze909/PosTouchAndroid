@@ -35,12 +35,13 @@ namespace PosTouch.App.Pagine
         private void OnTabVendita(object sender, EventArgs e) => MostraScheda(1);
         private void OnTabSicurezza(object sender, EventArgs e) => MostraScheda(2);
         private void OnTabAvanzate(object sender, EventArgs e) => MostraScheda(3);
+        private void OnTabSaleStampe(object sender, EventArgs e) => MostraScheda(4);
 
         private void MostraScheda(int n)
         {
-            var pannelli = new View[] { PannelloConnessioni, PannelloVendita, PannelloSicurezza, PannelloAvanzate };
-            var schede = new[] { TabConnessioni, TabVendita, TabSicurezza, TabAvanzate };
-            for (int i = 0; i < 4; i++)
+            var pannelli = new View[] { PannelloConnessioni, PannelloVendita, PannelloSicurezza, PannelloAvanzate, PannelloSaleStampe };
+            var schede = new[] { TabConnessioni, TabVendita, TabSicurezza, TabAvanzate, TabSaleStampe };
+            for (int i = 0; i < pannelli.Length; i++)
             {
                 pannelli[i].IsVisible = i == n;
                 schede[i].BackgroundColor = Ui.C(i == n ? "#FF9800" : "#FFFFFF");
