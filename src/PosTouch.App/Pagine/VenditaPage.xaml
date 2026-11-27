@@ -155,20 +155,13 @@
                IsVisible="False" InputTransparent="True" />
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie (scorrono col dito) → VAR＋ VAR﹣ → 🏠 ═════════ -->
-        <Grid x:Name="ColonnaSinistra" Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="0,*,54,50">
+        <Grid x:Name="ColonnaSinistra" Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="0,*,0,50">
             <!-- (uscita spostata nella banda in alto) -->
 
             <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Always">
                 <VerticalStackLayout x:Name="ListaCategorie" Spacing="1" Padding="0,2" />
             </ScrollView>
 
-            <Grid x:Name="RigaVarianti" Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="2" Padding="0,2">
-                <!-- VAR＋ verde, VAR﹣ rosso: si distinguono a colpo d'occhio -->
-                <Button Text="＋&#10;VAR" FontSize="14" FontAttributes="Bold" Padding="0" LineBreakMode="WordWrap" BackgroundColor="#2E7D32" TextColor="White"
-                        BorderColor="White" BorderWidth="2" CornerRadius="6" Style="{StaticResource TastoScuro}" Clicked="OnVariantePiu" />
-                <Button Grid.Column="1" Text="﹣&#10;VAR" FontSize="14" FontAttributes="Bold" Padding="0" LineBreakMode="WordWrap" BackgroundColor="#C62828" TextColor="White"
-                        BorderColor="White" BorderWidth="2" CornerRadius="6" Style="{StaticResource TastoScuro}" Clicked="OnVarianteMeno" />
-            </Grid>
 
             <Button x:Name="BtnPreferiti" Grid.Row="3" Text="🏠" FontSize="20" BackgroundColor="#F5F5F5" TextColor="#111111"
                     BorderColor="#DDDDDD" BorderWidth="1" CornerRadius="0" Clicked="OnPreferiti" />
@@ -280,9 +273,9 @@
 
                 <!-- una sola barra: ＋ ﹣ · SCONTO · ANNULLA · (al tavolo) 🔀 SPOSTA 🔗 UNISCI. Colonne sistemate da SistemaRigaTasti -->
                 <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="44" Margin="0,8,0,0" ColumnSpacing="4">
-                    <!-- ＋ ﹣ come i tasti del tastierino (bianchi, bordo sottile): si legano alla quantità e non si perdono vicino a SCONTO -->
-                    <Button x:Name="BtnPiu" Text="+" Style="{StaticResource TastoNum}" BorderColor="#B0BEC5" BorderWidth="1" CornerRadius="4" Margin="0" Clicked="OnPiu" />
-                    <Button x:Name="BtnMeno" Text="−" Style="{StaticResource TastoNum}" BorderColor="#B0BEC5" BorderWidth="1" CornerRadius="4" Margin="0" Clicked="OnMeno" />
+                    <!-- VAR＋ verde, VAR﹣ rosso di fianco a SCONTO (la quantità si cambia col doppio tocco sulla riga) -->
+                    <Button x:Name="BtnVarPiu" Text="VAR ＋" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#2E7D32" Style="{StaticResource TastoScuro}" Clicked="OnVariantePiu" />
+                    <Button x:Name="BtnVarMeno" Text="VAR ﹣" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#C62828" Style="{StaticResource TastoScuro}" Clicked="OnVarianteMeno" />
                     <!-- un solo tasto sconto: chiede se in euro o in percentuale -->
                     <Button x:Name="BtnSconto" Text="% € SCONTO" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnSconto" />
                     <Button x:Name="BtnAnnulla" Text="🗑️ ANNULLA" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
