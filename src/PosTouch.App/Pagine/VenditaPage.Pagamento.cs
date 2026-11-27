@@ -210,6 +210,8 @@ namespace PosTouch.App.Pagine
 
         private int NumeroEliminacode(List<RigaScontrino> righe)
         {
+            // nel frattempo tolti gli articoli da comandare: niente numero (né ticket senza comanda); quello preso resta perso
+            if (ContestoCassa.ComandaBanco.RigheDaComandare(righe).Count == 0) return 0;
             if (_eliminacodeInSospeso > 0) return _eliminacodeInSospeso;
             return _eliminacodeInSospeso = ContestoCassa.ComandaBanco.Prepara(righe);
         }

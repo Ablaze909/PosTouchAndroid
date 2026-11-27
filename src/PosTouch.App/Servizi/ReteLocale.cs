@@ -75,17 +75,19 @@ namespace PosTouch.App.Servizi
 
         private static void Aggiorna()
         {
-            bool collegata;
+            bool collegata, tornata;
             lock (_blocco)
             {
-                // prima la rete in cui si trova il registratore (cavo e Wi-Fi insieme possono essere reti diverse),
-                // poi il cavo, poi il Wi-Fi
-                string ipRt = ContestoCassa.Impostazioni?.IP_RT;
-                var scelta = _reti.Values
-                    .OrderByDescending(x => StessaRete(x.rete, ipRt))
-                    .ThenByDescending(x => x.cavo)
-                    .Select(x => x.rete).FirstOrDefault();
+                // la rete che raggiunge più apparecchi del locale (registratore + stampanti): cavo e Wi-Fi insieme
+                // possono essere reti diverse; a parità il cavo, poi il Wi-Fi
+                var ip = IndirizziLocale();
+                var conteggi = _reti.Values.Select(x => (x.rete, x.cavo, n: ip.Count(i => StessaRete(x.rete, i)))).ToList();
+                var migliore = conteggi.OrderByDescending(x => x.n).ThenByDescending(x => x.cavo).FirstOrDefault();
+                var scelta = migliore.rete;
                 string chiave = scelta?.ToString();
+                if (chiave != _legata && migliore.n < ip.Count && conteggi.Any(x => x.rete != scelta && x.n > 0))
+                    LogManager.Warning($"RETE: registratore e stampanti sono su reti diverse (cavo/Wi-Fi): l'app ne usa una sola, " +
+                                       $"{ip.Count - migliore.n} apparecchi potrebbero non rispondere. Metterli tutti sulla stessa rete.");
                 if (chiave != _legata)
                 {
                     try
@@ -97,17 +99,36 @@ namespace PosTouch.App.Servizi
                     catch (Exception ex) { LogManager.Warning($"RETE: collegamento alla rete locale non riuscito: {ex.Message}"); }
                 }
                 collegata = scelta != null;
-            }
-            bool tornata = collegata && !Collegata;
-            if (collegata != Collegata)
-            {
-                Collegata = collegata;
-                MainThread.BeginInvokeOnMainThread(() =>
+                // confronto e cambio insieme, sotto lo stesso blocco: controlli che arrivano insieme non danno due avvisi
+                tornata = collegata && !Collegata;
+                if (collegata != Collegata)
                 {
-                    try { Cambiata?.Invoke(); } catch (Exception ex) { LogManager.Error($"Avviso rete: {ex}"); }
-                });
+                    Collegata = collegata;
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        try { Cambiata?.Invoke(); } catch (Exception ex) { LogManager.Error($"Avviso rete: {ex}"); }
+                    });
+                }
             }
             if (tornata) { try { ContestoCassa.Spooler?.ReteTornata(); } catch { } }
+        }
+
+        /// <summary>Indirizzi del registratore e delle stampanti impostati (senza doppioni).</summary>
+        private static List<string> IndirizziLocale()
+        {
+            var l = new List<string>();
+            try
+            {
+                var imp = ContestoCassa.Impostazioni;
+                if (!string.IsNullOrWhiteSpace(imp?.IP_RT)) l.Add(imp.IP_RT.Trim());
+                foreach (var ind in imp?.Stampe?.IndirizziIP ?? new List<string>())
+                {
+                    var (i, _) = PosTouch.Core.Configurazione.ConfigStampe.Separa(ind);
+                    if (!string.IsNullOrWhiteSpace(i)) l.Add(i.Trim());
+                }
+            }
+            catch { }
+            return l.Distinct().ToList();
         }
 
         /// <summary>true se l'indirizzo IPv4 indicato sta nella sottorete di questa rete (es. 192.168.1.x/24).</summary>

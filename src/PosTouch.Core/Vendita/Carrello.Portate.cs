@@ -37,8 +37,7 @@ namespace PosTouch.Core.Vendita
             if (esistente == null)
             {
                 esistente = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.Descrizione(nome), Quantita = 0 };
-                var blocco = InizioBloccoSconto();
-                if (blocco == null) Righe.Add(esistente); else Righe.Insert(Righe.IndexOf(blocco), esistente);
+                InserisciIntestazione(esistente, Portate.NumeroLogico(esistente, SeparatoriPortate));
                 _separatoreVuoto = esistente;
             }
             Aggiornato();
@@ -89,9 +88,23 @@ namespace PosTouch.Core.Vendita
             string nome = SeparatoriPortate != null && portata - 1 < SeparatoriPortate.Count ? SeparatoriPortate[portata - 1]
                         : portata == 1 ? "SEGUE" : $"SEGUE {portata}";
             sep = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.Descrizione(nome), Quantita = 0, Portata = portata };
-            var blocco = InizioBloccoSconto();
-            if (blocco == null) Righe.Add(sep); else Righe.Insert(Righe.IndexOf(blocco), sep);
+            InserisciIntestazione(sep, portata);
             return sep;
+        }
+
+        /// <summary>
+        /// Intestazione nuova (o ricreata) messa al suo posto: prima della prima portata con numero più alto,
+        /// altrimenti in fondo (prima del blocco sconto). Prima finiva sempre in fondo: cancellato SEGUE e rimesso,
+        /// in cucina usciva "SEGUE 2" prima di "SEGUE".
+        /// </summary>
+        private void InserisciIntestazione(RigaScontrino intestazione, int numero)
+        {
+            var blocco = InizioBloccoSconto();
+            int fine = blocco == null ? Righe.Count : Righe.IndexOf(blocco);
+            int pos = fine;
+            for (int i = 0; i < fine; i++)
+                if (Portate.IsSeparatoreReale(Righe[i]) && Portate.NumeroLogico(Righe[i], SeparatoriPortate) > numero) { pos = i; break; }
+            if (pos >= Righe.Count) Righe.Add(intestazione); else Righe.Insert(pos, intestazione);
         }
 
         /// <summary>Portata dove andrà il prossimo articolo (0 = INIZIO/SUBITO): la casella accesa sotto lo scontrino.</summary>

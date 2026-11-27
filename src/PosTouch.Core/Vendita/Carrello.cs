@@ -200,7 +200,8 @@ namespace PosTouch.Core.Vendita
                 {
                     // un'intestazione con articoli sotto non si toglie: i suoi articoli passerebbero alla portata prima
                     // (e partirebbero subito con gli antipasti, o uscirebbero dal VAI della loro portata)
-                    if (ArticoliSotto(r, daTogliere).Count > 0)
+                    // (SUBITO esclusa: senza intestazione i suoi articoli restano comunque nella prima uscita)
+                    if (!Portate.IsSubito(r) && ArticoliSotto(r, daTogliere).Count > 0)
                     {
                         primoErrore ??= $"La portata {Portate.Nome(r)} ha ancora articoli: toglili prima (o spostali), poi togli l'intestazione.";
                         continue;

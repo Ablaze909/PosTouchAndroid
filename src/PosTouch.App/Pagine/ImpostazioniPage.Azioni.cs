@@ -88,10 +88,7 @@ namespace PosTouch.App.Pagine
                 ContestoCassa.SalvaImpostazioni(nuove);
                 _statoIniziale = Firma();
                 TestoStato.Text = $"✅ Impostazioni salvate alle {DateTime.Now:HH:mm:ss}";
-                if (temaCambiato)
-                    await MessaggioBox.Info("ASPETTO CAMBIATO",
-                        "Il nuovo aspetto vale subito per la vendita, le finestre e le pagine che apri da adesso.\n\n" +
-                        "La schermata iniziale e Strumenti, già aperte, si aggiornano al prossimo avvio: chiudi e riapri l'app quando puoi.");
+                if (temaCambiato) await AvvisoTemaAsync();
                 LogManager.Info($"Impostazioni salvate: {nuove.TipoCassa} {nuove.IP_RT}:{nuove.Porta_RT}");
             }
             catch (Exception ex)
@@ -99,6 +96,10 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Errore("ERRORE", $"Salvataggio non riuscito:\n{ex.Message}");
             }
         }
+
+        private static Task AvvisoTemaAsync() => MessaggioBox.Info("ASPETTO CAMBIATO",
+            "Il nuovo aspetto vale subito per la vendita, le finestre e le pagine che apri da adesso.\n\n" +
+            "La schermata iniziale e Strumenti, già aperte, si aggiornano al prossimo avvio: chiudi e riapri l'app quando puoi.");
 
         /// <summary>Tasto indietro di Android = ✖ CHIUDI (chiede se salvare).</summary>
         protected override bool Indietro() { OnChiudi(this, EventArgs.Empty); return true; }
@@ -117,7 +118,9 @@ namespace PosTouch.App.Pagine
                 {
                     var nuove = await LeggiAsync();
                     if (nuove == null) return;
+                    bool temaCambiato = nuove.TemaInterfaccia != ContestoCassa.Impostazioni.TemaInterfaccia;
                     ContestoCassa.SalvaImpostazioni(nuove);
+                    if (temaCambiato) await AvvisoTemaAsync();   // anche salvando all'uscita
                 }
                 await Navigazione.Chiudi(this);
             }

@@ -133,15 +133,16 @@ namespace PosTouch.Core.Sale
         }
 
         /// <summary>
-        /// Flusso per un reparto: "!! SUBITO !!" solo se QUESTO reparto ha già ricevuto articoli della prima uscita
-        /// (riordino) o ha articoli di categorie ⚡ SUBITO (prima: una bibita del bar lo faceva uscire anche in cucina).
+        /// Flusso per un reparto: "!! SUBITO !!" solo se QUESTO reparto ha già ricevuto qualcosa da questo tavolo
+        /// (riordino: magari ha un SEGUE in attesa e deve capire che questi si fanno ora) o ha articoli di categorie
+        /// ⚡ SUBITO. Una bibita del bar non lo fa più uscire anche in cucina.
         /// </summary>
         private List<RigaScontrino> FlussoCentro(int centro, List<RigaScontrino> flusso, IList<RigaScontrino> righe)
         {
             var f = Stampe.FlussoPer(centro, flusso);
             var subito = f?.FirstOrDefault(Portate.IsSubito);
             if (subito == null) return f;
-            bool riordino = righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata && r.Portata == 0 && r.CentroProduzioneId == centro);
+            bool riordino = righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata && r.CentroProduzioneId == centro);
             bool urgenti = Portate.CategoriaSubito != null
                            && f.Any(r => r.Tipo == TipoRiga.Prodotto && r.Portata == 0 && r.CentroProduzioneId == centro && Portate.CategoriaSubito(r.CategoriaId));
             if (!riordino && !urgenti) f.Remove(subito);

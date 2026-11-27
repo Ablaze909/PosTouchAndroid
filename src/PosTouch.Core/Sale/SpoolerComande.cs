@@ -46,6 +46,7 @@ namespace PosTouch.Core.Sale
         public void ReteTornata()
         {
             _ultimoGiroErrori = DateTime.MinValue;
+            lock (_statoBlocco) _nonPrimaDi.Clear();   // rete tornata: niente pause, si riprova subito
             Sveglia();
         }
 
@@ -97,26 +98,44 @@ namespace PosTouch.Core.Sale
         /// <summary>Stampe in errore da più di tanto (es. dal giorno prima): solo con RIPROVA a mano, mai da sole.</summary>
         private static readonly TimeSpan ScadenzaRiprovaAutomatica = TimeSpan.FromHours(6);
 
+        // ── stato per stampante (chiave IP:porta): invio in corso e attesa prima del prossimo tentativo ──
+        private readonly object _statoBlocco = new object();
+        private readonly HashSet<string> _inVolo = new HashSet<string>();
+        private readonly Dictionary<string, DateTime> _nonPrimaDi = new Dictionary<string, DateTime>();
+        private bool _controlloAvvioFatto;
+
         /// <summary>
-        /// true se la coda era vuota. Ogni giro manda, IN PARALLELO, la prima stampa in attesa di ogni stampante
-        /// (prima una stampante spenta faceva aspettare 6 s anche le altre); con una stampa riuscita si riparte subito.
+        /// true se la coda era vuota. Ogni stampante va per conto suo: il giro manda la prima stampa in attesa di ogni
+        /// stampante libera e NON aspetta l'esito (una stampante spenta non rallenta più le altre); a stampa finita
+        /// il ciclo si risveglia. L'ordine per stampante resta: finché una stampa è in volo le sue successive aspettano.
         /// </summary>
-        private async Task<bool> GiroAsync(bool ancheInErrore)
+        private Task<bool> GiroAsync(bool ancheInErrore)
         {
             var coda = _archivio.CodaDaStampare(true);   // sempre anche quelle in errore: servono a tenere l'ordine
-            if (coda.Count == 0) { _giaStampate.Clear(); return true; }
+            if (coda.Count == 0)
+            {
+                lock (_statoBlocco) { if (_inVolo.Count == 0) _giaStampate.Clear(); }
+                _controlloAvvioFatto = true;
+                return Task.FromResult(true);
+            }
+            bool primoGiro = !_controlloAvvioFatto;
+            _controlloAvvioFatto = true;
             var bloccate = new HashSet<string>();
-            var daInviare = new List<JobStampa>();
             bool cambiato = false;
+            var adesso = DateTime.Now;
             foreach (var job in coda)
             {
                 string chiave = $"{job.IP}:{job.Porta}";
-                if (bloccate.Contains(chiave)) continue;   // una stampa per stampante a giro, in ordine
-                if (_giaStampate.Contains(job.Id)) { TogliDallaCoda(job); continue; }
-                bool vecchia = DateTime.Now - job.Creato > ScadenzaRiprovaAutomatica;
-                if (job.Stato != StatoJob.Errore && vecchia)
+                if (bloccate.Contains(chiave)) continue;   // una stampa per stampante, in ordine
+                bool giaUscita, occupata;
+                lock (_statoBlocco) { giaUscita = _giaStampate.Contains(job.Id); occupata = _inVolo.Contains(chiave); }
+                if (occupata) { bloccate.Add(chiave); continue; }
+                if (giaUscita) { TogliDallaCoda(job); continue; }
+                bool vecchia = adesso - job.Creato > ScadenzaRiprovaAutomatica;
+                if (primoGiro && job.Stato != StatoJob.Errore && vecchia)
                 {
-                    // rimasta in coda da ore (es. app chiusa la sera con la stampante spenta): mai stampata da sola il giorno dopo
+                    // solo all'avvio: rimasta in coda da ore (app chiusa la sera con la stampante spenta), mai stampata da sola
+                    // il giorno dopo. Con RIPROVA/DEVIA dalla coda invece esce, anche se vecchia.
                     _archivio.EsitoJob(job.Id, false, "Stampa di oltre 6 ore fa: non ristampata da sola. Se serve, RIPROVA dalla coda.", true);
                     LogManager.Warning($"SPOOLER ⌛ {job.Descrizione} → {job.Stampante}: troppo vecchia, messa in errore");
                     bloccate.Add(chiave);
@@ -129,23 +148,34 @@ namespace PosTouch.Core.Sale
                     continue;
                 }
                 bloccate.Add(chiave);
-                daInviare.Add(job);
+                lock (_statoBlocco)
+                {
+                    // pausa tra un tentativo e l'altro (1, 3, 6 s): non accorciata da altre stampe che svegliano il ciclo
+                    if (job.Stato != StatoJob.Errore && _nonPrimaDi.TryGetValue(chiave, out var quando) && adesso < quando) continue;
+                    _inVolo.Add(chiave);
+                }
+                _ = InviaAsync(job, chiave);
             }
+            if (cambiato) Cambiato?.Invoke(_archivio.ContaInErrore());
+            return Task.FromResult(false);
+        }
 
-            var esiti = await Task.WhenAll(daInviare.Select(async job =>
-                (job, errore: await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15), job.ControlloStato))));
-
-            bool stampato = false;
-            foreach (var (job, errore) in esiti)
+        /// <summary>Invio di una stampa (in sottofondo) e registrazione dell'esito; alla fine risveglia il ciclo.</summary>
+        private async Task InviaAsync(JobStampa job, string chiave)
+        {
+            try
             {
+                string errore;
+                try { errore = await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15), job.ControlloStato); }
+                catch (Exception ex) { errore = ex.Message; }
+
                 if (errore == null)
                 {
-                    _giaStampate.Add(job.Id);
+                    lock (_statoBlocco) { _giaStampate.Add(job.Id); _nonPrimaDi.Remove(chiave); }
                     TogliDallaCoda(job);
                     LogManager.Info($"SPOOLER ✅ {job.Descrizione} → {job.Stampante}");
-                    cambiato |= job.Stato == StatoJob.Errore;
-                    stampato = true;
-                    continue;
+                    if (job.Stato == StatoJob.Errore) Cambiato?.Invoke(_archivio.ContaInErrore());
+                    return;
                 }
                 bool giaInErrore = job.Stato == StatoJob.Errore;
                 bool inErrore = giaInErrore || job.Tentativi + 1 >= MaxTentativi;
@@ -153,20 +183,24 @@ namespace PosTouch.Core.Sale
                 LogManager.Warning($"SPOOLER ⏳ {job.Descrizione} → {job.Stampante}: {errore} (tentativo {job.Tentativi + 1})");
                 if (inErrore && !giaInErrore)
                 {
-                    cambiato = true;
                     job.UltimoErrore = errore;
                     StampaInErrore?.Invoke(job);
+                    Cambiato?.Invoke(_archivio.ContaInErrore());
                 }
                 else if (!inErrore)
                 {
                     // nuovo tentativo a breve, ogni volta un po' più in là
                     int attesa = AttesaTentativoMs[Math.Min(job.Tentativi, AttesaTentativoMs.Length - 1)];
-                    _ = Task.Delay(attesa).ContinueWith(_ => Sveglia());
+                    lock (_statoBlocco) _nonPrimaDi[chiave] = DateTime.Now.AddMilliseconds(attesa);
+                    _ = Task.Delay(attesa + 50).ContinueWith(_ => Sveglia());
                 }
             }
-            if (stampato) Sveglia();   // le stampe successive delle stesse stampanti partono subito
-            if (cambiato) Cambiato?.Invoke(_archivio.ContaInErrore());
-            return false;
+            catch (Exception ex) { LogManager.Error($"SPOOLER: esito di {job.Descrizione} non registrato: {ex.Message}"); }
+            finally
+            {
+                lock (_statoBlocco) _inVolo.Remove(chiave);
+                Sveglia();   // stampante libera: la sua prossima stampa (se c'è) parte subito
+            }
         }
 
         /// <summary>Stampata: si toglie dalla coda; se il database non risponde resta in memoria che è già uscita (niente doppioni).</summary>
@@ -175,7 +209,7 @@ namespace PosTouch.Core.Sale
             try
             {
                 _archivio.EsitoJob(job.Id, true, null, false);
-                _giaStampate.Remove(job.Id);
+                lock (_statoBlocco) _giaStampate.Remove(job.Id);
             }
             catch (Exception ex) { LogManager.Error($"SPOOLER: {job.Descrizione} stampata ma non tolta dalla coda: {ex.Message}"); }
         }

@@ -18,7 +18,7 @@ namespace PosTouch.App.Dialoghi
 
         private void Taglio(decimal valore)
         {
-            if (_cartaImporto > 0 || _contantiRicevuti + valore > MaxContanti) return;
+            if (_contantiRicevuti + valore > MaxContanti) return;   // anche dopo la carta: il resto del misto si paga in contanti
             _contantiRicevuti += valore;
             _modoCarta = false;
             _input = "";   // la cifra lasciata a metà non deve sommarsi dopo al taglio
@@ -27,7 +27,6 @@ namespace PosTouch.App.Dialoghi
 
         private void Cifra(string t)
         {
-            if (_cartaImporto > 0 && !_modoCarta) return;
             string prima = _input;
             if (t == ",") { if (!_input.Contains(",")) _input += _input.Length == 0 ? "0," : ","; }
             else if (t == "00") { if (_input.Length > 0 && _input != "0") _input += "00"; }
@@ -40,7 +39,6 @@ namespace PosTouch.App.Dialoghi
 
         private void Backspace()
         {
-            if (_cartaImporto > 0 && !_modoCarta) return;
             if (_input.Length > 0) _input = _input[..^1];
             AggiornaImporto();
         }
@@ -48,8 +46,8 @@ namespace PosTouch.App.Dialoghi
         private void Cancella()
         {
             if (_modoCarta) _cartaImporto = 0;
-            else if (_cartaImporto > 0) { _cartaImporto = 0; _contantiRicevuti = 0; }
-            else _contantiRicevuti = 0;
+            else if (_contantiRicevuti > 0) _contantiRicevuti = 0;   // prima i contanti battuti, poi (secondo C) la carta
+            else _cartaImporto = 0;
             _input = "";
             Aggiorna();
         }
@@ -66,7 +64,7 @@ namespace PosTouch.App.Dialoghi
             }
             else
             {
-                if (_cartaImporto > 0 || _contantiRicevuti + importo > MaxContanti) return;
+                if (_contantiRicevuti + importo > MaxContanti) return;
                 _contantiRicevuti += importo;
                 _input = "";
             }
@@ -81,7 +79,7 @@ namespace PosTouch.App.Dialoghi
                 ConfermaImporto();   // importo digitato senza ✓: vale come confermato
                 if (_input.Length > 0)
                 {
-                    // rifiutato (oltre il massimo contanti o carta già inserita): non si emette ignorando la cifra
+                    // rifiutato (oltre il massimo contanti): non si emette ignorando la cifra
                     _ = MessaggioBox.Avviso("IMPORTO NON ACCETTATO", "L'importo digitato non è stato accettato.\n\nCorreggilo o cancellalo con C prima di emettere.");
                     return;
                 }
@@ -113,8 +111,11 @@ namespace PosTouch.App.Dialoghi
         private void Aggiorna()
         {
             AggiornaImporto();
-            _voceContanti.BackgroundColor = Ui.C(_modoCarta ? "#FFFFFF" : "#BBDEFB");
-            _voceCarta.BackgroundColor = Ui.C(_modoCarta ? "#BBDEFB" : "#FFFFFF");
+            // colori del tema (col tema Scuro prima tornavano bianchi/azzurro chiaro al primo tocco)
+            var acceso = StilePagine.Scuro ? Ui.C("#1E3A5F") : Ui.C("#BBDEFB");
+            var spento = StilePagine.Scuro ? StileFinestre.T.Scheda : Colors.White;
+            _voceContanti.BackgroundColor = _modoCarta ? spento : acceso;
+            _voceCarta.BackgroundColor = _modoCarta ? acceso : spento;
 
             if (PagamentoCompleto)
             {

@@ -182,6 +182,21 @@ namespace PosTouch.Tests
             var dopo2 = cv.Aggiungi(carbo, 1, null, true);
             Uguale(1, dopo2.Portata, "casella SEGUE ancora accesa: l'articolo va in SEGUE anche a lista vuota");
             Ok(cv.Righe.Any(x => Portate.Nome(x) == "SEGUE"), "intestazione SEGUE rimessa");
+            // intestazione ricreata al suo posto (non in fondo, dopo SEGUE 2)
+            var co = new Carrello { SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2" } };
+            var bru = new Prodotto { Id = 51, Descrizione = "BRUSCHETTA", PrezzoCentesimi = 500, RepartoFiscale = 1, CategoriaId = 4, CentroStampa = 1 };
+            var tag = new Prodotto { Id = 52, Descrizione = "TAGLIATA", PrezzoCentesimi = 1800, RepartoFiscale = 1, CategoriaId = 4, CentroStampa = 1 };
+            co.Aggiungi(bru, 1, null, false); co.ScegliPortata("SEGUE"); var cbo = co.Aggiungi(carbo, 1, null, false);
+            co.ScegliPortata("SEGUE 2"); co.Aggiungi(tag, 1, null, false);
+            co.Rimuovi(new[] { cbo, co.Righe.First(x => Portate.Nome(x) == "SEGUE") });
+            co.ScegliPortata("SEGUE"); co.Aggiungi(carbo, 1, null, false);
+            var ord = co.Righe.Where(x => x.Tipo == TipoRiga.Portata).Select(Portate.Nome).ToList();
+            Ok(ord.IndexOf("SEGUE") >= 0 && ord.IndexOf("SEGUE") < ord.IndexOf("SEGUE 2"), "SEGUE ricreata prima di SEGUE 2");
+            var flo = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(co.Righe.ToList());
+            Ok(flo.FindIndex(x => x.Descrizione == "CARBONARA") < flo.FindIndex(x => x.Descrizione == "TAGLIATA"), "in comanda SEGUE prima di SEGUE 2");
+            co.ScegliPortata("SUBITO"); co.Aggiungi(bru, 1, null, false);
+            var sub = co.Righe.FirstOrDefault(Portate.IsSubito);
+            if (sub != null) { co.Rimuovi(new[] { sub }); Ok(!co.Righe.Contains(sub), "intestazione SUBITO si può togliere anche con articoli"); }
             Ok(PosTouch.Core.Vendita.Combinazioni.IsGusto("½ DIAVOLA") && PosTouch.Core.Vendita.Combinazioni.IsGusto("1/5 TONNO") && !PosTouch.Core.Vendita.Combinazioni.IsGusto("+ MOZZARELLA"), "gusti riconosciuti, varianti no");
 
             // ── listini 1-4 (come il PC) ──
