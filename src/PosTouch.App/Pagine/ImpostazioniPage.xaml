@@ -183,6 +183,8 @@
                         <HorizontalStackLayout><CheckBox x:Name="ChkModificaVendita" Color="#4CAF50" /><Label Text="✏️ Abilita Modifica Articoli in Vendita" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkMostraStrumenti" Color="#4CAF50" /><Label Text="🔧 Mostra tasto Strumenti in vendita" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkPrezzoZero" Color="#4CAF50" /><Label Text="💶 Richiesta prezzo per articoli a €0,00" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
+                        <Label Text="🎨 Aspetto della vendita (barra in alto e in basso)" FontSize="15" FontAttributes="Bold" TextColor="#37474F" Margin="0,0,0,2" />
+                        <ctl:CampoScelta x:Name="SceltaTema" FontSize="18" Titolo="Aspetto della vendita" Colonne="3" Margin="0,0,0,10" />
                         <HorizontalStackLayout><CheckBox x:Name="ChkBloccoQuantita" Color="#4CAF50" /><Label Text="🔒 Blocco modifica quantità (sempre Qta 1)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkVirgolaImplicita" Color="#4CAF50" /><Label Text="💶 Virgola implicita nei prezzi (350 = € 3,50)" Style="{StaticResource Spunta}" /></HorizontalStackLayout>
                         <HorizontalStackLayout><CheckBox x:Name="ChkVarScontrino" Color="#4CAF50" /><Label Text="🔖 Varianti su scontrino fiscale" Style="{StaticResource Spunta}" /></HorizontalStackLayout>

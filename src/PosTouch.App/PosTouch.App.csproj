@@ -12,7 +12,7 @@
     <!-- Identità app -->
     <ApplicationTitle>POS Touch</ApplicationTitle>
     <ApplicationId>it.alfacash.postouch</ApplicationId>
-    <ApplicationDisplayVersion>0.14.7</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>0.15.0</ApplicationDisplayVersion>
     <!-- La build su GitHub lo sostituisce col numero di build, così ogni APK si installa sopra il precedente -->
     <ApplicationVersion>1</ApplicationVersion>
 
@@ -35,6 +35,8 @@
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#1E3A5F" BaseSize="128,128" />
     <!-- file dentro l'app (es. catalogo_prova.db per i dati di prova) -->
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- icone a linee dei temi Scuro/Chiaro (Material Design Icons, licenza in /licenze) -->
+    <MauiFont Include="Resources\Fonts\*.ttf" />
   </ItemGroup>
 
   <ItemGroup>

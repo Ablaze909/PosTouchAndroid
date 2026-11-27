@@ -30,7 +30,7 @@ namespace PosTouch.App.Pagine
             int? id = op.Abilitata ? op.Corrente?.Id : null;
             if (id != _operatoreMostrato) { AzzeraStatoOperatore(); _operatoreMostrato = id; }
             if (!op.Abilitata) return;
-            BtnOperatore.Text = $"👤 {op.Corrente?.Nome ?? "—"}";
+            BtnOperatore.Text = TestoOperatore(op.Corrente?.Nome ?? "—");
             // turno chiuso altrove, operatore disattivato o gestione appena accesa: senza turno non si vende
             if (!op.PuoLavorare)
                 Dispatcher.Dispatch(async () => await Navigazione.TornaAllInizio(this));

@@ -15,6 +15,7 @@ namespace PosTouch.App
 
             var builder = MauiApp.CreateBuilder();
             builder.UseMauiApp<App>();
+            builder.ConfigureFonts(f => f.AddFont("MaterialDesignIcons.ttf", "MDI"));   // icone dei temi Scuro/Chiaro
 #if DEBUG
             builder.Logging.AddDebug();
 #endif

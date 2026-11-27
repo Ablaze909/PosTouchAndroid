@@ -125,6 +125,9 @@
         <!-- banda: dove sono + strumenti + orologio (la barra strumenti sopra gli articoli non c'è più: più articoli a video) -->
         <Grid x:Name="BandaPosto" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HeightRequest="50" Padding="14,0,6,0"
               BackgroundColor="#37474F" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+            <!-- temi Scuro/Chiaro: il colore della sala è una striscia (sotto o a sinistra), non tutta la banda -->
+            <BoxView x:Name="StrisciaSala" Grid.ColumnSpan="4" HeightRequest="4" VerticalOptions="End" Margin="-14,0,-6,0" IsVisible="False" InputTransparent="True" />
+            <BoxView x:Name="StrisciaLaterale" Grid.ColumnSpan="4" WidthRequest="6" HorizontalOptions="Start" Margin="-14,0,0,0" IsVisible="False" InputTransparent="True" />
             <!-- uscita (🚪 / ⬅ SALA / ⬅ CONTI) nella banda in alto: non si confonde con le categorie -->
             <Button x:Name="BtnEsci" Text="🚪" FontSize="20" FontAttributes="Bold" BackgroundColor="#D32F2F" TextColor="White"
                     BorderColor="White" BorderWidth="2" CornerRadius="8" Padding="12,0" HeightRequest="42" MinimumWidthRequest="64"

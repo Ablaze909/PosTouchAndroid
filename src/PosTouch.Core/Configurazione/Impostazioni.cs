@@ -81,6 +81,8 @@ namespace PosTouch.Core.Configurazione
             }
             Stampe.Normalizza();
         }
+        /// <summary>Aspetto della schermata di vendita: 0 = Classico (colori), 1 = Scuro, 2 = Chiaro.</summary>
+        public int TemaInterfaccia { get; set; }
         /// <summary>Mostra la riga ＋/﹣ sotto la tastiera (MostraRigaVariantiVendita del PC).</summary>
         public bool MostraRigaPiuMeno { get; set; } = true;
         /// <summary>Accorpa righe uguali a video (2× caffè → una riga).</summary>

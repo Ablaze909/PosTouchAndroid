@@ -36,6 +36,7 @@ namespace PosTouch.App.Pagine
         public VenditaPage()
         {
             InitializeComponent();
+            RicordaOriginali();   // scritte e colori originali dei tasti in basso (servono per tornare al tema Classico)
             CollegaCarrello(null);
             _tastierino.Cambiato += () =>
             {
@@ -67,6 +68,7 @@ namespace PosTouch.App.Pagine
             _tastierino.VirgolaImplicita = Cfg.VirgolaImplicita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
             BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata
+            ApplicaTemaBarre();   // aspetto scelto in Impostazioni (si vede subito tornando alla vendita)
             AggiornaModoTavolo();
             SistemaRigaTasti();
             // Ridisegna categorie e articoli solo se catalogo o impostazioni sono cambiati
@@ -134,7 +136,8 @@ namespace PosTouch.App.Pagine
             double unita = _larghezzaTasti > 0 && col > 0 ? _larghezzaTasti / (col + 0.7 * tasti.Count(x => x.IsVisible && x != BtnSposta && x != BtnUnisci)) : 100;
             bool dueRighe = unita * 1.7 < 110;
             BtnSconto.Text = dueRighe ? "% €\nSCONTO" : "% € SCONTO";
-            BtnAnnulla.Text = dueRighe ? "🗑️\nANNULLA" : "🗑️ ANNULLA";
+            string cestino = Tema == Classico ? "🗑️" : "";
+            BtnAnnulla.Text = (cestino + (dueRighe && cestino.Length > 0 ? "\n" : " ") + "ANNULLA").Trim();
             BtnVarPiu.Text = dueRighe ? "VAR\n＋" : "VAR ＋";
             BtnVarMeno.Text = dueRighe ? "VAR\n﹣" : "VAR ﹣";
         }
@@ -185,7 +188,7 @@ namespace PosTouch.App.Pagine
             // barra inferiore: testo che entra nei tasti
             double colonna = (width - destra - 12) / 5;
             foreach (var b in BarraInferiore.Children.OfType<Button>())
-                b.FontSize = Math.Clamp(colonna / 7.5, 12, 20);
+                b.FontSize = Math.Clamp(colonna / 7.5, 12, Tema == Classico ? 20 : 14);
             _larghezzaBarra = width - destra - 12;
             SistemaBarraTavolo();
             _larghezzaTasti = destra - 8;
