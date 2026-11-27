@@ -49,6 +49,7 @@ namespace PosTouch.App.Pagine
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            SchedaOperatori.IsVisible = ContestoCassa.Impostazioni.AbilitaGestioneOperatori;
             Ricarica();
         }
 
@@ -90,6 +91,22 @@ namespace PosTouch.App.Pagine
         // ══════════════ schede ══════════════
 
         private async void OnSchedaVarianti(object sender, TappedEventArgs e) => await Navigazione.Apri(this, () => new VariantiPage());
+
+        /// <summary>👥 OPERATORI: creazione/modifica operatori, PIN e permessi. Anche chi ha il Back office deve dare il PIN amministratore.</summary>
+        private async void OnSchedaOperatori(object sender, TappedEventArgs e)
+        {
+            try
+            {
+                if (!ContestoCassa.Impostazioni.AbilitaGestioneOperatori) return;
+                var admin = await Accesso.VerificaAmministratoreAsync("GESTIONE OPERATORI");
+                if (admin != null) await Navigazione.Apri(this, () => new OperatoriPage(admin));
+            }
+            catch (Exception ex)
+            {
+                PosTouch.Core.Diagnostica.LogManager.Error($"Apertura operatori: {ex}");
+                await MessaggioBox.Errore("OPERATORI", ex.Message);
+            }
+        }
 
         private void OnSchedaProdotti(object sender, TappedEventArgs e) => MostraScheda(true);
         private void OnSchedaCategorie(object sender, TappedEventArgs e) => MostraScheda(false);

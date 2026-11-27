@@ -24,11 +24,10 @@ namespace PosTouch.App.Pagine
         private void AggiornaOperatori()
         {
             bool acceso = ContestoCassa.Impostazioni.AbilitaGestioneOperatori;
-            BtnGestioneOperatori.IsVisible = acceso;
             OpzioniTurno.IsVisible = acceso;   // fondo e movimenti esistono solo con i turni
             CardPassword.Opacity = acceso ? 0.5 : 1;
             NotaOperatori.Text = acceso
-                ? "Accesa: per vendere serve il PIN all'apertura del turno; Back office, Impostazioni, sconti, prezzi, annulli, storni e chiusura Z seguono i permessi dell'operatore. La password amministratore qui sopra serve solo come sblocco d'emergenza se non esiste nessun amministratore."
+                ? "Accesa: operatori e PIN si creano e modificano da BACK OFFICE → 👥 OPERATORI. Per vendere serve il PIN all'apertura del turno; Back office, Impostazioni, sconti, prezzi, annulli, storni e chiusura Z seguono i permessi dell'operatore. La password amministratore qui sopra serve solo come sblocco d'emergenza se non esiste nessun amministratore."
                 : "Spenta: la cassa funziona senza operatori; la password amministratore protegge Strumenti, Back office e Impostazioni.";
         }
 
@@ -73,7 +72,7 @@ namespace PosTouch.App.Pagine
                 if (chi == null) return false;
             }
             SalvaFlagOperatori(true);
-            await MessaggioBox.Successo("OPERATORI", "Gestione operatori accesa.\n\nCrea gli altri operatori da 👥 GESTIONE OPERATORI. Da ora per vendere serve il PIN.");
+            await MessaggioBox.Successo("OPERATORI", "Gestione operatori accesa.\n\nCrea gli altri operatori da BACK OFFICE → 👥 OPERATORI. Da ora per vendere serve il PIN.");
             return true;
         }
 
@@ -116,12 +115,6 @@ namespace PosTouch.App.Pagine
                 if (p1 == p2) return p1;
                 await MessaggioBox.Avviso("PIN", "I due PIN non coincidono, riprova.");
             }
-        }
-
-        private async void OnGestioneOperatori(object sender, EventArgs e)
-        {
-            var admin = await Accesso.VerificaAmministratoreAsync("GESTIONE OPERATORI");
-            if (admin != null) await Navigazione.Apri(this, () => new OperatoriPage(admin));
         }
     }
 }

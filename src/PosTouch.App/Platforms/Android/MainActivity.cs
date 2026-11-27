@@ -33,6 +33,11 @@ namespace PosTouch.App
             base.OnCreate(savedInstanceState);
             // Cassa: lo schermo non deve spegnersi durante il servizio
             Window?.AddFlags(WindowManagerFlags.KeepScreenOn);
+            // tastiera a schermo: Android non sposta né restringe nulla da solo; è l'app che lascia libero
+            // lo spazio della tastiera (vedi TastieraSchermo / PaginaPos), così si comporta uguale su ogni tablet
+            Window?.SetSoftInputMode(SoftInput.AdjustNothing);
+            if (Window?.DecorView != null)
+                ViewCompat.SetWindowInsetsAnimationCallback(Window.DecorView, new AscoltoTastiera(LeggiTastiera));
             SchermoIntero();
 
             // Quando si chiude la tastiera a schermo Android rimostra le barre: le rinascondiamo
@@ -96,8 +101,43 @@ namespace PosTouch.App
             using var insets = ViewCompat.GetRootWindowInsets(Window.DecorView);
             if (insets == null) return;
             bool tastiera = insets.IsVisible(WindowInsetsCompat.Type.Ime());
+            LeggiTastiera(insets);   // riserva: tastiere che si aprono/chiudono senza animazione
             bool barre = insets.IsVisible(WindowInsetsCompat.Type.SystemBars());
             if (barre && !tastiera) SchermoInteroRitardato();
+        }
+
+        /// <summary>Legge l'altezza attuale della tastiera a schermo e la passa a TastieraSchermo (in dp).</summary>
+        private void LeggiTastiera()
+        {
+            try
+            {
+                if (Window?.DecorView == null) return;
+                using var insets = ViewCompat.GetRootWindowInsets(Window.DecorView);
+                if (insets != null) LeggiTastiera(insets);
+            }
+            catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Warning($"Lettura tastiera: {ex.Message}"); }
+        }
+
+        private void LeggiTastiera(WindowInsetsCompat insets)
+        {
+            float densita = Resources?.DisplayMetrics?.Density ?? 1f;
+            int px = insets.IsVisible(WindowInsetsCompat.Type.Ime()) ? insets.GetInsets(WindowInsetsCompat.Type.Ime()).Bottom : 0;
+            TastieraSchermo.Imposta(px / Math.Max(1f, densita));
+        }
+
+        /// <summary>Avvisato da Android alla fine dell'apertura/chiusura animata della tastiera.</summary>
+        private sealed class AscoltoTastiera : WindowInsetsAnimationCompat.Callback
+        {
+            private readonly Action _fine;
+            public AscoltoTastiera(Action fine) : base(DispatchModeContinueOnSubtree) { _fine = fine; }
+
+            public override WindowInsetsCompat OnProgress(WindowInsetsCompat insets, IList<WindowInsetsAnimationCompat> animazioni) => insets;
+
+            public override void OnEnd(WindowInsetsAnimationCompat animazione)
+            {
+                base.OnEnd(animazione);
+                if ((animazione.TypeMask & WindowInsetsCompat.Type.Ime()) != 0) _fine();
+            }
         }
 
         private void SchermoInteroRitardato()

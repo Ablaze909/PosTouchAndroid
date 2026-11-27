@@ -17,9 +17,20 @@ namespace PosTouch.App.Pagine
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
-            if (width <= 0 || height <= 0) return;
-            Riquadro.WidthRequest = Math.Min(780, width - 24);
-            Riquadro.HeightRequest = Math.Min(560, height - 24);
+            _larghezza = width; _altezza = height;
+            Ridimensiona();
+        }
+
+        private double _larghezza, _altezza;
+
+        // tastiera aperta: il riquadro si accorcia (scorre dentro) e resta tutto sopra la tastiera, tasti compresi
+        protected override void TastieraCambiata() => Ridimensiona();
+
+        private void Ridimensiona()
+        {
+            if (_larghezza <= 0 || _altezza <= 0) return;
+            Riquadro.WidthRequest = Math.Min(780, _larghezza - 24);
+            Riquadro.HeightRequest = Math.Max(200, Math.Min(560, _altezza - SpazioTastiera - 24));
         }
 
         private List<PosTouch.Core.Configurazione.Uscita> _centri = new();

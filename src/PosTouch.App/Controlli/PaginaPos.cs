@@ -39,10 +39,33 @@ namespace PosTouch.App.Controlli
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            Servizi.TastieraSchermo.Cambiata += OnTastiera;
+            OnTastiera();
             if (_spunteFatte) return;
             _spunteFatte = true;
             RendiSpunteToccabili(Content);
         }
+
+        protected override void OnDisappearing()
+        {
+            Servizi.TastieraSchermo.Cambiata -= OnTastiera;
+            base.OnDisappearing();
+        }
+
+        /// <summary>Spazio occupato in basso dalla tastiera a schermo (dp): il contenuto e i dialoghi stanno sopra.</summary>
+        protected double SpazioTastiera { get; private set; }
+
+        private void OnTastiera()
+        {
+            double h = Servizi.TastieraSchermo.Altezza;
+            if (Math.Abs(h - SpazioTastiera) < 1 || _ospite == null) return;
+            SpazioTastiera = h;
+            _ospite.Margin = new Thickness(0, 0, 0, h);   // le liste/ScrollView si accorciano e tengono in vista il campo attivo
+            TastieraCambiata();
+        }
+
+        /// <summary>Per le pagine con riquadri a misura fissa: ricalcolare l'altezza con <see cref="SpazioTastiera"/>.</summary>
+        protected virtual void TastieraCambiata() { }
 
         /// <summary>
         /// Come le CheckBox del PC (testo dentro la spunta): toccare la scritta accanto a una casella la accende/spegne.
