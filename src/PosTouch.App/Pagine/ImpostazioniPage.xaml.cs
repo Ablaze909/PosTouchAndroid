@@ -12,6 +12,9 @@ namespace PosTouch.App.Pagine
     /// <summary>Copia di ImpostazioniDialog del PC con le voci già disponibili su Android.</summary>
     public partial class ImpostazioniPage : PaginaPos
     {
+        /// <summary>Campi da scrivere anche in basso: la pagina si accorcia sopra la tastiera.</summary>
+        protected override bool AccorciaConTastiera => true;
+
         private int _fontCategorie;
         private string _password;
         private string _statoIniziale;

@@ -93,12 +93,6 @@ namespace PosTouch.App.Pagine
             return tasto;
         }
 
-        private async void OnCategorieSu(object sender, EventArgs e)
-            => await ScrollCategorie.ScrollToAsync(0, Math.Max(0, ScrollCategorie.ScrollY - Cfg.AltezzaCategoria * 4), true);
-
-        private async void OnCategorieGiu(object sender, EventArgs e)
-            => await ScrollCategorie.ScrollToAsync(0, ScrollCategorie.ScrollY + Cfg.AltezzaCategoria * 4, true);
-
         private void OnPreferiti(object sender, EventArgs e)
         {
             if (CombinazioneAperta()) return;

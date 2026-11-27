@@ -144,18 +144,20 @@
                TextColor="White" BackgroundColor="#C62828" Padding="10,0" HorizontalOptions="Start" Margin="150,4,0,4" VerticalOptions="Fill" VerticalTextAlignment="Center"
                IsVisible="False" InputTransparent="True" />
 
-        <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie → ▲▼ → 🏠 ═════════ -->
-        <Grid Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="46,*,42,50">
-            <Button x:Name="BtnEsci" Grid.Row="0" Text="🚪" FontSize="22" BackgroundColor="#B71C1C" Style="{StaticResource TastoScuro}"
-                    Margin="0,0,0,2" Clicked="OnEsci" />
+        <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie (scorrono col dito) → VAR＋ VAR﹣ → 🏠 ═════════ -->
+        <Grid x:Name="ColonnaSinistra" Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="60,*,46,50">
+            <!-- uscita ben visibile: rosso con bordo bianco; al tavolo "⬅ SALA" / "⬅ CONTI" -->
+            <Button x:Name="BtnEsci" Grid.Row="0" Text="🚪" FontSize="24" FontAttributes="Bold" BackgroundColor="#D32F2F" TextColor="White"
+                    BorderColor="White" BorderWidth="2" CornerRadius="8" Padding="2,0" LineBreakMode="WordWrap"
+                    Margin="0,0,0,3" Clicked="OnEsci" />
 
-            <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Never">
+            <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Always">
                 <VerticalStackLayout x:Name="ListaCategorie" Spacing="1" Padding="0,2" />
             </ScrollView>
 
-            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="2" Padding="0,2">
-                <Button Text="▲" FontSize="22" BackgroundColor="#37474F" Style="{StaticResource TastoScuro}" Clicked="OnCategorieSu" />
-                <Button Grid.Column="1" Text="▼" FontSize="22" BackgroundColor="#37474F" Style="{StaticResource TastoScuro}" Clicked="OnCategorieGiu" />
+            <Grid x:Name="RigaVarianti" Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="2" Padding="0,2">
+                <Button Text="VAR&#10;＋" FontSize="12" FontAttributes="Bold" Padding="0" LineBreakMode="WordWrap" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Clicked="OnVariantePiu" />
+                <Button Grid.Column="1" Text="VAR&#10;﹣" FontSize="12" FontAttributes="Bold" Padding="0" LineBreakMode="WordWrap" BackgroundColor="#BF360C" Style="{StaticResource TastoScuro}" Clicked="OnVarianteMeno" />
             </Grid>
 
             <Button Grid.Row="3" Text="🏠" FontSize="20" BackgroundColor="#F5F5F5" TextColor="#111111"
@@ -243,7 +245,7 @@
 
 
             <!-- Tastiera 4x4 + sconti + quantità -->
-            <Grid Grid.Row="4" Margin="4,4,4,4" RowDefinitions="Auto,Auto,Auto,Auto">
+            <Grid Grid.Row="4" Margin="4,4,4,4" RowDefinitions="Auto,Auto,Auto">
                 <Grid x:Name="TastieraNumerica" BackgroundColor="#E5E5E5" RowDefinitions="60,60,60,60" ColumnDefinitions="*,*,*,*">
                     <Button Text="7" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
                     <Button Text="8" Grid.Column="1" Style="{StaticResource TastoNum}" Clicked="OnCifra" />
@@ -263,24 +265,19 @@
                     <Button Text="," Grid.Row="3" Grid.Column="2" Style="{StaticResource TastoNum}" FontSize="32" Clicked="OnCifra" />
                 </Grid>
 
-                <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="44" Margin="0,10,0,0" ColumnDefinitions="*,*" ColumnSpacing="6">
+                <!-- una sola barra: ＋ ﹣ · SCONTO · ANNULLA · (al tavolo) 🔀 SPOSTA 🔗 UNISCI. Colonne sistemate da SistemaRigaTasti -->
+                <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="44" Margin="0,8,0,0" ColumnSpacing="4">
+                    <Button x:Name="BtnPiu" Text="＋" FontSize="18" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnPiu" />
+                    <Button x:Name="BtnMeno" Text="﹣" FontSize="18" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
                     <!-- un solo tasto sconto: chiede se in euro o in percentuale -->
-                    <Button x:Name="BtnSconto" Text="% € SCONTO" FontSize="14" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnSconto" />
-                    <Button x:Name="BtnAnnulla" Grid.Column="1" Text="🗑️ ANNULLA" FontSize="15" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
-                </Grid>
-
-                <!-- ＋ ﹣ VAR＋ VAR﹣ (gridRigaVarianti del PC) e, al tavolo, 🔀 SPOSTA 🔗 UNISCI -->
-                <Grid x:Name="RigaQuantita" Grid.Row="2" HeightRequest="42" Margin="0,4,0,0" ColumnDefinitions="*,*,*,*,Auto,Auto" ColumnSpacing="4">
-                    <Button Text="＋" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnPiu" />
-                    <Button Grid.Column="1" Text="﹣" FontSize="16" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
-                    <Button Grid.Column="2" Text="VAR ＋" FontSize="12" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Clicked="OnVariantePiu" />
-                    <Button Grid.Column="3" Text="VAR ﹣" FontSize="12" BackgroundColor="#BF360C" Style="{StaticResource TastoScuro}" Clicked="OnVarianteMeno" />
-                    <Button x:Name="BtnSposta" Grid.Column="4" Text="🔀" FontSize="16" WidthRequest="44" BackgroundColor="#5E35B1" Style="{StaticResource TastoScuro}" Clicked="OnSposta" IsVisible="False" />
-                    <Button x:Name="BtnUnisci" Grid.Column="5" Text="🔗" FontSize="16" WidthRequest="44" BackgroundColor="#00838F" Style="{StaticResource TastoScuro}" Clicked="OnUnisci" IsVisible="False" />
+                    <Button x:Name="BtnSconto" Text="% € SCONTO" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnSconto" />
+                    <Button x:Name="BtnAnnulla" Text="🗑️ ANNULLA" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />
+                    <Button x:Name="BtnSposta" Text="🔀" FontSize="16" BackgroundColor="#5E35B1" Style="{StaticResource TastoScuro}" Clicked="OnSposta" IsVisible="False" />
+                    <Button x:Name="BtnUnisci" Text="🔗" FontSize="16" BackgroundColor="#00838F" Style="{StaticResource TastoScuro}" Clicked="OnUnisci" IsVisible="False" />
                 </Grid>
 
                 <!-- Lista espansa: la tastiera (con C) è nascosta, quindi qui c'è il tasto per cancellare le righe selezionate -->
-                <Grid x:Name="BarraListaEspansa" Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="4" Margin="0,4,0,0" IsVisible="False">
+                <Grid x:Name="BarraListaEspansa" Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="4" Margin="0,4,0,0" IsVisible="False">
                     <Button Text="🗑️ CANCELLA RIGHE" FontSize="14" BackgroundColor="#F44336" HeightRequest="48" CornerRadius="0" Clicked="OnCancellaRigheEspanso" />
                     <Button Grid.Column="1" Text="▲ CHIUDI LISTA" FontSize="14" BackgroundColor="#607D8B" HeightRequest="48" CornerRadius="0" Clicked="OnChiudiLista" />
                 </Grid>

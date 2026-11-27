@@ -13,6 +13,9 @@ namespace PosTouch.App.Pagine
     /// </summary>
     public partial class SaleConfigPage : PaginaPos
     {
+        /// <summary>Campi da scrivere anche in basso: la pagina si accorcia sopra la tastiera.</summary>
+        protected override bool AccorciaConTastiera => true;
+
         private readonly ConfigSale _c = ContestoCassa.Impostazioni.Sale.Copia();
         private readonly ContentView _contenuto = new ContentView();
         private readonly HorizontalStackLayout _schede = new HorizontalStackLayout { Spacing = 2 };

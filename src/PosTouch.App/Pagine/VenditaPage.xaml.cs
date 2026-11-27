@@ -64,13 +64,11 @@ namespace PosTouch.App.Pagine
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
             _tastierino.VirgolaImplicita = Cfg.VirgolaImplicita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
-            RigaQuantita.IsVisible = Cfg.MostraRigaPiuMeno;
+            RigaVarianti.IsVisible = Cfg.MostraRigaPiuMeno;
+            ColonnaSinistra.RowDefinitions[2].Height = Cfg.MostraRigaPiuMeno ? new GridLength(46) : new GridLength(0);
             BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata
             AggiornaModoTavolo();
-            // Sconti disattivati: spariscono i due tasti sconto, ANNULLA resta e occupa tutta la riga
-            BtnSconto.IsVisible = Cfg.AbilitaSconti;
-            Grid.SetColumn(BtnAnnulla, Cfg.AbilitaSconti ? 1 : 0);
-            Grid.SetColumnSpan(BtnAnnulla, Cfg.AbilitaSconti ? 1 : 2);
+            SistemaRigaTasti();
             // Ridisegna categorie e articoli solo se catalogo o impostazioni sono cambiati
             // (OnAppearing scatta anche alla chiusura di ogni finestra: niente ridisegni inutili)
             var versione = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni);
@@ -92,8 +90,41 @@ namespace PosTouch.App.Pagine
 
         private void AggiornaOrologio()
         {
-            Orologio.Text = DateTime.Now.ToString("HH:mm:ss");
-            Data.Text = DateTime.Now.ToString("dd/MM/yyyy");
+            // ore e minuti (senza secondi): lo schermo si ridisegna solo quando cambia il minuto
+            var ora = DateTime.Now;
+            string o = ora.ToString("HH:mm"), d = ora.ToString("dd/MM/yyyy");
+            if (Orologio.Text != o) Orologio.Text = o;
+            if (Data.Text != d) Data.Text = d;
+        }
+
+        private double _larghezzaTasti;
+
+        /// <summary>
+        /// Barra unica sotto la tastiera: ＋ ﹣ (se attivi) · SCONTO (se attivo) · ANNULLA · 🔀 🔗 (al tavolo).
+        /// Con la lista allungata restano solo ＋ ﹣ 🔀 🔗: niente SCONTO e ANNULLA.
+        /// </summary>
+        private void SistemaRigaTasti()
+        {
+            bool piuMeno = Cfg.MostraRigaPiuMeno;
+            BtnPiu.IsVisible = BtnMeno.IsVisible = piuMeno;
+            BtnSconto.IsVisible = Cfg.AbilitaSconti && !_scontrinoEspanso;
+            BtnAnnulla.IsVisible = !_scontrinoEspanso;
+            var tasti = new[] { BtnPiu, BtnMeno, BtnSconto, BtnAnnulla, BtnSposta, BtnUnisci };
+            RigaSconti.ColumnDefinitions.Clear();
+            int col = 0;
+            foreach (var b in tasti)
+            {
+                if (!b.IsVisible) continue;
+                bool largo = b == BtnSconto || b == BtnAnnulla;
+                RigaSconti.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(largo ? 1.7 : 1, GridUnitType.Star)));
+                Grid.SetColumn(b, col++);
+            }
+            RigaSconti.IsVisible = col > 0;
+            // tasti stretti: icona sopra, scritta sotto
+            double unita = _larghezzaTasti > 0 && col > 0 ? _larghezzaTasti / (col + 0.7 * tasti.Count(x => x.IsVisible && (x == BtnSconto || x == BtnAnnulla))) : 100;
+            bool dueRighe = unita * 1.7 < 110;
+            BtnSconto.Text = dueRighe ? "% €\nSCONTO" : "% € SCONTO";
+            BtnAnnulla.Text = dueRighe ? "🗑️\nANNULLA" : "🗑️ ANNULLA";
         }
 
         // ══════════════ ADATTAMENTO ALLO SCHERMO ══════════════
@@ -137,7 +168,7 @@ namespace PosTouch.App.Pagine
             foreach (var rd in TastieraNumerica.RowDefinitions) rd.Height = new GridLength(riga);
             foreach (var b in TastieraNumerica.Children.OfType<Button>())
                 b.FontSize = b.Text == "€" ? riga * 0.6 : b.Text == "," ? riga * 0.55 : riga * 0.4;
-            RigaSconti.HeightRequest = RigaQuantita.HeightRequest = Math.Clamp(riga * 0.7, 44, 52);   // mai sotto i 44 dp (dito)
+            RigaSconti.HeightRequest = Math.Clamp(riga * 0.75, 44, 54);   // mai sotto i 44 dp (dito)
 
             // barra inferiore: testo che entra nei tasti
             double colonna = (width - destra - 12) / 5;
@@ -145,8 +176,8 @@ namespace PosTouch.App.Pagine
                 b.FontSize = Math.Clamp(colonna / 7.5, 12, 20);
             _larghezzaBarra = width - destra - 12;
             SistemaBarraTavolo();
-            foreach (var b in RigaQuantita.Children.OfType<Button>().Where(x => x.Text.StartsWith("VAR")))
-                b.FontSize = Math.Clamp(destra / 26, 10, 14);
+            _larghezzaTasti = destra - 8;
+            SistemaRigaTasti();
 
             // tasti articolo: quanti ne entrano in una riga, poi allargati per riempirla
             double area = width - sinistra - destra - 8;

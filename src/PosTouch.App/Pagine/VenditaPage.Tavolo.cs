@@ -55,6 +55,7 @@ namespace PosTouch.App.Pagine
             bool inSala = tavolo && !_sessione.IsContoCliente;   // come il PC: sposta/unisci solo per i tavoli delle sale
             BtnSposta.IsVisible = inSala && sale.AbilitaSpostaTavolo;
             BtnUnisci.IsVisible = inSala && sale.AbilitaUnisciConti;
+            SistemaRigaTasti();
             SistemaBarraTavolo();
         }
 

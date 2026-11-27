@@ -8,6 +8,9 @@ namespace PosTouch.App.Pagine
     /// <summary>Copia di CategoriaDialogTouch del PC.</summary>
     public partial class CategoriaPage : PaginaPos
     {
+        /// <summary>Campi da scrivere anche in basso: la pagina si accorcia sopra la tastiera.</summary>
+        protected override bool AccorciaConTastiera => true;
+
         private static readonly int[] Aliquote = { 4, 5, 10, 22 };
         private readonly Categoria _cat;
         private int _reparto;

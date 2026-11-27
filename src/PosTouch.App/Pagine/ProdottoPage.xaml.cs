@@ -8,6 +8,9 @@ namespace PosTouch.App.Pagine
     /// <summary>Copia di ProdottoDialogTouch del PC (campi della fase 1).</summary>
     public partial class ProdottoPage : PaginaPos
     {
+        /// <summary>Campi da scrivere anche in basso: la pagina si accorcia sopra la tastiera.</summary>
+        protected override bool AccorciaConTastiera => true;
+
         private readonly Prodotto _p;
         private readonly List<Categoria> _categorie;
 

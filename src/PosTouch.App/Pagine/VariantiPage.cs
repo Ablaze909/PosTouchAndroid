@@ -13,6 +13,9 @@ namespace PosTouch.App.Pagine
     /// </summary>
     public class VariantiPage : PaginaPos
     {
+        /// <summary>Campi da scrivere anche in basso: la pagina si accorcia sopra la tastiera.</summary>
+        protected override bool AccorciaConTastiera => true;
+
         private readonly VerticalStackLayout _lista = new VerticalStackLayout { Spacing = 8 };
         private static readonly List<string> Tipi = new() { "Standard (+/-)", "Preparazione" };
 

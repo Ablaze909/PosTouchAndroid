@@ -94,7 +94,7 @@ namespace PosTouch.App.Pagine
         {
             _scontrinoEspanso = espanso;
             TastieraNumerica.IsVisible = !espanso;
-            RigaSconti.IsVisible = !espanso;   // lista allungata: niente SCONTO e ANNULLA (più righe a video, nessun tocco per sbaglio)
+            SistemaRigaTasti();   // lista allungata: niente SCONTO e ANNULLA (nessun tocco per sbaglio)
             BarraListaEspansa.IsVisible = espanso;
         }
 
@@ -137,10 +137,8 @@ namespace PosTouch.App.Pagine
         /// <summary>Senza frecce: quando le righe non stanno tutte a video la barra nera dice quante sono.</summary>
         private void AggiornaFrecce()
         {
-            int n = Carrello.Righe.Count;
-            bool nascoste = n > 0 && (_primaVisibile > 0 || (_ultimaVisibile >= 0 && _ultimaVisibile < n - 1));
-            string testo = nascoste ? $"📋 SCONTRINO · {n} righe ↕" : "📋 SCONTRINO";
-            if (TitoloScontrino.Text != testo) TitoloScontrino.Text = testo;
+            // niente più "N righe": la barra nera dice solo SCONTRINO (si scorre col dito, barra di scorrimento visibile)
+            if (TitoloScontrino.Text != "📋 SCONTRINO") TitoloScontrino.Text = "📋 SCONTRINO";
         }
 
         private void AggiornaTotale()

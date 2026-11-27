@@ -55,12 +55,24 @@ namespace PosTouch.App.Controlli
         /// <summary>Spazio occupato in basso dalla tastiera a schermo (dp): il contenuto e i dialoghi stanno sopra.</summary>
         protected double SpazioTastiera { get; private set; }
 
+        /// <summary>
+        /// true solo per le pagine con campi da scrivere in basso (scheda articolo/categoria, impostazioni…):
+        /// la pagina intera si accorcia sopra la tastiera. Le altre (vendita, back office con la ricerca in alto)
+        /// non si ridisegnano: ridisegnare liste lunghe a ogni apertura/chiusura della tastiera rallentava.
+        /// I dialoghi (nome operatore, IP…) si spostano sempre sopra la tastiera, da soli.
+        /// </summary>
+        protected virtual bool AccorciaConTastiera => false;
+
         private void OnTastiera()
         {
             double h = Servizi.TastieraSchermo.Altezza;
-            if (Math.Abs(h - SpazioTastiera) < 1 || _ospite == null) return;
-            SpazioTastiera = h;
-            _ospite.Margin = new Thickness(0, 0, 0, h);   // le liste/ScrollView si accorciano e tengono in vista il campo attivo
+            // dialoghi aperti: solo loro salgono sopra la tastiera (la pagina sotto non si ridisegna)
+            foreach (var l in _livelli)
+                if (Math.Abs(l.Margin.Bottom - h) >= 1) l.Margin = new Thickness(0, 0, 0, h);
+            double spazio = AccorciaConTastiera ? h : 0;
+            if (Math.Abs(spazio - SpazioTastiera) < 1 || _ospite == null) return;
+            SpazioTastiera = spazio;
+            _ospite.Margin = new Thickness(0, 0, 0, spazio);   // le ScrollView si accorciano e tengono in vista il campo attivo
             TastieraCambiata();
         }
 
@@ -92,6 +104,8 @@ namespace PosTouch.App.Controlli
         {
             if (_ospite == null) return;
             _livelli.Add(livello);
+            double h = Servizi.TastieraSchermo.Altezza;
+            if (h > 0) livello.Margin = new Thickness(0, 0, 0, h);
             _ospite.Add(livello);
         }
 
