@@ -280,8 +280,9 @@
 
                 <!-- una sola barra: ＋ ﹣ · SCONTO · ANNULLA · (al tavolo) 🔀 SPOSTA 🔗 UNISCI. Colonne sistemate da SistemaRigaTasti -->
                 <Grid x:Name="RigaSconti" Grid.Row="1" HeightRequest="44" Margin="0,8,0,0" ColumnSpacing="4">
-                    <Button x:Name="BtnPiu" Text="＋" FontSize="18" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnPiu" />
-                    <Button x:Name="BtnMeno" Text="﹣" FontSize="18" BackgroundColor="#333333" Style="{StaticResource TastoScuro}" Clicked="OnMeno" />
+                    <!-- ＋ ﹣ come i tasti del tastierino (bianchi, bordo sottile): si legano alla quantità e non si perdono vicino a SCONTO -->
+                    <Button x:Name="BtnPiu" Text="+" Style="{StaticResource TastoNum}" BorderColor="#B0BEC5" BorderWidth="1" CornerRadius="4" Margin="0" Clicked="OnPiu" />
+                    <Button x:Name="BtnMeno" Text="−" Style="{StaticResource TastoNum}" BorderColor="#B0BEC5" BorderWidth="1" CornerRadius="4" Margin="0" Clicked="OnMeno" />
                     <!-- un solo tasto sconto: chiede se in euro o in percentuale -->
                     <Button x:Name="BtnSconto" Text="% € SCONTO" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#555555" Style="{StaticResource TastoScuro}" Clicked="OnSconto" />
                     <Button x:Name="BtnAnnulla" Text="🗑️ ANNULLA" FontSize="12" Padding="2,0" LineBreakMode="WordWrap" BackgroundColor="#F44336" Style="{StaticResource TastoScuro}" Clicked="OnAnnulla" />

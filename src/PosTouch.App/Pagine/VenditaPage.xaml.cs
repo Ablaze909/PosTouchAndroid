@@ -117,10 +117,17 @@ namespace PosTouch.App.Pagine
             var tasti = new[] { BtnPiu, BtnMeno, BtnSconto, BtnAnnulla, BtnSposta, BtnUnisci };
             RigaSconti.ColumnDefinitions.Clear();
             int col = 0;
+            bool stacco = piuMeno;   // piccolo stacco tra ＋ ﹣ e il resto della barra
             foreach (var b in tasti)
             {
                 if (!b.IsVisible) continue;
                 bool largo = b == BtnSconto || b == BtnAnnulla;
+                if (stacco && b != BtnPiu && b != BtnMeno)
+                {
+                    RigaSconti.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(4)));
+                    col++;
+                    stacco = false;
+                }
                 RigaSconti.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(largo ? 1.7 : 1, GridUnitType.Star)));
                 Grid.SetColumn(b, col++);
             }
@@ -174,6 +181,7 @@ namespace PosTouch.App.Pagine
             foreach (var b in TastieraNumerica.Children.OfType<Button>())
                 b.FontSize = b.Text == "€" ? riga * 0.6 : b.Text == "," ? riga * 0.55 : riga * 0.4;
             RigaSconti.HeightRequest = Math.Clamp(riga * 0.75, 44, 54);   // mai sotto i 44 dp (dito)
+            BtnPiu.FontSize = BtnMeno.FontSize = Math.Clamp(riga * 0.4, 18, 26);   // come i numeri, un filo più piccoli
 
             // barra inferiore: testo che entra nei tasti
             double colonna = (width - destra - 12) / 5;
