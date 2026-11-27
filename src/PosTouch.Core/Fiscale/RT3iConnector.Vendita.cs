@@ -280,6 +280,9 @@ namespace PosTouch.Core.Fiscale
         {
             // FIX BUG-C3: sanitizza anche i messaggi (usano stessa sintassi "testo"@)
             var msg = SanitizzaDescrizione(messaggio);
+            // un messaggio che inizia con una cifra ("1/2 CAPRICCIOSA") usciva senza la prima cifra ("/2 ..."):
+            // uno spazio davanti la protegge
+            if (msg.Length > 0 && char.IsDigit(msg[0])) msg = (" " + msg).Length > 38 ? " " + msg.Substring(0, 37) : " " + msg;
             return await SendCommandAsync($"\"{msg}\"@");
         }
 

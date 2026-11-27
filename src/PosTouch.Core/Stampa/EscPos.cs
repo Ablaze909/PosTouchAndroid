@@ -92,8 +92,18 @@ namespace PosTouch.Core.Stampa
         }
 
         /// <summary>Etichetta a sinistra, valore allineato a destra su <paramref name="larghezza"/> colonne.</summary>
+        /// <remarks>
+        /// Le lunghezze si misurano DOPO la pulizia ("€" diventa "euro"): prima la riga superava la carta di 3 caratteri
+        /// e l'importo andava a capo (",00" sulla riga sotto). Se non ci sta, si accorcia l'etichetta, mai l'importo.
+        /// </remarks>
         public static string DueColonne(string sinistra, string destra, int larghezza = Colonne)
-            => sinistra + new string(' ', System.Math.Max(larghezza - sinistra.Length - destra.Length, 1)) + destra;
+        {
+            sinistra = Sanitizza(sinistra);
+            destra = Sanitizza(destra);
+            int spazio = larghezza - destra.Length - 1;
+            if (sinistra.Length > spazio) sinistra = spazio > 0 ? sinistra.Substring(0, spazio) : "";
+            return sinistra + new string(' ', System.Math.Max(larghezza - sinistra.Length - destra.Length, 1)) + destra;
+        }
 
         public byte[] Byte() => _b.ToArray();
 

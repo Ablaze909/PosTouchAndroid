@@ -11,6 +11,12 @@ namespace PosTouch.Tests
     {
         public static void Esegui()
         {
+            // riepilogo turno: "€" diventa "euro" sulla stampante, la riga non deve superare la carta (prima ",00" andava a capo)
+            string rigaEuro = EscPos.DueColonne("Scontrini (1)", "€ 22,00");
+            Ok(rigaEuro.Length == EscPos.Colonne && rigaEuro.EndsWith("euro 22,00"), "importo in euro tutto sulla stessa riga");
+            Ok(EscPos.DueColonne(new string('X', 60), "€ 1.234,00").EndsWith("euro 1.234,00") && EscPos.DueColonne(new string('X', 60), "€ 1.234,00").Length == EscPos.Colonne,
+               "etichetta troppo lunga: si accorcia l'etichetta, mai l'importo");
+
             var v = new ConfigSale();
             v.Stampanti.Add(new StampanteRete { Id = 1, Nome = "A", IP = "10.0.0.5", Porta = 9100 });
             v.Stampanti.Add(new StampanteRete { Id = 2, Nome = "B", IP = "10.0.0.6", Porta = 9101 });
