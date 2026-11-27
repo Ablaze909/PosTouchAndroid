@@ -17,7 +17,7 @@ namespace PosTouch.App.Pagine
             ListaBarcodeAggiuntivi.Clear();
             if (_p.BarcodeAggiuntivi.Count == 0)
             {
-                ListaBarcodeAggiuntivi.Add(new Label { Text = "Nessuno. Esempio: il barcode della cassa da 6 → 6 pezzi.", FontSize = 13, TextColor = Ui.C("#78909C") });
+                ListaBarcodeAggiuntivi.Add(new Label { Text = "Nessuno. Servono per un secondo codice dello stesso articolo (1 pezzo) o per le confezioni (es. cassa da 6 → 6 pezzi).", FontSize = 13, TextColor = Ui.C("#78909C") });
                 return;
             }
             foreach (var b in _p.BarcodeAggiuntivi.ToList())
@@ -31,6 +31,7 @@ namespace PosTouch.App.Pagine
                 var pezzi = new Button { Text = $"×{b.Pezzi} pz", FontSize = 15, FontAttributes = FontAttributes.Bold, BackgroundColor = Ui.C("#2196F3"), TextColor = Colors.White, CornerRadius = 4, HeightRequest = 44 };
                 pezzi.Clicked += async (s, e) =>
                 {
+                    await Ui.ChiudiTastieraAsync(this);
                     int? n = await ChiediPezziAsync(b.Barcode, b.Pezzi);
                     if (n == null) return;
                     b.Pezzi = n.Value;
@@ -57,7 +58,8 @@ namespace PosTouch.App.Pagine
             _aggiuntaInCorso = true;
             try
             {
-                string letto = await TestoBox.Chiedi("📦 BARCODE DELLA CONFEZIONE\nleggilo col lettore o scrivilo", "", GestioneCatalogo.LunghezzaMaxBarcode);
+                await Ui.ChiudiTastieraAsync(this);
+                string letto = await TestoBox.Chiedi("📦 ALTRO BARCODE\nleggilo col lettore o scrivilo", "", GestioneCatalogo.LunghezzaMaxBarcode, codice: true);
                 if (letto == null) return;
                 string codice = GestioneCatalogo.NormalizzaBarcode(letto);
                 if (codice.Length == 0) return;
@@ -72,7 +74,8 @@ namespace PosTouch.App.Pagine
                     await MessaggioBox.Avviso("BARCODE GIÀ USATO", $"Il barcode {codice} è già dell'articolo \"{altro.Descrizione}\".");
                     return;
                 }
-                int? pezzi = await ChiediPezziAsync(codice, 6);
+                await Ui.ChiudiTastieraAsync(this);   // il tastierino dei pezzi non deve aprirsi schiacciato sopra la tastiera
+                int? pezzi = await ChiediPezziAsync(codice, 1);   // 1 = stesso articolo con un altro codice; 6 = confezione da 6
                 if (pezzi == null) return;
                 _p.BarcodeAggiuntivi.Add(new BarcodeConfezione { Barcode = codice, Pezzi = pezzi.Value });
                 DisegnaBarcode();
@@ -85,7 +88,7 @@ namespace PosTouch.App.Pagine
         {
             while (true)
             {
-                var v = await TastierinoPrezzo.ChiediQuantita($"📦 PEZZI NELLA CONFEZIONE\n{codice}", attuali);
+                var v = await TastierinoPrezzo.ChiediQuantita($"📦 QUANTI PEZZI VALE {codice}?\n1 = un pezzo · 6 = confezione da 6", attuali);
                 if (v == null) return null;
                 if (v.Value >= 1 && v.Value <= GestioneCatalogo.PezziMaxConfezione && v.Value == decimal.Truncate(v.Value)) return (int)v.Value;
                 await MessaggioBox.Avviso("PEZZI NON VALIDI", $"Scrivi un numero intero da 1 a {GestioneCatalogo.PezziMaxConfezione}.");

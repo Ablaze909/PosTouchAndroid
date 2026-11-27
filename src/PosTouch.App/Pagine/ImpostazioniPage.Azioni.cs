@@ -79,6 +79,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnSalva(object sender, EventArgs e)
         {
+            await Ui.ChiudiTastieraAsync(this);   // consegna l'ultima parola scritta
             var nuove = await LeggiAsync();
             if (nuove == null) return;
             try

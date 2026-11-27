@@ -44,7 +44,9 @@ namespace PosTouch.App.Pagine
                 int eliminacode = _sessione == null ? ContestoCassa.ComandaBanco.Prepara(righe) : 0;   // comanda da banco
                 MostraAttesa(true, "⏳ Stampa conto in corso...");
                 PosTouch.Core.Conti.EsitoConto esito;
-                try { esito = await Task.Run(() => ContestoCassa.ServizioConto.StampaAsync(righe, salaId, eliminacode)); }
+                // con il ticket eliminacode attivo il numero esce SOLO sul ticket (come con lo scontrino), non anche sul conto
+                int appendiceConto = ContestoCassa.ComandaBanco.InAppendice ? eliminacode : 0;
+                try { esito = await Task.Run(() => ContestoCassa.ServizioConto.StampaAsync(righe, salaId, appendiceConto)); }
                 finally { MostraAttesa(false); }
 
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.NonStampato)

@@ -188,7 +188,7 @@ namespace PosTouch.App.Pagine
             if (_c.ComandeDaBanco)
             {
                 _destra.Add(Ui.Testo("Chiudendo scontrino o conto al banco gli articoli con un'uscita vanno in comanda con un numero eliminacode " +
-                                     "(stampato in appendice allo scontrino e sul conto). Le stampanti sono quelle della pagina Banco.", 13, "#B0BEC5"));
+                                     "(in appendice allo scontrino e al conto, oppure solo sul ticket se attivi l'opzione qui sotto). Le stampanti sono quelle della pagina Banco.", 13, "#B0BEC5"));
                 _destra.Add(Interruttore("Eliminacode su ticket (stampante Preconti)", _c.TicketEliminacodeSuTermica, v => { _c.TicketEliminacodeSuTermica = v; Disegna(); }));
                 if (!Sale.AbilitaComande)
                     _destra.Add(Ui.Testo("⚠️ Le comande sono spente in SALE E COMANDE → OPZIONI.", 13, "#FFB74D"));

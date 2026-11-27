@@ -143,6 +143,7 @@ namespace PosTouch.App.Pagine
 
         private async Task SalvaAsync()
         {
+            await Ui.ChiudiTastieraAsync(this);   // consegna l'ultima parola scritta
             string errore = null;
             foreach (var s in _c.Sale)
                 if (string.IsNullOrWhiteSpace(s.Nome) || s.NumeroTavoli < 1 || s.NumeroTavoli > 500 || s.NumeroIniziale < 0)

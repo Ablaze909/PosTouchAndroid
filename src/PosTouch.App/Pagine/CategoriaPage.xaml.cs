@@ -158,6 +158,7 @@ namespace PosTouch.App.Pagine
 
         private async Task SalvaAsync()
         {
+            await Ui.ChiudiTastieraAsync(this);   // consegna l'ultima parola scritta
             if (string.IsNullOrWhiteSpace(CampoNome.Text))
             {
                 await MessaggioBox.Avviso("CAMPO OBBLIGATORIO", "Inserire il nome della categoria.");

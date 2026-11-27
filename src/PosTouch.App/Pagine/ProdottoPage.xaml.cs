@@ -144,6 +144,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnTastieraBarcode(object sender, EventArgs e)
         {
+            await Ui.ChiudiTastieraAsync(this);
             string b = await TastierinoPrezzo.ChiediCodice("📦 BARCODE / EAN", CampoBarcode.Text);
             if (b != null) CampoBarcode.Text = b;
         }
@@ -180,7 +181,11 @@ namespace PosTouch.App.Pagine
         {
             if (_salvataggio) return;
             _salvataggio = true;
-            try { await SalvaAsync(); }
+            try
+            {
+                await Ui.ChiudiTastieraAsync(this);   // a tastiera aperta l'ultima parola scritta poteva non arrivare (es. barcode)
+                await SalvaAsync();
+            }
             finally { _salvataggio = false; }
         }
 

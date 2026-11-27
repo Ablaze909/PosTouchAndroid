@@ -112,6 +112,7 @@ namespace PosTouch.App.Dialoghi
         {
             if (_salvataggio) return;
             _salvataggio = true;
+            await Ui.ChiudiTastieraAsync(this);   // consegna l'ultima parola scritta
             try
             {
                 _o.Nome = (_nome.Text ?? "").Trim();

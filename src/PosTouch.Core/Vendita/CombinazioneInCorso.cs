@@ -32,8 +32,8 @@ namespace PosTouch.Core.Vendita
             Gusti = gusti;
             Totali = Math.Clamp(prodBase.NumeroGusti, 2, 8);
             Mancanti = Totali;
-            string f = Frazione(Totali);
-            Padre = carrello.AggiungiPadreCombinazione(prodBase, $"{prodBase.Descrizione} ({f}+{f}{(Totali > 2 ? "+..." : "")})");
+            // solo il nome (niente "(1/3+1/3+...)"): i gusti sono già scritti sotto, su scontrino, conto e comanda
+            Padre = carrello.AggiungiPadreCombinazione(prodBase, prodBase.Descrizione);
         }
 
         public static string Frazione(int n) => n == 2 ? "½" : n == 3 ? "⅓" : n == 4 ? "¼" : $"1/{n}";

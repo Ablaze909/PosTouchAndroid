@@ -53,6 +53,24 @@ namespace PosTouch.App.Controlli
                 Padding = padding ?? new Thickness(0)
             };
 
+        /// <summary>
+        /// Chiude la tastiera di Android e fa arrivare all'app il testo ancora "in scrittura" (la parola sottolineata
+        /// dei suggerimenti): da chiamare prima di leggere o salvare i campi. Prima, premendo OK/SALVA a tastiera aperta,
+        /// l'ultima parola poteva mancare (es. barcode non salvato).
+        /// </summary>
+        public static async Task ChiudiTastieraAsync(Element radice)
+        {
+            if (radice is not IVisualTreeElement albero) return;
+            bool chiusa = false;
+            foreach (var campo in albero.GetVisualTreeDescendants().OfType<InputView>().Where(x => x.IsFocused).ToList())
+            {
+                try { await campo.HideSoftInputAsync(CancellationToken.None); } catch { }
+                campo.Unfocus();
+                chiusa = true;
+            }
+            if (chiusa) await Task.Delay(120);   // il tempo di consegnare il testo e di far scendere la tastiera
+        }
+
         public static void Tocco(View vista, Action azione)
         {
             var tap = new TapGestureRecognizer();
