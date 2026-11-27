@@ -281,14 +281,39 @@ namespace PosTouch.App.Pagine
             return true;
         }
 
+        private static readonly HashSet<View> _premuti = new();
+
+        /// <summary>
+        /// Tasto premuto: si rimpicciolisce e si scurisce per 0,14 s, poi torna com'era.
+        /// Scala e trasparenza non ridispongono la griglia: costa pochissimo anche su tablet lenti.
+        /// </summary>
+        private static void Premuto(View vista)
+        {
+            try
+            {
+                var d = vista.Dispatcher;
+                if (d == null || !_premuti.Add(vista)) return;   // tocchi rapidi: un effetto alla volta
+                double prima = vista.Opacity, premuto = prima * 0.6;
+                vista.Opacity = premuto;
+                vista.Scale = 0.93;
+                d.DispatchDelayed(TimeSpan.FromMilliseconds(140), () =>
+                {
+                    _premuti.Remove(vista);
+                    vista.Scale = 1;
+                    // se intanto è cambiata (es. categoria appena scelta → piena) non si tocca
+                    if (Math.Abs(vista.Opacity - premuto) < 0.001) vista.Opacity = prima;
+                });
+            }
+            catch { vista.Scale = 1; }
+        }
+
         private static void Tocco(View vista, Func<Task> azione)
         {
             var tap = new TapGestureRecognizer();
             tap.Tapped += async (s, e) =>
             {
-                vista.Opacity = 0.75;
-                try { await azione(); }
-                finally { vista.Opacity = 1; }
+                Premuto(vista);   // effetto breve e fisso: si vede anche se l'azione dura pochi millesimi
+                await azione();
             };
             vista.GestureRecognizers.Add(tap);
         }
