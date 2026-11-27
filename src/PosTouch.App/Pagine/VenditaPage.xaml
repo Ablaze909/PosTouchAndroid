@@ -161,7 +161,7 @@
         <Grid x:Name="ColonnaSinistra" Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="0,*,0,50">
             <!-- (uscita spostata nella banda in alto) -->
 
-            <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Always">
+            <ScrollView x:Name="ScrollCategorie" Grid.Row="1" VerticalScrollBarVisibility="Never">
                 <VerticalStackLayout x:Name="ListaCategorie" Spacing="1" Padding="0,2" />
             </ScrollView>
 
