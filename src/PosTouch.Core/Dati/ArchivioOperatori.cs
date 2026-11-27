@@ -359,6 +359,19 @@ namespace PosTouch.Core.Dati
         }
 
         /// <summary>Fondo da proporre all'apertura: quello lasciato dal turno precedente, altrimenti il suo fondo iniziale, altrimenti 0.</summary>
+        /// <summary>L'ultimo turno chiuso, null se nessuno.</summary>
+        public Turno UltimoTurnoChiuso()
+        {
+            lock (_lock)
+            {
+                using var c = Apri();
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = "SELECT Id, OperatoreId, OperatoreNome, Apertura, Chiusura, Stato, ContantiContatiCent, FondoInizialeCent, FondoLasciatoCent FROM Turni WHERE Stato = 2 ORDER BY Id DESC LIMIT 1";
+                using var r = cmd.ExecuteReader();
+                return r.Read() ? LeggiTurno(r) : null;
+            }
+        }
+
         public int FondoProposto()
         {
             lock (_lock)

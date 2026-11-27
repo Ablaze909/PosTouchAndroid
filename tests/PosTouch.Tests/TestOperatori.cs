@@ -88,6 +88,11 @@ namespace PosTouch.Tests
                 Ok(a4.esito == EsitoAccesso.Ok && s.Corrente.Nome == "LUIGI", "dopo la chiusura Luigi apre il suo turno");
                 var rl = s.Riepilogo(s.TurnoCorrente);
                 Uguale(0, rl.Scontrini, "le vendite di Mario non sono nel turno di Luigi");
+                // senza "fondo lasciato": nel cassetto resta tutto → si propone quanto contato (o, se non contato, l'atteso)
+                s.ImpostaFondo(5000);
+                s.Movimento(TipoMovimento.Prelievo, 1000, "BANCA");
+                s.Chiudi(s.TurnoCorrente, luigi, null, null);
+                Uguale(4000, s.FondoProposto(), "non contato: propone l'atteso (50,00 − 10,00), non il fondo iniziale");
 
                 // disattivato: il PIN non entra più; riattivarlo chiede un PIN nuovo
                 var m2 = arch.Operatori().First(o => o.Nome == "MARIO");

@@ -111,7 +111,21 @@ namespace PosTouch.Core.Vendita
             }
         }
 
-        public int FondoProposto() => _archivio.FondoProposto();
+        /// <summary>
+        /// Fondo proposto all'apertura = quello che è rimasto nel cassetto alla chiusura di prima:
+        /// il fondo lasciato se è stato chiesto; altrimenti nel cassetto è rimasto tutto, quindi i contanti contati
+        /// o, se non contati, quelli attesi (fondo + incassi in contanti + versamenti − prelievi).
+        /// Prima si riproponeva il fondo iniziale di quel turno (es. 500 € anche dopo 100 € di prelievo).
+        /// </summary>
+        public int FondoProposto()
+        {
+            var t = _archivio.UltimoTurnoChiuso();
+            if (t == null) return 0;
+            if (t.FondoLasciatoCent is int lasciato) return lasciato;
+            if (t.ContantiContatiCent is int contati) return contati;
+            try { return Math.Max(0, Riepilogo(t).ContantiAttesiCent); }
+            catch { return t.FondoInizialeCent ?? 0; }   // vendite non leggibili: almeno il fondo di allora
+        }
 
         /// <summary>Prelievo o versamento sul turno corrente, registrato con il nome dell'operatore.</summary>
         public MovimentoCassa Movimento(TipoMovimento tipo, int importoCent, string causale)
