@@ -18,8 +18,12 @@ namespace PosTouch.App.Pagine
             // ogni 10 s: si ridisegna solo se è cambiato qualcosa (sala attiva, sale, stampe in errore, deviazioni)
             int inErrore = Cfg.AbilitaComande ? ContestoCassa.Spooler.InErrore : 0;
             bool deviata = Cfg.AbilitaComande && ContestoCassa.Spooler.Deviazioni().Count > 0;
+            // pallino: 🟢 almeno un tavolo/conto occupato, 🔴 tutti occupati, niente se la sala è libera
+            List<TavoloAperto> aperti;
+            try { aperti = ContestoCassa.Tavoli.Aperti(); } catch { aperti = new List<TavoloAperto>(); }
+            var pallini = Sale().ToDictionary(x => x.Id, x => Pallino(x, aperti));
             string firma = string.Join("|", _salaCorrente, ContestoCassa.VersioneImpostazioni, Cfg.AbilitaComande, inErrore, deviata,
-                                       string.Join(",", Sale().Select(x => x.Id + ":" + x.Nome)));
+                                       string.Join(",", Sale().Select(x => x.Id + ":" + x.Nome + ":" + pallini[x.Id])));
             if (firma == _firmaSchede) return;
             _firmaSchede = firma;
             _schede.Children.Clear();
@@ -32,7 +36,8 @@ namespace PosTouch.App.Pagine
                 string colore = sala.Id == ConfigSale.SalaConti ? ColoreConti : ColoriSale[i++ % ColoriSale.Length];
                 bool chiaro = attiva;   // stessi colori della banda "dove sono" in vendita
                 int id = sala.Id;
-                schede.Add(Scheda(sala.Id == ConfigSale.SalaConti ? "CONTI" : sala.Nome, attiva ? colore : "#E0E0E0", chiaro,
+                string nome = sala.Id == ConfigSale.SalaConti ? "CONTI" : sala.Nome;
+                schede.Add(Scheda(pallini[sala.Id] + nome, attiva ? colore : "#E0E0E0", chiaro,
                                   () => { _salaCorrente = _ultimaSala = id; Aggiorna(); }));
             }
             schede.Add(Scheda("Banco", "#E0E0E0", false, async () => await Navigazione.Chiudi(this)));
@@ -48,6 +53,14 @@ namespace PosTouch.App.Pagine
                 _schede.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
                 _schede.Add(schede[k], k, 0);
             }
+        }
+
+        private static string Pallino(Sala sala, List<TavoloAperto> aperti)
+        {
+            int tot = Math.Max(1, sala.NumeroTavoli);
+            int occupati = aperti.Count(t => t.SalaId == sala.Id && t.Occupato
+                                             && t.Numero >= sala.NumeroIniziale && t.Numero < sala.NumeroIniziale + tot);
+            return occupati == 0 ? "" : occupati >= tot ? "🔴 " : "🟢 ";
         }
 
         private static Button Scheda(string testo, string sfondo, bool testoChiaro, Action clic)
