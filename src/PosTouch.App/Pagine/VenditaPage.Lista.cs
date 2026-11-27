@@ -150,6 +150,7 @@ namespace PosTouch.App.Pagine
             if (Carrello.Righe.Count == 0) { _primaVisibile = 0; _ultimaVisibile = 0; }
             AggiornaFrecce();
             AggiornaBarraPortate();   // la casella accesa segue la portata di destinazione
+            ColoraPortate();
         }
 
         private void SvuotaScontrino()

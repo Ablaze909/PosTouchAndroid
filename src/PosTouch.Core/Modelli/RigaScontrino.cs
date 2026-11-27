@@ -84,8 +84,23 @@ namespace PosTouch.Core.Modelli
             set { if (_selezionata != value) { _selezionata = value; NotificaSfondo(nameof(Selezionata)); } }
         }
 
-        /// <summary>Sfondo come sul PC: alternato bianco/#EEEEEE, selezionata #E0E0E0.</summary>
-        public string ColoreSfondo => Selezionata ? "#BBDEFB" : (Alternata ? "#EEEEEE" : "#FFFFFF");   // selezionata azzurra: si vede bene cosa cancella C
+        private bool _portataFutura;
+        /// <summary>
+        /// Al tavolo con le portate: la riga è in una portata NON ancora avanzata (dopo la portata corrente).
+        /// Sfondo arancione chiaro come sul PC (AggiornaColoriPortate). Solo schermo, non si salva.
+        /// </summary>
+        public bool PortataFutura
+        {
+            get => _portataFutura;
+            set { if (_portataFutura != value) { _portataFutura = value; NotificaSfondo(nameof(PortataFutura)); } }
+        }
+
+        /// <summary>Sfondo come sul PC: alternato bianco/#EEEEEE, selezionata azzurra, portata non ancora avanzata arancio chiaro.</summary>
+        public string ColoreSfondo => Selezionata ? "#BBDEFB" : PortataFutura ? "#FFF3E0" : (Alternata ? "#EEEEEE" : "#FFFFFF");   // selezionata azzurra: si vede bene cosa cancella C
+
+        /// <summary>Intestazione portata come sul PC: SUBITO rosso chiaro con scritta rossa, le altre viola chiaro.</summary>
+        public string ColoreIntestazione => Descrizione != null && Descrizione.Contains("SUBITO") ? "#FFCDD2" : "#E8EAF6";
+        public string ColoreTestoIntestazione => Descrizione != null && Descrizione.Contains("SUBITO") ? "#B71C1C" : "#283593";
 
         public bool IsProdotto => Tipo == TipoRiga.Prodotto;
         public bool IsSconto => Tipo == TipoRiga.Sconto;

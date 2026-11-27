@@ -31,6 +31,22 @@ namespace PosTouch.App.Pagine
         private string _nomiCaselle;
         private const int MaxCaselleLarghe = 5;   // oltre: caselle a larghezza fissa che scorrono col dito
 
+        /// <summary>
+        /// Come il PC (AggiornaColoriPortate): le righe delle portate non ancora avanzate (dopo la portata corrente)
+        /// hanno lo sfondo arancione chiaro. Si guarda l'intestazione che precede ogni riga (vale anche per gusti e varianti).
+        /// </summary>
+        private void ColoraPortate()
+        {
+            bool attive = _sessione != null && Cfg.Sale.AbilitaPortate;
+            int corrente = attive ? _sessione.Tavolo.PortataCorrente : 0;
+            int sezione = 0;
+            foreach (var r in Carrello.Righe)
+            {
+                if (r.Tipo == TipoRiga.Portata) { sezione = Portate.IsSubito(r) ? 0 : r.Portata; r.PortataFutura = false; continue; }
+                r.PortataFutura = attive && sezione > 0 && sezione > corrente && r.Tipo is TipoRiga.Prodotto or TipoRiga.Gusto or TipoRiga.Variante;
+            }
+        }
+
         private void AggiornaBarraPortate()
         {
             if (BarraPortate == null) return;
@@ -129,6 +145,8 @@ namespace PosTouch.App.Pagine
             try
             {
                 var esito = _sessione.EseguiAvanza(a);
+                ColoraPortate();   // la portata appena avanzata torna bianca
+                AggiornaPosto();
                 await MostraAvvisiAsync(esito);
             }
             catch (Exception ex)

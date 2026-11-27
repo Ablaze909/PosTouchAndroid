@@ -113,17 +113,18 @@ namespace PosTouch.App.Pagine
             try
             {
                 _timerBozza?.Stop();
+                CongelaLista();   // il riordino delle portate e lo svuotamento non si vedono più riga per riga
                 EsitoTavolo esito;
                 try { esito = uscita(_sessione); }
                 catch (Exception ex)
                 {
+                    ScongelaLista();
                     ProgrammaBozza();   // si resta nel tavolo: il salvataggio automatico deve ripartire
                     await MessaggioBox.Errore("ERRORE SALVATAGGIO TAVOLO", $"Il tavolo NON è stato salvato:\n{ex.Message}\n\nRiprova.");
                     return;
                 }
-                CollegaCarrello(null);
                 await MostraAvvisiAsync(esito);
-                await Navigazione.Apri(this, () => new TavoliPage());
+                await TornaAllaSalaAsync();
             }
             finally { _uscitaInCorso = false; }
         }
@@ -150,10 +151,32 @@ namespace PosTouch.App.Pagine
         {
             if (_sessione == null) return;
             if (restoCent > 0) await MessaggioBox.Info("💶 RESTO", $"Resto da dare:\n\n€ {restoCent / 100m:N2}");
-            CollegaCarrello(null);
             if (esito != null) await MostraAvvisiAsync(esito);
-            await Navigazione.Apri(this, () => new TavoliPage());
+            await TornaAllaSalaAsync();
         }
+
+        /// <summary>
+        /// Uscita dal tavolo senza "scatti": la lista resta ferma com'era (fotografia), si apre subito la sala
+        /// e solo dopo, a schermata coperta, la vendita torna al banco. Prima si vedevano sparire le righe una per una.
+        /// </summary>
+        private async Task TornaAllaSalaAsync()
+        {
+            var tavolo = _sessione;
+            CongelaLista();
+            try { await Navigazione.Apri(this, () => new TavoliPage()); }
+            finally
+            {
+                // se nel frattempo è già stato aperto un altro tavolo non si tocca
+                if (ReferenceEquals(_sessione, tavolo)) CollegaCarrello(null);
+            }
+        }
+
+        private void CongelaLista()
+        {
+            if (ListaRighe.ItemsSource is not List<RigaScontrino>) ListaRighe.ItemsSource = Carrello.Righe.ToList();
+        }
+
+        private void ScongelaLista() => ListaRighe.ItemsSource = Carrello.Righe;
 
         private static async Task MostraAvvisiAsync(EsitoTavolo esito)
         {

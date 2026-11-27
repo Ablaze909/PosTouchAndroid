@@ -82,7 +82,9 @@
             <Grid Padding="4,6" MinimumHeightRequest="32" ColumnDefinitions="28,*,74"
                   BackgroundColor="{Binding ColoreSfondo, Converter={StaticResource Colore}, ConverterParameter='#FFFFFF'}">
                 <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnRigaToccata" /></Grid.GestureRecognizers>
-                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" TextColor="White" BackgroundColor="#546E7A" Padding="0,3" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+                <Label Grid.ColumnSpan="3" Text="{Binding Descrizione}" FontSize="{DynamicResource FontRiga}" FontAttributes="Bold" Padding="0,3" HorizontalTextAlignment="Center" VerticalOptions="Center"
+                       TextColor="{Binding ColoreTestoIntestazione, Converter={StaticResource Colore}, ConverterParameter='#283593'}"
+                       BackgroundColor="{Binding ColoreIntestazione, Converter={StaticResource Colore}, ConverterParameter='#E8EAF6'}" />
                 <BoxView Grid.ColumnSpan="3" WidthRequest="5" Color="#1565C0" HorizontalOptions="End" Margin="0,-6,-4,-6" IsVisible="{Binding Selezionata}" />
             </Grid>
         </DataTemplate>
@@ -177,7 +179,7 @@
         <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="28,*">
             <!-- barra sottile con la categoria mostrata, nel suo colore -->
             <Label x:Name="BarraCategoria" Grid.Row="0" Text="" FontSize="14" FontAttributes="Bold" Padding="10,0" Margin="2,2,2,0"
-                   VerticalTextAlignment="Center" LineBreakMode="TailTruncation" BackgroundColor="#607D8B" TextColor="White" />
+                   VerticalTextAlignment="Center" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" BackgroundColor="#607D8B" TextColor="White" />
             <ScrollView x:Name="ScrollArticoli" Grid.Row="1" Margin="2">
                 <FlexLayout x:Name="GrigliaArticoli" Wrap="Wrap" AlignContent="Start" AlignItems="Start" />
             </ScrollView>

@@ -41,7 +41,6 @@ namespace PosTouch.App.Pagine
         private static readonly SolidColorBrush BordoSpento = new SolidColorBrush(Colors.Transparent);
         private static readonly Shadow OmbraAttiva = new Shadow { Brush = new SolidColorBrush(Colors.Black), Offset = new Point(0, 0), Radius = 6, Opacity = 0.8f };
         private Border _tastoEvidenziato;
-        private const double OpacitaSpenta = 0.6;
 
         /// <summary>Barra sottile sopra gli articoli: nome e colore della categoria mostrata.</summary>
         private void AggiornaBarraCategoria()
@@ -52,7 +51,8 @@ namespace PosTouch.App.Pagine
             else
             {
                 var c = ContestoCassa.Catalogo.Categorie.FirstOrDefault(x => x.Id == _categoriaCorrente);
-                testo = c == null ? "" : "📂 " + (c.Nome ?? "").ToUpperInvariant();
+                // icona della categoria se c'è, altrimenti solo il nome
+                testo = c == null ? "" : (string.IsNullOrWhiteSpace(c.Icona) ? "" : c.Icona.Trim() + "  ") + (c.Nome ?? "").ToUpperInvariant();
                 if (c != null) { sfondo = c.Colore; colTesto = c.ColoreTesto; }
             }
             if (BarraCategoria.Text != testo) BarraCategoria.Text = testo;
@@ -66,16 +66,11 @@ namespace PosTouch.App.Pagine
             _tastiCategoria.TryGetValue(_categoriaCorrente, out var nuovo);
             if (!ReferenceEquals(nuovo, _tastoEvidenziato))
             {
-                // le altre categorie un po' spente, quella scelta piena con bordo bianco e ombra: si vede subito
-                if (_tastoEvidenziato != null) { _tastoEvidenziato.Stroke = BordoSpento; _tastoEvidenziato.Shadow = null; _tastoEvidenziato.Opacity = OpacitaSpenta; }
+                if (_tastoEvidenziato != null) { _tastoEvidenziato.Stroke = BordoSpento; _tastoEvidenziato.Shadow = null; }
                 // spessore fisso (il testo non si ridispone); bordo bianco con ombra scura: si vede su ogni colore
-                if (nuovo != null) { nuovo.StrokeThickness = 4; nuovo.Stroke = BordoAttivo; nuovo.Shadow = OmbraAttiva; nuovo.Opacity = 1; }
+                if (nuovo != null) { nuovo.StrokeThickness = 4; nuovo.Stroke = BordoAttivo; nuovo.Shadow = OmbraAttiva; }
                 _tastoEvidenziato = nuovo;
             }
-            bool preferiti = _categoriaCorrente == IdPreferiti;
-            BtnPreferiti.BackgroundColor = Ui.C(preferiti ? "#FFC107" : "#F5F5F5");
-            BtnPreferiti.BorderColor = Ui.C(preferiti ? "#111111" : "#DDDDDD");
-            BtnPreferiti.BorderWidth = preferiti ? 3 : 1;
             AggiornaBarraCategoria();
             if (_categoriaMostrata != _categoriaCorrente)
             {
@@ -106,7 +101,6 @@ namespace PosTouch.App.Pagine
             };
             tasto.StrokeThickness = 4;   // spessore fisso: evidenziare cambia solo il colore, il testo non si sposta
             tasto.Stroke = BordoSpento;
-            tasto.Opacity = OpacitaSpenta;   // la scelta la riaccende (EvidenziaCategoria)
             _tastiCategoria[c.Id] = tasto;
             Tocco(tasto, () =>
             {

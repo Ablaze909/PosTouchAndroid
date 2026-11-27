@@ -55,17 +55,38 @@ namespace PosTouch.App.Dialoghi
             _riquadro = riquadro;
             _larghezza = larghezza;
             _altezza = altezza;
-            riquadro.WidthRequest = larghezza;
-            if (altezza > 0) riquadro.HeightRequest = altezza;
+            // misura giusta già al primo disegno (prima: grande come sul PC e poi ristretto → "si ingrandiva e si riduceva")
+            var (w, h) = SpazioDisponibile();
+            riquadro.WidthRequest = w > 0 ? Math.Min(larghezza, w - 24) : larghezza;
+            if (altezza > 0) riquadro.HeightRequest = h > 0 ? Math.Min(altezza, h - 24) : altezza;
+            else if (h > 0) riquadro.MaximumHeightRequest = h - 24;
+        }
+
+        /// <summary>Spazio della finestra (dp) meno la tastiera a schermo, se aperta; (0,0) se non si sa ancora.</summary>
+        private static (double w, double h) SpazioDisponibile()
+        {
+            try
+            {
+                var f = Application.Current?.Windows.FirstOrDefault();
+                if (f == null || f.Width <= 0 || f.Height <= 0) return (0, 0);
+                return (f.Width, f.Height - Servizi.TastieraSchermo.Altezza);
+            }
+            catch { return (0, 0); }
         }
 
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
             if (_riquadro == null || width <= 0 || height <= 0) return;
-            _riquadro.WidthRequest = Math.Min(_larghezza, width - 24);
-            if (_altezza > 0) _riquadro.HeightRequest = Math.Min(_altezza, height - 24);
-            else _riquadro.MaximumHeightRequest = height - 24;
+            // si riassegna solo se cambia davvero: niente ridisegni inutili
+            double w = Math.Min(_larghezza, width - 24);
+            if (Math.Abs(_riquadro.WidthRequest - w) > 0.5) _riquadro.WidthRequest = w;
+            if (_altezza > 0)
+            {
+                double h = Math.Min(_altezza, height - 24);
+                if (Math.Abs(_riquadro.HeightRequest - h) > 0.5) _riquadro.HeightRequest = h;
+            }
+            else if (Math.Abs(_riquadro.MaximumHeightRequest - (height - 24)) > 0.5) _riquadro.MaximumHeightRequest = height - 24;
         }
     }
 
