@@ -247,6 +247,7 @@ namespace PosTouch.Core.Vendita
         {
             Righe.Clear();
             PortataTarget = null;
+            _separatoreVuoto = null;
             Aggiornato();
         }
 
@@ -256,6 +257,7 @@ namespace PosTouch.Core.Vendita
             Righe.Clear();
             foreach (var r in righe) Righe.Add(r);
             PortataTarget = null;
+            _separatoreVuoto = null;
             Aggiornato();
         }
 

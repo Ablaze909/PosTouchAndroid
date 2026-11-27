@@ -199,11 +199,13 @@
 
             <!-- Lista: si scorre col dito (niente frecce, coprivano 2 righe su 8"); barra di scorrimento sempre visibile
                  e "N righe" nella barra nera quando non stanno tutte a video -->
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="1" RowDefinitions="*,Auto">
                 <CollectionView x:Name="ListaRighe" SelectionMode="None" Scrolled="OnListaScrolled" ItemTemplate="{StaticResource SelettoreRighe}"
                                 VerticalScrollBarVisibility="Always"
                                 ItemSizingStrategy="MeasureAllItems">
                 </CollectionView>
+                <!-- caselle portata (tavoli e conti con le portate): quella accesa decide dove vanno i prossimi articoli -->
+                <ContentView x:Name="BarraPortate" Grid.Row="1" IsVisible="False" BackgroundColor="#ECEFF1" Padding="2,3" />
 
             </Grid>
 
@@ -303,7 +305,6 @@
             <Button x:Name="BtnPreconto" Grid.Column="3" Text="📋 PRECONTO" FontSize="13" BackgroundColor="#FDD835" TextColor="#333333" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnPreconto" />
             <Button Grid.Column="4" Text="🚫 NO STAMPA" FontSize="13" BackgroundColor="#E65100" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnNoStampa" />
             <Button Grid.Column="5" Text="💾 SALVA" FontSize="13" BackgroundColor="#757575" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAnnullaTavolo" />
-            <Button x:Name="BtnFunzioniPortate" Grid.Column="6" Text="📑 FUNZIONI" FontSize="13" BackgroundColor="#546E7A" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnFunzioniPortate" />
             <Button x:Name="BtnAvanza" Grid.Column="7" Text="⏩ AVANZA" FontSize="13" BackgroundColor="#1565C0" Style="{StaticResource TastoScuro}" Margin="2" Clicked="OnAvanza" />
         </Grid>
 

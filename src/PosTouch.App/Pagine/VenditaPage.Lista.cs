@@ -150,6 +150,7 @@ namespace PosTouch.App.Pagine
             if (_sessione != null) AggiornaPosto();   // coperti, preconto e portata possono cambiare
             if (Carrello.Righe.Count == 0) { _primaVisibile = 0; _ultimaVisibile = 0; }
             AggiornaFrecce();
+            AggiornaBarraPortate();   // la casella accesa segue la portata di destinazione
         }
 
         private void SvuotaScontrino()

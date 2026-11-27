@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using PosTouch.Core.Modelli;
 using PosTouch.Core.Vendita;
@@ -57,6 +58,23 @@ namespace PosTouch.Tests
             Ok(c.Righe.IndexOf(c.Righe.First(Portate.IsSubito)) < c.Righe.IndexOf(c.Righe.First(Portate.IsSeparatoreReale)), "SUBITO prima del SEGUE");
             c.Aggiungi(bibita, 1, null, true);
             Uguale(1, c.Righe.Count(Portate.IsSubito), "un solo separatore SUBITO");
+
+            // ── caselle portata sotto lo scontrino: si sceglie dove vanno i prossimi articoli ──
+            var cp = new Carrello { SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2", "SEGUE 3" } };
+            cp.ScegliPortata("SEGUE");
+            cp.ScegliPortata("SEGUE 2");
+            Ok(!cp.Righe.Any(x => Portate.IsSeparatoreReale(x) && Portate.Nome(x) == "SEGUE"), "casella cambiata senza battere: il SEGUE vuoto sparisce");
+            Uguale(2, cp.PortataAttiva, "casella accesa: SEGUE 2");
+            var a2 = cp.Aggiungi(primo, 1, null, false);
+            Uguale(2, a2.Portata, "l'articolo va nel SEGUE 2");
+            cp.ScegliPortata("SEGUE 3");
+            cp.ScegliPortata("SEGUE 2");
+            Ok(cp.Righe.Any(x => Portate.Nome(x) == "SEGUE 2") && !cp.Righe.Any(x => Portate.Nome(x) == "SEGUE 3"), "SEGUE 2 con articoli resta, SEGUE 3 vuoto sparisce");
+            cp.ScegliPortata("SUBITO");
+            Uguale(0, cp.PortataAttiva, "casella INIZIO accesa");
+            var a0 = cp.Aggiungi(bibita, 1, null, false);
+            Ok(a0.Portata == 0 && cp.Righe.IndexOf(a0) < cp.Righe.IndexOf(cp.Righe.First(Portate.IsSeparatoreReale)), "INIZIO: l'articolo va prima dei SEGUE");
+            Uguale(2, cp.Righe.First(x => x.ProdottoId == 10).Portata, "gli articoli già battuti restano nella loro portata");
 
             // ── listini 1-4 (come il PC) ──
             var vino = new Prodotto { Id = 20, Descrizione = "VINO", PrezzoCentesimi = 1000, Prezzo2Centesimi = 1200, Prezzo4Centesimi = 0, RepartoFiscale = 1, CategoriaId = 3 };

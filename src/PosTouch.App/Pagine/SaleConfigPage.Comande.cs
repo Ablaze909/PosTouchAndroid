@@ -39,7 +39,7 @@ namespace PosTouch.App.Pagine
                 Spacing = 8,
                 Children =
                 {
-                    Spunta("Abilita portate (📑 FUNZIONI e ⏩ AVANZA al tavolo)", _c.AbilitaPortate, x => _c.AbilitaPortate = x),
+                    Spunta("Abilita portate (caselle INIZIO / SEGUE sotto lo scontrino e ⏩ AVANZA al tavolo)", _c.AbilitaPortate, x => _c.AbilitaPortate = x),
                     Spunta("Abilita 🔀 SPOSTA tavolo", _c.AbilitaSpostaTavolo, x => _c.AbilitaSpostaTavolo = x),
                     Spunta("Abilita 🔗 UNISCI conti", _c.AbilitaUnisciConti, x => _c.AbilitaUnisciConti = x),
                     new Label { Text = "Separatori portate, in ordine (separati da virgola):", FontSize = 15 },

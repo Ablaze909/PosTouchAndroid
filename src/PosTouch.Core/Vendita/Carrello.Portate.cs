@@ -21,27 +21,59 @@ namespace PosTouch.Core.Vendita
             if (nome.Contains("SUBITO"))
             {
                 PortataTarget = 0;
-                bool presente = Righe.Any(Portate.IsSubito);
-                if (!presente && Righe.Any(Portate.IsSeparatoreReale))
+                var subito = Righe.FirstOrDefault(Portate.IsSubito);
+                TogliSeparatoreVuoto(subito);
+                if (subito == null && Righe.Any(Portate.IsSeparatoreReale))
                 {
                     int pos = Righe.IndexOf(Righe.First(Portate.IsSeparatoreReale));
-                    Righe.Insert(pos, new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 });
+                    subito = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 };
+                    Righe.Insert(pos, subito);
+                    _separatoreVuoto = subito;
                 }
                 Aggiornato();
                 return 0;
             }
             var esistente = Righe.FirstOrDefault(r => Portate.IsSeparatoreReale(r) &&
                                                       Portate.Nome(r).Equals(nome.Trim(), StringComparison.OrdinalIgnoreCase));
+            TogliSeparatoreVuoto(esistente);
             if (esistente == null)
             {
                 esistente = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.Descrizione(nome), Quantita = 0 };
                 var blocco = InizioBloccoSconto();
                 if (blocco == null) Righe.Add(esistente); else Righe.Insert(Righe.IndexOf(blocco), esistente);
+                _separatoreVuoto = esistente;
             }
             Aggiornato();
             PortataTarget = esistente.Portata;
             return esistente.Portata;
         }
+
+        /// <summary>Separatore aggiunto dall'ultima scelta di portata: se resta senza articoli si toglie alla scelta dopo.</summary>
+        private RigaScontrino _separatoreVuoto;
+
+        /// <summary>
+        /// Si passa da una portata all'altra senza battere nulla (caselle INIZIO / SEGUE…): il separatore
+        /// aggiunto prima e rimasto vuoto sparisce, così la comanda non si riempie di intestazioni vuote.
+        /// I separatori con articoli, o già presenti prima della scelta, non si toccano mai.
+        /// </summary>
+        private void TogliSeparatoreVuoto(RigaScontrino tranne)
+        {
+            var s = _separatoreVuoto;
+            if (s == null || ReferenceEquals(s, tranne)) return;
+            _separatoreVuoto = null;
+            int i = Righe.IndexOf(s);
+            if (i < 0) return;
+            for (int j = i + 1; j < Righe.Count; j++)
+            {
+                var r = Righe[j];
+                if (r.Tipo is TipoRiga.Portata or TipoRiga.Separatore or TipoRiga.Subtotale or TipoRiga.Sconto) break;
+                if (r.Tipo is TipoRiga.Prodotto or TipoRiga.Gusto or TipoRiga.Variante) return;   // ha articoli: resta
+            }
+            Righe.RemoveAt(i);
+        }
+
+        /// <summary>Portata dove andrà il prossimo articolo (0 = INIZIO/SUBITO): la casella accesa sotto lo scontrino.</summary>
+        public int PortataAttiva => PortataDestinazione();
 
         /// <summary>Riordino delle sezioni portata (alla chiusura del tavolo, come il PC).</summary>
         public void RiordinaPortate()
