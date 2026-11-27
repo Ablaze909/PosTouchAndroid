@@ -68,9 +68,9 @@ namespace PosTouch.App.Pagine
             BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata
             AggiornaModoTavolo();
             // Sconti disattivati: spariscono i due tasti sconto, ANNULLA resta e occupa tutta la riga
-            BtnScontoValore.IsVisible = BtnScontoPerc.IsVisible = Cfg.AbilitaSconti;
-            Grid.SetColumn(BtnAnnulla, Cfg.AbilitaSconti ? 2 : 0);
-            Grid.SetColumnSpan(BtnAnnulla, Cfg.AbilitaSconti ? 1 : 3);
+            BtnSconto.IsVisible = Cfg.AbilitaSconti;
+            Grid.SetColumn(BtnAnnulla, Cfg.AbilitaSconti ? 1 : 0);
+            Grid.SetColumnSpan(BtnAnnulla, Cfg.AbilitaSconti ? 1 : 2);
             // Ridisegna categorie e articoli solo se catalogo o impostazioni sono cambiati
             // (OnAppearing scatta anche alla chiusura di ogni finestra: niente ridisegni inutili)
             var versione = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni);
@@ -92,8 +92,8 @@ namespace PosTouch.App.Pagine
 
         private void AggiornaOrologio()
         {
-            Orologio.Text = DateTime.Now.ToString("HH:mm:ss");
-            Data.Text = DateTime.Now.ToString("dd/MM/yyyy");
+            Orologio.Text = DateTime.Now.ToString("HH:mm");
+            Data.Text = DateTime.Now.ToString("dd/MM");
         }
 
         // ══════════════ ADATTAMENTO ALLO SCHERMO ══════════════
@@ -194,7 +194,7 @@ namespace PosTouch.App.Pagine
         private void ImpostaModalitaModifica(bool attiva)
         {
             _modalitaModifica = attiva;
-            BtnModifica.BackgroundColor = Ui.C(attiva ? "#FF9800" : "#757575");
+            BtnModifica.BackgroundColor = Ui.C(attiva ? "#FF9800" : "#40000000");
             OverlayModifica.IsVisible = attiva;
             VeloScontrino.IsVisible = VeloBarra.IsVisible = attiva;
             BtnEsci.IsEnabled = BtnStrumenti.IsEnabled = BtnFunzioniCassa.IsEnabled = !attiva;

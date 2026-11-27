@@ -97,8 +97,19 @@ namespace PosTouch.App.Pagine
             }
         }
 
-        private async void OnScontoValore(object sender, EventArgs e) => await ScontoAsync(percentuale: false);
-        private async void OnScontoPercentuale(object sender, EventArgs e) => await ScontoAsync(percentuale: true);
+        /// <summary>Un solo tasto SCONTO: prima i controlli (scontrino vuoto, sconto già presente…), poi la scelta € o %.</summary>
+        private async void OnSconto(object sender, EventArgs e)
+        {
+            if (CombinazioneAperta() || ContestoCassa.ServizioVendita.InCorso) return;
+            if (!Cfg.AbilitaSconti || Carrello.Vuoto || Carrello.SubtotaleProdottiCent <= 0 || Carrello.HaSconto)
+            {
+                await ScontoAsync(percentuale: false);   // mostra il messaggio giusto e non fa nulla
+                return;
+            }
+            int scelta = await SceltaBox.Testi("SCONTO", new[] { "€ SCONTO IN EURO", "% SCONTO IN PERCENTUALE" }, colonne: 2);
+            if (scelta < 0) return;
+            await ScontoAsync(percentuale: scelta == 1);
+        }
 
         private async Task ScontoAsync(bool percentuale)
         {
