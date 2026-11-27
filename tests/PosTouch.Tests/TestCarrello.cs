@@ -76,6 +76,59 @@ namespace PosTouch.Tests
             Ok(a0.Portata == 0 && cp.Righe.IndexOf(a0) < cp.Righe.IndexOf(cp.Righe.First(Portate.IsSeparatoreReale)), "INIZIO: l'articolo va prima dei SEGUE");
             Uguale(2, cp.Righe.First(x => x.ProdottoId == 10).Portata, "gli articoli già battuti restano nella loro portata");
 
+            // ── caso segnalato: articoli in INIZIO dopo aver già usato i SEGUE ──
+            var ci = new Carrello { SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2" } };
+            var pane = new Prodotto { Id = 30, Descrizione = "PANE", PrezzoCentesimi = 100, RepartoFiscale = 1, CategoriaId = 4 };
+            var acqua = new Prodotto { Id = 31, Descrizione = "ACQUA", PrezzoCentesimi = 200, RepartoFiscale = 1, CategoriaId = 4 };
+            var x0 = ci.Aggiungi(pane, 1, null, true);          // battuto senza scegliere nulla: prima uscita
+            ci.ScegliPortata("SEGUE");
+            ci.Aggiungi(primo, 1, null, true);
+            ci.ScegliPortata("SEGUE 2");
+            ci.Aggiungi(primo, 1, null, true);
+            ci.ScegliPortata("SUBITO");
+            var x1 = ci.Aggiungi(acqua, 1, null, true);
+            Ok(ci.Righe[0].Tipo == TipoRiga.Portata && Portate.IsSubito(ci.Righe[0]), "INIZIO: intestazione in testa, nessun articolo sopra");
+            Ok(x0.Portata == 0 && x1.Portata == 0 && ci.Righe.IndexOf(x0) < ci.Righe.IndexOf(ci.Righe.First(Portate.IsSeparatoreReale))
+               && ci.Righe.IndexOf(x1) < ci.Righe.IndexOf(ci.Righe.First(Portate.IsSeparatoreReale)), "pane e acqua insieme sotto INIZIO");
+            var x2 = ci.Aggiungi(acqua, 1, null, true);
+            Ok(x2 == x1 && x1.Quantita == 2, "seconda acqua in INIZIO: accorpata");
+            ci.ScegliPortata("SEGUE");
+            var x3 = ci.Aggiungi(acqua, 1, null, true);
+            Ok(x3 != x1 && x3.Portata == 1, "acqua nel SEGUE: riga separata, non accorpata con quella di INIZIO");
+            // intestazione cancellata a mano: la casella la rimette
+            ci.Righe.Remove(ci.Righe.First(x => Portate.Nome(x) == "SEGUE 2"));
+            ci.ScegliPortata("SEGUE 2");
+            var x4 = ci.Aggiungi(pane, 1, null, true);
+            Ok(x4.Portata == 2 && ci.Righe.Count(x => Portate.Nome(x) == "SEGUE 2") == 1, "SEGUE 2 rimesso, articolo sotto");
+
+            // ── prova a caso: ogni articolo resta nella portata scelta, intestazioni uniche, niente articoli sopra la prima ──
+            var caso = new System.Random(7);
+            var nomiP = new[] { "SUBITO", "SEGUE", "SEGUE 2", "SEGUE 3" };
+            var cr = new Carrello { SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2", "SEGUE 3" } };
+            var attese = new Dictionary<RigaScontrino, int>();
+            var arts = new[] { pane, acqua, primo };
+            bool tuttoOk = true;
+            for (int k = 0; k < 400 && tuttoOk; k++)
+            {
+                int azione = caso.Next(10);
+                if (azione < 3) cr.ScegliPortata(nomiP[caso.Next(4)]);
+                else if (azione == 3 && cr.Righe.Any(x => x.Tipo == TipoRiga.Prodotto))
+                {
+                    var via = cr.Righe.Where(x => x.Tipo == TipoRiga.Prodotto).ElementAt(caso.Next(cr.Righe.Count(x => x.Tipo == TipoRiga.Prodotto)));
+                    cr.Righe.Remove(via); attese.Remove(via);
+                }
+                else
+                {
+                    int dest = cr.PortataAttiva;
+                    var nuova = cr.Aggiungi(arts[caso.Next(3)], 1, null, caso.Next(2) == 0);
+                    attese[nuova] = dest;
+                }
+                foreach (var kv in attese) if (kv.Key.Portata != kv.Value) tuttoOk = false;
+                if (cr.Righe.Any(Portate.IsSeparatoreReale) && cr.Righe.Count > 0 && cr.Righe[0].Tipo != TipoRiga.Portata && cr.Righe.Any(Portate.IsSubito)) tuttoOk = false;
+                if (cr.Righe.Where(x => x.Tipo == TipoRiga.Portata).GroupBy(x => x.Descrizione).Any(g => g.Count() > 1)) tuttoOk = false;
+            }
+            Ok(tuttoOk, "400 operazioni a caso: portate sempre giuste");
+
             // ── listini 1-4 (come il PC) ──
             var vino = new Prodotto { Id = 20, Descrizione = "VINO", PrezzoCentesimi = 1000, Prezzo2Centesimi = 1200, Prezzo4Centesimi = 0, RepartoFiscale = 1, CategoriaId = 3 };
             Uguale(1200, vino.PrezzoListino(2), "listino 2");

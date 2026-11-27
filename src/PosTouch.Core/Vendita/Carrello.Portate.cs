@@ -25,9 +25,7 @@ namespace PosTouch.Core.Vendita
                 TogliSeparatoreVuoto(subito);
                 if (subito == null && Righe.Any(Portate.IsSeparatoreReale))
                 {
-                    int pos = Righe.IndexOf(Righe.First(Portate.IsSeparatoreReale));
-                    subito = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 };
-                    Righe.Insert(pos, subito);
+                    subito = NuovoSubitoInTesta();
                     _separatoreVuoto = subito;
                 }
                 Aggiornato();
@@ -70,6 +68,30 @@ namespace PosTouch.Core.Vendita
                 if (r.Tipo is TipoRiga.Prodotto or TipoRiga.Gusto or TipoRiga.Variante) return;   // ha articoli: resta
             }
             Righe.RemoveAt(i);
+        }
+
+        /// <summary>
+        /// Intestazione SUBITO/INIZIO in testa alla lista: gli articoli battuti prima di ogni separatore sono già
+        /// della prima uscita e devono stare SOTTO l'intestazione (prima finivano sopra e la sezione sembrava divisa).
+        /// </summary>
+        private RigaScontrino NuovoSubitoInTesta()
+        {
+            var subito = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 };
+            Righe.Insert(0, subito);
+            return subito;
+        }
+
+        /// <summary>Intestazione della portata scelta, ricreata se nel frattempo è stata cancellata (righe eliminate).</summary>
+        private RigaScontrino SeparatoreDi(int portata)
+        {
+            var sep = Righe.FirstOrDefault(x => Portate.IsSeparatoreReale(x) && x.Portata == portata);
+            if (sep != null) return sep;
+            string nome = SeparatoriPortate != null && portata - 1 < SeparatoriPortate.Count ? SeparatoriPortate[portata - 1]
+                        : portata == 1 ? "SEGUE" : $"SEGUE {portata}";
+            sep = new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.Descrizione(nome), Quantita = 0, Portata = portata };
+            var blocco = InizioBloccoSconto();
+            if (blocco == null) Righe.Add(sep); else Righe.Insert(Righe.IndexOf(blocco), sep);
+            return sep;
         }
 
         /// <summary>Portata dove andrà il prossimo articolo (0 = INIZIO/SUBITO): la casella accesa sotto lo scontrino.</summary>

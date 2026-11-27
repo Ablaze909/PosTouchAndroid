@@ -292,15 +292,9 @@ namespace PosTouch.Core.Vendita
         /// </summary>
         private void InserisciSubito(RigaScontrino r)
         {
-            var primo = Righe.First(Portate.IsSeparatoreReale);
-            int pos = Righe.IndexOf(primo);
-            if (!Righe.Any(Portate.IsSubito))
-            {
-                // SUBITO in testa alle righe (come ScegliPortata), così anche gli articoli già battuti prima restano nella prima uscita
-                Righe.Insert(pos, new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0 });
-                pos++;
-            }
-            Righe.Insert(pos, r);
+            // SUBITO in testa alle righe (come ScegliPortata), così anche gli articoli già battuti prima restano nella prima uscita
+            if (!Righe.Any(Portate.IsSubito)) NuovoSubitoInTesta();
+            Righe.Insert(Righe.IndexOf(Righe.First(Portate.IsSeparatoreReale)), r);
         }
 
         private void InserisciArticolo(RigaScontrino r)
@@ -311,23 +305,25 @@ namespace PosTouch.Core.Vendita
             if (PortataTarget.HasValue && Righe.Any(x => x.Tipo == TipoRiga.Portata))
             {
                 int target = PortataTarget.Value;
-                int inizio = -1;
                 if (target == 0)
                 {
-                    // SUBITO: prima del primo separatore reale
+                    // INIZIO/SUBITO: in fondo alla prima uscita, cioè prima del primo separatore reale (sotto l'intestazione)
                     var primo = Righe.FirstOrDefault(Portate.IsSeparatoreReale);
-                    if (primo != null) pos = Righe.IndexOf(primo);
+                    if (primo != null)
+                    {
+                        if (!Righe.Any(Portate.IsSubito)) NuovoSubitoInTesta();
+                        pos = Righe.IndexOf(primo);
+                    }
                 }
                 else
                 {
-                    var sep = Righe.FirstOrDefault(x => Portate.IsSeparatoreReale(x) && x.Portata == target);
-                    if (sep != null) inizio = Righe.IndexOf(sep);
-                    if (inizio >= 0)
-                    {
-                        pos = fine;
-                        for (int i = inizio + 1; i < fine; i++)
-                            if (Righe[i].Tipo == TipoRiga.Portata) { pos = i; break; }
-                    }
+                    // in fondo alla sezione scelta; se la sua intestazione è stata cancellata si rimette
+                    int inizio = Righe.IndexOf(SeparatoreDi(target));
+                    var bloccoOra = InizioBloccoSconto();
+                    fine = bloccoOra == null ? Righe.Count : Righe.IndexOf(bloccoOra);
+                    pos = fine;
+                    for (int i = inizio + 1; i < fine; i++)
+                        if (Righe[i].Tipo == TipoRiga.Portata) { pos = i; break; }
                 }
             }
             if (pos >= Righe.Count) Righe.Add(r); else Righe.Insert(pos, r);

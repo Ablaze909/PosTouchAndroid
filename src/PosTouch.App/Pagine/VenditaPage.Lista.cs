@@ -94,6 +94,7 @@ namespace PosTouch.App.Pagine
         {
             _scontrinoEspanso = espanso;
             TastieraNumerica.IsVisible = !espanso;
+            RigaSconti.IsVisible = !espanso;   // lista allungata: niente SCONTO e ANNULLA (più righe a video, nessun tocco per sbaglio)
             BarraListaEspansa.IsVisible = espanso;
         }
 
