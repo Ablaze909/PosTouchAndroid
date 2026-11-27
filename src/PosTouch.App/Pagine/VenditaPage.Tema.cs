@@ -55,6 +55,7 @@ namespace PosTouch.App.Pagine
         {
             int tema = Tema;
             StrisciaSala.IsVisible = tema != Classico;
+            BandaPosto.HeightRequest = tema == Classico ? 50 : 54;   // nei temi nuovi tasti e striscia hanno spazio (prima i tasti "uscivano" sotto)
             StrisciaLaterale.IsVisible = tema == Chiaro;
             BandaPosto.BackgroundColor = tema == Scuro ? Ui.C("#263238") : tema == Chiaro ? Colors.White : sala;
             StrisciaSala.Color = tema == Scuro ? sala : Ui.C("#CFD8DC");
@@ -93,17 +94,21 @@ namespace PosTouch.App.Pagine
             BtnOperatore.BorderColor = tema == Chiaro ? Ui.C("#CFD8DC") : Colors.Transparent;
             BtnOperatore.BorderWidth = tema == Chiaro ? 1 : 0;
             BtnOperatore.HeightRequest = tema == Classico ? 44 : 36;
+            BtnOperatore.MinimumHeightRequest = tema == Classico ? 44 : 36;
+            BtnEsci.HeightRequest = tema == Classico ? 42 : 38;
         }
 
         private static void TastoBanda(Button b, string emoji, string icona, int tema)
         {
             if (tema == Classico)
             {
+                b.MinimumHeightRequest = 44; b.HeightRequest = 44; b.Margin = new Thickness(3, 0);
                 b.FontFamily = null; b.Text = emoji; b.FontSize = emoji.Length > 3 ? 13 : 18;
                 b.BackgroundColor = Ui.C("#40000000"); b.TextColor = Colors.White; b.CornerRadius = 0;
                 return;
             }
             b.FontFamily = FontIcone; b.Text = icona; b.FontSize = 24; b.CornerRadius = 8;
+            b.MinimumHeightRequest = 38; b.HeightRequest = 38; b.Margin = new Thickness(2, 0);
             b.BackgroundColor = tema == Scuro ? Ui.C("#37474F") : Colors.Transparent;
             b.TextColor = tema == Scuro ? Colors.White : Ui.C("#455A64");
         }

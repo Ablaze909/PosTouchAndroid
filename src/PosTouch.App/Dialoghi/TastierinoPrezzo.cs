@@ -19,7 +19,7 @@ namespace PosTouch.App.Dialoghi
         /// <summary>Valore attuale (invariante): OK senza digitare lo conferma invece di restituire 0.</summary>
         private string _attualeNumero;
 
-        public TastierinoPrezzo(string titolo, string valoreAttuale, ModoTastierino modo, bool nascondi = false)
+        public TastierinoPrezzo(string titolo, string valoreAttuale, ModoTastierino modo, bool nascondi = false, bool interi = false)
         {
             _modo = modo;
             _nascosto = nascondi;
@@ -28,8 +28,13 @@ namespace PosTouch.App.Dialoghi
             var nota = string.IsNullOrEmpty(valoreAttuale) ? null : new Label { Text = $"attuale: {valoreAttuale}" };
 
             // in basso a sinistra: "00" per i codici, la virgola per importi e quantità; a destra cancella l'ultima cifra
-            string speciale = modo == ModoTastierino.Codice ? "00" : ",";
-            var sinistra = StileFinestre.TastoCifra(speciale, (s, e) => Premi(speciale));
+            // numeri interi (coperti): niente virgola, al suo posto C per ricominciare
+            string speciale = modo == ModoTastierino.Codice ? "00" : interi ? "C" : ",";
+            var sinistra = StileFinestre.TastoCifra(speciale, (s, e) =>
+            {
+                if (speciale == "C") { _input = ""; Aggiorna(); }
+                else Premi(speciale);
+            });
             var cancella = StileFinestre.TastoIcona(StileFinestre.IcoCancella, "Cancella", (s, e) =>
             {
                 if (_input.Length > 0) _input = _input[..^1];
@@ -43,7 +48,7 @@ namespace PosTouch.App.Dialoghi
             corpo.Add(tastiera);
             corpo.Add(StileFinestre.Azioni(StileFinestre.TastoSecondario("ANNULLA", (s, e) => Chiudi(null)),
                                            StileFinestre.TastoPrincipale("OK", (s, e) => Conferma())));
-            var riquadro = StileFinestre.Scheda(new ScrollView { Content = corpo });
+            var riquadro = StileFinestre.Scheda(corpo);   // senza ScrollView: la scheda è alta quanto il contenuto (niente spazio vuoto sotto)
             Content = riquadro;
             Dimensiona(riquadro, 340);
             Aggiorna();
@@ -118,9 +123,9 @@ namespace PosTouch.App.Dialoghi
             return r == null ? null : decimal.Parse(r, CultureInfo.InvariantCulture);
         }
 
-        public static async Task<decimal?> ChiediQuantita(string titolo, decimal? attuale = null)
+        public static async Task<decimal?> ChiediQuantita(string titolo, decimal? attuale = null, bool interi = false)
         {
-            var r = await Dialogo.Mostra(new TastierinoPrezzo(titolo, attuale?.ToString("0.###"), ModoTastierino.Quantita)
+            var r = await Dialogo.Mostra(new TastierinoPrezzo(titolo, attuale?.ToString("0.###"), ModoTastierino.Quantita, interi: interi)
                 { _attualeNumero = attuale?.ToString(CultureInfo.InvariantCulture) });
             return r == null ? null : decimal.Parse(r, CultureInfo.InvariantCulture);
         }

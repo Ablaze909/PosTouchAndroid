@@ -59,7 +59,7 @@ namespace PosTouch.App.Dialoghi
             corpo.Add(_errore);
             corpo.Add(StileFinestre.Azioni(StileFinestre.TastoSecondario("ANNULLA", (s, e) => Chiudi(null)),
                                            StileFinestre.TastoPrincipale("APPLICA", (s, e) => Applica())));
-            var riquadro = StileFinestre.Scheda(new ScrollView { Content = corpo });
+            var riquadro = StileFinestre.Scheda(corpo);   // senza ScrollView: niente spazio vuoto sotto
             Content = riquadro;
             Dimensiona(riquadro, 350);
             Modo(true);

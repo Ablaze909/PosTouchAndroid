@@ -83,7 +83,7 @@ namespace PosTouch.App.Pagine
             if (id <= 0) return;
             var coperto = ContestoCassa.Catalogo.TuttiProdotti.FirstOrDefault(p => p.Id == id);
             if (coperto == null) return;
-            var n = await TastierinoPrezzo.ChiediQuantita($"🍽️ QUANTI COPERTI?\n{(_sessione?.IsContoCliente == true ? "" : "Tavolo ")}{_sessione?.NomeTavolo}");
+            var n = await TastierinoPrezzo.ChiediQuantita($"🍽️ QUANTI COPERTI?\n{(_sessione?.IsContoCliente == true ? "" : "Tavolo ")}{_sessione?.NomeTavolo}", interi: true);
             if (n == null || n <= 0) return;
             if (Carrello.Aggiungi(coperto, Math.Max(1, (int)n.Value), null, false) == null)
                 await MessaggioBox.Avviso("COPERTI", Carrello.UltimoErrore);
