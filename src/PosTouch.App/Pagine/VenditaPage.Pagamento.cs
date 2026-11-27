@@ -124,6 +124,7 @@ namespace PosTouch.App.Pagine
             if (CombinazioneAperta()) return;
             if (ContestoCassa.ServizioVendita.InCorso || Carrello.Vuoto) return;
             if (Carrello.TotaleCent <= 0) { await MessaggioBox.Avviso("TOTALE NON VALIDO", $"Il totale è € {Carrello.TotaleCent / 100m:N2}: controlla prezzi e sconti."); return; }
+            if (_venditaAvviata || !await TurnoValidoAsync()) return;   // turno chiuso: lo si dice subito, non dopo aver battuto i contanti
             var esito = await CalcoloResto.Mostra(Carrello.TotaleEuro);
             if (esito == null) return;
 
@@ -196,7 +197,9 @@ namespace PosTouch.App.Pagine
             // comanda da banco accodata subito dopo lo scontrino (prima di svuotare): se l'app si chiude non si perde
             await InviaComandaBancoAsync(righe, eliminacode);
             SvuotaScontrino();
-            if (restoCent > 0) MostraRestoConTimer(restoCent);
+            // al banco il riquadro col timer; al tavolo si torna in sala, quindi resta solo la finestra RESTO (prima uscivano entrambi)
+            bool alTavolo = _sessione != null;
+            if (restoCent > 0 && !alTavolo) MostraRestoConTimer(restoCent);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
             await DopoPagamentoAsync(esitoTavolo, restoCent);

@@ -22,7 +22,17 @@ namespace PosTouch.App.Servizi
             if (_occupato) return false;
             _occupato = true;
             try { await azione(); return true; }
-            catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Error($"Navigazione: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                // prima solo nel log: toccavi il tasto e non succedeva nulla, senza capire perché
+                PosTouch.Core.Diagnostica.LogManager.Error($"Navigazione: {ex}");
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try { await PosTouch.App.Dialoghi.MessaggioBox.Errore("PAGINA NON APERTA", $"La schermata non si è aperta:\n{ex.Message}\n\nRiprova; se si ripete riavvia l'app."); }
+                    catch { }
+                });
+                return false;
+            }
             finally { _occupato = false; }
         }
     }
