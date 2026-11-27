@@ -92,8 +92,8 @@ namespace PosTouch.App.Pagine
 
         private void AggiornaOrologio()
         {
-            Orologio.Text = DateTime.Now.ToString("HH:mm");
-            Data.Text = DateTime.Now.ToString("dd/MM");
+            Orologio.Text = DateTime.Now.ToString("HH:mm:ss");
+            Data.Text = DateTime.Now.ToString("dd/MM/yyyy");
         }
 
         // ══════════════ ADATTAMENTO ALLO SCHERMO ══════════════

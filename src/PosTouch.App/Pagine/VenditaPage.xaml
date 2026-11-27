@@ -137,10 +137,6 @@
                 <!-- operatore del turno (gestione operatori): sospendi, chiudi turno, riepilogo -->
                 <Button x:Name="BtnOperatore" Text="👤" FontSize="13" FontAttributes="Bold" Padding="10,0" BackgroundColor="#4527A0"
                         Style="{StaticResource TastoToolbar}" Clicked="OnOperatore" IsVisible="False" />
-                <VerticalStackLayout VerticalOptions="Center" Margin="4,0,0,0" InputTransparent="True">
-                    <Label x:Name="Orologio" Text="00:00" FontSize="15" FontAttributes="Bold" FontFamily="monospace" TextColor="White" HorizontalTextAlignment="End" />
-                    <Label x:Name="Data" Text="01/01" FontSize="10" TextColor="White" HorizontalTextAlignment="End" />
-                </VerticalStackLayout>
             </HorizontalStackLayout>
         </Grid>
         <!-- salvataggio automatico del tavolo non riuscito: resta finché il salvataggio dopo non va -->
@@ -194,6 +190,10 @@
                 </Grid.GestureRecognizers>
                 <Label x:Name="TitoloScontrino" Text="📋 SCONTRINO" FontSize="14" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"
                        LineBreakMode="TailTruncation" />
+                <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
+                    <Label x:Name="Orologio" Text="00:00:00" FontSize="14" FontAttributes="Bold" FontFamily="monospace" TextColor="White" />
+                    <Label x:Name="Data" Text="01/01/2026" FontSize="11" TextColor="White" VerticalOptions="Center" />
+                </HorizontalStackLayout>
 
             </Grid>
 
