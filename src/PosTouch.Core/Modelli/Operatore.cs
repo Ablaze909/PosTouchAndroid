@@ -99,7 +99,8 @@ namespace PosTouch.Core.Modelli
         public int PrelieviCent => Movimenti.Where(m => m.Tipo == TipoMovimento.Prelievo).Sum(m => m.ImportoCent);
         public int VersamentiCent => Movimenti.Where(m => m.Tipo == TipoMovimento.Versamento).Sum(m => m.ImportoCent);
         /// <summary>Contanti che devono esserci nel cassetto: fondo + incassi in contanti + versamenti − prelievi.</summary>
-        public int ContantiAttesiCent => (Turno?.FondoInizialeCent ?? 0) + ContantiCent + VersamentiCent - PrelieviCent;
+        // i conti non fiscali (tasto CONTO) si incassano in contanti: entrano nel cassetto come gli scontrini in contanti
+        public int ContantiAttesiCent => (Turno?.FondoInizialeCent ?? 0) + ContantiCent + TotaleContiCent + VersamentiCent - PrelieviCent;
         /// <summary>Differenza contati − attesi (null se non contati). Positiva = eccedenza, negativa = ammanco.</summary>
         public int? DifferenzaCent => Turno?.ContantiContatiCent is int c ? c - ContantiAttesiCent : (int?)null;
         /// <summary>Contanti da togliere lasciando il fondo per il turno dopo (null se non contati o fondo non indicato).</summary>

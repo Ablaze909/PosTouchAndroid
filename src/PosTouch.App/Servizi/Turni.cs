@@ -174,7 +174,7 @@ namespace PosTouch.App.Servizi
             string s = $"Operatore: {t.OperatoreNome}\nDalle {t.Apertura:dd/MM HH:mm}" + (t.Chiusura is DateTime ch ? $" alle {ch:HH:mm}" : "") + "\n\n" +
                        $"Scontrini: {r.Scontrini}   {E(r.TotaleScontriniCent)}\n" +
                        $"  contanti {E(r.ContantiCent)}   carta {E(r.CartaCent)}";
-            if (r.Conti > 0) s += $"\nConti non fiscali: {r.Conti}   {E(r.TotaleContiCent)}";
+            if (r.Conti > 0) s += $"\nConti non fiscali (contanti): {r.Conti}   {E(r.TotaleContiCent)}";
             if (t.FondoInizialeCent != null || r.Movimenti.Count > 0)
             {
                 s += "\n";

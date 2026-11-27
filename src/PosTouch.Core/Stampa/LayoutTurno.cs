@@ -23,9 +23,9 @@ namespace PosTouch.Core.Stampa
             p.Testo(EscPos.DueColonne($"Scontrini ({r.Scontrini})", E(r.TotaleScontriniCent)));
             p.Testo(EscPos.DueColonne("  di cui contanti", E(r.ContantiCent)));
             p.Testo(EscPos.DueColonne("  di cui carta", E(r.CartaCent)));
-            if (r.Conti > 0) p.Testo(EscPos.DueColonne($"Conti non fiscali ({r.Conti})", E(r.TotaleContiCent)));
+            if (r.Conti > 0) p.Testo(EscPos.DueColonne($"Conti non fiscali ({r.Conti}) contanti", E(r.TotaleContiCent)));
             p.Linea('-');
-            // cassetto: fondo + incassi in contanti + versamenti − prelievi
+            // cassetto: fondo + incassi in contanti (scontrini e conti) + versamenti − prelievi
             if (t.FondoInizialeCent is int fondo) p.Testo(EscPos.DueColonne("Fondo cassa iniziale", E(fondo)));
             foreach (var m in r.Movimenti)
                 p.Testo(EscPos.DueColonne($"{(m.Tipo == TipoMovimento.Prelievo ? "Prelievo" : "Versamento")} {m.DataOra:HH:mm} {m.Causale}".Trim(),
