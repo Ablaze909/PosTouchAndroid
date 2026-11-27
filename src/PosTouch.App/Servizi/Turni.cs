@@ -80,8 +80,11 @@ namespace PosTouch.App.Servizi
             if (!ContestoCassa.Impostazioni.ChiediFondoCassa || Op.TurnoCorrente == null || Op.TurnoCorrente.FondoInizialeCent != null) return;
             try
             {
-                int proposto = Op.FondoProposto();
-                var v = await TastierinoPrezzo.ChiediEuro($"💶 FONDO CASSA — {Op.Corrente?.Nome}\n(ANNULLA = {Importi.Euro(proposto)})", proposto / 100m);
+                // opzione spenta: nessuna proposta, si digita quello che c'è (OK o ANNULLA senza cifre = 0)
+                int proposto = ContestoCassa.Impostazioni.ProponiFondoPrecedente ? Op.FondoProposto() : 0;
+                var v = ContestoCassa.Impostazioni.ProponiFondoPrecedente
+                    ? await TastierinoPrezzo.ChiediEuro($"💶 FONDO CASSA — {Op.Corrente?.Nome}\n(rimasti dal turno prima: {Importi.Euro(proposto)})", proposto / 100m)
+                    : await TastierinoPrezzo.ChiediEuro($"💶 FONDO CASSA — {Op.Corrente?.Nome}\nContanti nel cassetto adesso");
                 int fondo = v.HasValue && v.Value >= 0 ? (int)Math.Round(v.Value * 100, MidpointRounding.AwayFromZero) : proposto;
                 Op.ImpostaFondo(fondo);
             }

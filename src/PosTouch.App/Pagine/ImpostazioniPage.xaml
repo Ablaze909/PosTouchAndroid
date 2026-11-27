@@ -261,6 +261,10 @@
                                 <CheckBox x:Name="ChkFondoCassa" Color="#4527A0" />
                                 <Label Text="💶 Chiedi il fondo cassa all'apertura del turno" FontSize="15" VerticalOptions="Center" />
                             </HorizontalStackLayout>
+                            <HorizontalStackLayout Margin="28,0,0,0">
+                                <CheckBox x:Name="ChkProponiFondo" Color="#4527A0" />
+                                <Label Text="↪ Proponi i contanti rimasti nel cassetto dal turno precedente" FontSize="15" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
                             <HorizontalStackLayout>
                                 <CheckBox x:Name="ChkMovimentiCassa" Color="#4527A0" />
                                 <Label Text="💸 Prelievi e versamenti di contanti durante il turno (menu 👤)" FontSize="15" VerticalOptions="Center" />

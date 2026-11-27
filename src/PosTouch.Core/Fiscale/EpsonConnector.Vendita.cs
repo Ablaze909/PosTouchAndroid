@@ -93,6 +93,8 @@ namespace PosTouch.Core.Fiscale
             string text = messaggio ?? "";
             text = text.Replace('"', '\'');
             text = new string(text.Where(c => c >= 0x20 && c != 0x7F).ToArray());
+            // un testo che inizia con una cifra ("1/2 CAPRICCIOSA") usciva senza la prima cifra ("/2 ..."): spazio davanti
+            if (text.Length > 0 && char.IsDigit(text[0])) text = " " + text;
             if (text.Length > 46) text = text.Substring(0, 46);
             if (text.Length < 1) text = " ";
 

@@ -95,6 +95,7 @@ namespace PosTouch.App.Pagine
             AggiornaPassword();
             CaricaOperatori();
             ChkFondoCassa.IsChecked = i.ChiediFondoCassa;
+            ChkProponiFondo.IsChecked = i.ProponiFondoPrecedente;
             ChkMovimentiCassa.IsChecked = i.AbilitaMovimentiCassa;
             ChkFondoLasciato.IsChecked = i.ChiediFondoLasciato;
             ChkConteggioObbligatorio.IsChecked = i.ConteggioObbligatorio;
@@ -160,6 +161,7 @@ namespace PosTouch.App.Pagine
             n.FontSizeCategorie = _fontCategorie;
             n.PinImpostazioni = _password;
             n.ChiediFondoCassa = ChkFondoCassa.IsChecked;
+            n.ProponiFondoPrecedente = ChkProponiFondo.IsChecked;
             n.AbilitaMovimentiCassa = ChkMovimentiCassa.IsChecked;
             n.ChiediFondoLasciato = ChkFondoLasciato.IsChecked;
             n.ConteggioObbligatorio = ChkConteggioObbligatorio.IsChecked;
@@ -176,7 +178,7 @@ namespace PosTouch.App.Pagine
             CampoIntest1.Text, CampoIntest2.Text, CampoIntest3.Text, ChkAccorpaConto.IsChecked, ChkNumeroConto.IsChecked, ChkAccorpaVideo.IsChecked,
             ChkAccorpaScontrino.IsChecked, RbPiccola.IsChecked, RbGrande.IsChecked, _fontCategorie, _password, CampoTimeoutConn.Text,
             CampoTimeoutRisp.Text, RbLogDebug.IsChecked, RbLogInfo.IsChecked, RbLogWarn.IsChecked,
-            ChkFondoCassa.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked, ChkConteggioObbligatorio.IsChecked, ChkMediaCoperto.IsChecked);
+            ChkFondoCassa.IsChecked, ChkProponiFondo.IsChecked, ChkMovimentiCassa.IsChecked, ChkFondoLasciato.IsChecked, ChkConteggioObbligatorio.IsChecked, ChkMediaCoperto.IsChecked);
 
     }
 }
