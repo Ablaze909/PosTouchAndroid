@@ -65,7 +65,7 @@ namespace PosTouch.App.Pagine
             _tastierino.VirgolaImplicita = Cfg.VirgolaImplicita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
             RigaVarianti.IsVisible = Cfg.MostraRigaPiuMeno;
-            ColonnaSinistra.RowDefinitions[2].Height = Cfg.MostraRigaPiuMeno ? new GridLength(46) : new GridLength(0);
+            ColonnaSinistra.RowDefinitions[2].Height = Cfg.MostraRigaPiuMeno ? new GridLength(54) : new GridLength(0);
             BtnConto.IsVisible = Cfg.AbilitaStampanteTermica;   // come sul PC: CONTO solo con la termica abilitata
             AggiornaModoTavolo();
             SistemaRigaTasti();
