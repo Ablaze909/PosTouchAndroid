@@ -84,8 +84,10 @@ namespace PosTouch.Core.Sale
         /// <summary>
         /// Flusso con le portate per la stampa (come il PC): righe nuove con centro + separatori seguiti
         /// da articoli della stessa portata; SUBITO in testa.
+        /// Prima uscita: nel PRIMO ordine esce senza intestazione (né INIZIO né SUBITO); "!! SUBITO !!" solo se
+        /// è un riordino nella prima uscita (lì c'erano già articoli mandati) o se ci sono articoli di categorie ⚡ SUBITO.
         /// </summary>
-        private static List<RigaScontrino> FlussoPortate(IList<RigaScontrino> righe)
+        public static List<RigaScontrino> FlussoPortate(IList<RigaScontrino> righe)
         {
             var grezzo = righe.Where(r => (r.Tipo == TipoRiga.Prodotto && !r.Comandata && r.CentroProduzioneId > 0) || r.Tipo == TipoRiga.Portata).ToList();
             var ris = new List<RigaScontrino>();
@@ -102,10 +104,18 @@ namespace PosTouch.Core.Sale
                 else ris.Add(grezzo[i]);
             }
             var subitoArt = ris.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == 0).ToList();
+            ris.RemoveAll(r => r.Tipo == TipoRiga.Portata && r.Portata == 0);   // l'intestazione della prima uscita si decide qui sotto
             if (subitoArt.Count > 0)
             {
-                var subitoSep = ris.Where(r => r.Tipo == TipoRiga.Portata && r.Portata == 0).ToList();
-                ris = subitoSep.Concat(subitoArt).Concat(ris.Where(r => r.Portata != 0)).ToList();
+                // solo ai tavoli che usano i separatori (SEGUE…): senza, le comande restano come sempre, senza intestazioni
+                bool conSeparatori = righe.Any(Portate.IsSeparatoreReale);
+                bool riordino = conSeparatori && righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata && r.Portata == 0);
+                bool urgenti = conSeparatori && Portate.CategoriaSubito != null && subitoArt.Any(r => Portate.CategoriaSubito(r.CategoriaId));
+                var testa = new List<RigaScontrino>();
+                if (riordino || urgenti)
+                    testa.Add(righe.FirstOrDefault(Portate.IsSubito)
+                              ?? new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0, Portata = 0 });
+                ris = testa.Concat(subitoArt).Concat(ris.Where(r => r.Portata != 0)).ToList();
             }
             return ris;
         }

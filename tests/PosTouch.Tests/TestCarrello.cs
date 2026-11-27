@@ -129,6 +129,42 @@ namespace PosTouch.Tests
             }
             Ok(tuttoOk, "400 operazioni a caso: portate sempre giuste");
 
+            // ── comanda: intestazione della prima uscita ──
+            Portate.CategoriaSubito = id => id == 3;   // categoria 3 = bibite ⚡ SUBITO
+            try
+            {
+                var cf = new Carrello { SeparatoriPortate = new List<string> { "SEGUE" } };
+                var pizza = new Prodotto { Id = 40, Descrizione = "PIZZA", PrezzoCentesimi = 700, RepartoFiscale = 1, CategoriaId = 4, CentroStampa = 1 };
+                var bruschetta = new Prodotto { Id = 41, Descrizione = "BRUSCHETTA", PrezzoCentesimi = 400, RepartoFiscale = 1, CategoriaId = 4, CentroStampa = 1 };
+                var coca = new Prodotto { Id = 42, Descrizione = "COCA", PrezzoCentesimi = 300, RepartoFiscale = 1, CategoriaId = 3, CentroStampa = 1, Subito = true };
+                cf.Aggiungi(bruschetta, 1, null, true);
+                cf.ScegliPortata("SEGUE");
+                cf.Aggiungi(pizza, 1, null, true);
+                cf.ScegliPortata("SUBITO");
+                cf.Aggiungi(bruschetta, 1, null, true);
+                var f1 = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(cf.Righe.ToList());
+                Ok(!f1.Any(Portate.IsSubito) && f1[0].Tipo == TipoRiga.Prodotto && f1.Any(Portate.IsSeparatoreReale),
+                   "primo ordine: prima uscita senza intestazione, poi --SEGUE--");
+                foreach (var rc in cf.Righe) if (rc.Tipo == TipoRiga.Prodotto) rc.Comandata = true;   // comanda mandata
+                cf.ScegliPortata("SUBITO");
+                cf.Aggiungi(bruschetta, 1, null, true);
+                var f2 = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(cf.Righe.ToList());
+                Ok(f2.Count == 2 && Portate.IsSubito(f2[0]) && f2[1].ProdottoId == 41, "riordino nella prima uscita: !! SUBITO !!");
+                var cb = new Carrello { SeparatoriPortate = new List<string> { "SEGUE" } };
+                cb.ScegliPortata("SEGUE");
+                cb.Aggiungi(pizza, 1, null, true);
+                cb.Aggiungi(coca, 1, null, true);
+                var f3 = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(cb.Righe.ToList());
+                Ok(Portate.IsSubito(f3[0]) && f3[1].ProdottoId == 42, "bibite ⚡ SUBITO: escono con !! SUBITO !! anche al primo ordine");
+                var cn = new Carrello();
+                cn.Aggiungi(pizza, 1, null, true);
+                cn.Righe[0].Comandata = true;
+                cn.Aggiungi(bruschetta, 1, null, true);
+                var f4 = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(cn.Righe.ToList());
+                Ok(!f4.Any(x => x.Tipo == TipoRiga.Portata), "tavolo senza separatori: nessuna intestazione anche al riordino");
+            }
+            finally { Portate.CategoriaSubito = null; }
+
             // ── listini 1-4 (come il PC) ──
             var vino = new Prodotto { Id = 20, Descrizione = "VINO", PrezzoCentesimi = 1000, Prezzo2Centesimi = 1200, Prezzo4Centesimi = 0, RepartoFiscale = 1, CategoriaId = 3 };
             Uguale(1200, vino.PrezzoListino(2), "listino 2");

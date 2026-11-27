@@ -15,6 +15,12 @@ namespace PosTouch.Core.Sale
     {
         public const string NomeSubito = "⚡⚡ SUBITO ⚡⚡";
 
+        /// <summary>
+        /// La categoria è "⚡ SUBITO automatico" (es. bibite)? Impostato dall'app col catalogo; senza, nessuna categoria lo è.
+        /// Serve alla comanda: quegli articoli escono sempre con "!! SUBITO !!".
+        /// </summary>
+        public static Func<int, bool> CategoriaSubito { get; set; }
+
         public static bool IsSubito(RigaScontrino r) => r.Tipo == TipoRiga.Portata && r.Descrizione.Contains("SUBITO");
         public static bool IsSeparatoreReale(RigaScontrino r) => r.Tipo == TipoRiga.Portata && !r.Descrizione.Contains("SUBITO");
 

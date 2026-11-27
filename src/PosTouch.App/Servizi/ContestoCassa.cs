@@ -57,6 +57,8 @@ namespace PosTouch.App.Servizi
             LogManager.SetLivelloMinimo(Impostazioni.LivelloLog);
 
             Catalogo = new Catalogo(cartellaDati);
+            // comanda: gli articoli delle categorie ⚡ SUBITO escono sempre con "!! SUBITO !!"
+            PosTouch.Core.Sale.Portate.CategoriaSubito = id => Catalogo.TutteCategorie.Any(c => c.Id == id && c.Subito);
             try { Catalogo.Carica(); }
             catch (Exception ex) { LogManager.Error($"Catalogo non caricato: {ex.Message}"); }
 
