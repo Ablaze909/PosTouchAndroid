@@ -97,21 +97,10 @@ namespace PosTouch.App.Pagine
             }
         }
 
-        /// <summary>Un solo tasto SCONTO: prima i controlli (scontrino vuoto, sconto già presente…), poi la scelta € o %.</summary>
-        private async void OnSconto(object sender, EventArgs e)
-        {
-            if (CombinazioneAperta() || ContestoCassa.ServizioVendita.InCorso) return;
-            if (!Cfg.AbilitaSconti || Carrello.Vuoto || Carrello.SubtotaleProdottiCent <= 0 || Carrello.HaSconto)
-            {
-                await ScontoAsync(percentuale: false);   // mostra il messaggio giusto e non fa nulla
-                return;
-            }
-            int scelta = await SceltaBox.Testi("SCONTO", new[] { "€ SCONTO IN EURO", "% SCONTO IN PERCENTUALE" }, colonne: 2);
-            if (scelta < 0) return;
-            await ScontoAsync(percentuale: scelta == 1);
-        }
+        /// <summary>Un solo tasto SCONTO: prima i controlli (scontrino vuoto, sconto già presente…), poi la finestra (% o € si sceglie lì).</summary>
+        private async void OnSconto(object sender, EventArgs e) => await ScontoAsync();
 
-        private async Task ScontoAsync(bool percentuale)
+        private async Task ScontoAsync()
         {
             if (CombinazioneAperta()) return;
             if (ContestoCassa.ServizioVendita.InCorso) return;
@@ -137,10 +126,11 @@ namespace PosTouch.App.Pagine
                 return;
             }
             if (!await Accesso.VerificaAsync(Permesso.Sconti, "SCONTO")) return;
-            var valore = await ScontoBox.Chiedi(percentuale, subtotale);
-            if (valore == null) return;
-            bool ok = percentuale ? Carrello.ScontoPercentuale(valore.Value)
-                                  : Carrello.ScontoValore((int)Math.Round(valore.Value * 100, MidpointRounding.AwayFromZero));
+            var scelta = await ScontoBox.Chiedi(subtotale);
+            if (scelta == null) return;
+            var (percentuale, valore) = scelta.Value;
+            bool ok = percentuale ? Carrello.ScontoPercentuale(valore)
+                                  : Carrello.ScontoValore((int)Math.Round(valore * 100, MidpointRounding.AwayFromZero));
             if (!ok) { await MessaggioBox.Avviso("SCONTO", Carrello.UltimoErrore ?? "Sconto non applicabile."); return; }
             MostraInFondo(Carrello.Righe.LastOrDefault());
         }

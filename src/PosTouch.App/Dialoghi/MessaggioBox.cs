@@ -4,8 +4,8 @@ using PosTouch.App.Controlli;
 namespace PosTouch.App.Dialoghi
 {
     /// <summary>
-    /// Copia di CustomMessageBox del PC: riquadro scuro #1e293b, icona grande, titolo bianco,
-    /// messaggio grigio chiaro, uno o due pulsanti colorati.
+    /// Messaggi (informazione, avviso, errore, domanda, conferma) nello stile comune delle finestre:
+    /// icona nel suo colore, titolo, testo che scorre se lungo, uno o due tasti.
     /// </summary>
     public class MessaggioBox : DialogoBase<bool>
     {
@@ -18,49 +18,46 @@ namespace PosTouch.App.Dialoghi
                              string coloreSinistro, string coloreDestro, bool bloccaIndietro = false)
         {
             _bloccaIndietro = bloccaIndietro;
-            var g = new Grid
+            var t = StileFinestre.T;
+            var (glifo, colore) = icona switch
             {
-                RowDefinitions = { new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Auto) },
-                RowSpacing = 0,
-                Padding = new Thickness(32, 28, 32, 28)
+                "✅" => (StileFinestre.IcoOk, Ui.C("#2E7D32")),
+                "❌" => (StileFinestre.IcoErrore, Ui.C("#D32F2F")),
+                "⚠️" => (StileFinestre.IcoAvviso, Ui.C("#EF6C00")),
+                "❓" => (StileFinestre.IcoDomanda, Ui.C("#1565C0")),
+                _ => (StileFinestre.IcoInfo, Ui.C("#1565C0"))
             };
-            g.Add(new Label { Text = icona, FontSize = 52, HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 0, 16) }, 0, 0);
-            g.Add(new Label { Text = titolo, FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Colors.White,
-                              HorizontalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 12) }, 0, 1);
+            var corpo = new VerticalStackLayout { Spacing = 10, Padding = new Thickness(6, 6, 6, 0) };
+            // icona in un cerchio del suo colore, chiaro
+            corpo.Add(new Border
+            {
+                WidthRequest = 56, HeightRequest = 56, HorizontalOptions = LayoutOptions.Center, StrokeThickness = 0,
+                BackgroundColor = colore.WithAlpha(0.15f), StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+                Content = new Label { Text = glifo, FontFamily = StileFinestre.FontIcone, FontSize = 30, TextColor = colore,
+                                      HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
+            });
+            corpo.Add(new Label { Text = StileFinestre.SenzaEmoji(titolo), FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = t.Testo,
+                                  HorizontalTextAlignment = TextAlignment.Center });
             _testo = new ScrollView
             {
                 MaximumHeightRequest = 380,
-                Content = new Label { Text = messaggio, FontSize = 15, TextColor = Ui.C("#cbd5e1"), HorizontalTextAlignment = TextAlignment.Center,
-                                      LineHeight = 1.3 }
+                Content = new Label { Text = messaggio, FontSize = 15, TextColor = t.Muto, HorizontalTextAlignment = TextAlignment.Center, LineHeight = 1.3 }
             };
-            g.Add(_testo, 0, 2);
+            corpo.Add(_testo);
 
-            var tasti = new Grid { ColumnSpacing = 12, Margin = new Thickness(0, 24, 0, 0) };
+            View tasti;
+            // il tasto principale ha il colore del messaggio (rosso per le conferme critiche, verde per SÌ…)
+            var principale = StileFinestre.TastoPrincipale(tastoDestro, (s, e) => Chiudi(true),
+                                                           tastoSinistro == null && coloreDestro == "#2196F3" ? Ui.C("#1565C0") : Ui.C(coloreDestro));
             if (tastoSinistro != null)
-            {
-                tasti.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-                tasti.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-                tasti.Add(Ui.Tasto(tastoSinistro, coloreSinistro, altezza: 52, clic: (s, e) => Chiudi(false)), 0, 0);
-                tasti.Add(Ui.Tasto(tastoDestro, coloreDestro, altezza: 52, clic: (s, e) => Chiudi(true)), 1, 0);
-            }
-            else
-            {
-                tasti.Add(Ui.Tasto(tastoDestro, coloreDestro, altezza: 52, clic: (s, e) => Chiudi(true)), 0, 0);
-            }
-            g.Add(tasti, 0, 3);
+                tasti = StileFinestre.Azioni(StileFinestre.TastoSecondario(tastoSinistro, (s, e) => Chiudi(false)), principale);
+            else tasti = principale;
+            tasti.Margin = new Thickness(0, 8, 0, 0);
+            corpo.Add(tasti);
 
-            var riquadro = new Border
-            {
-                                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center,
-                BackgroundColor = Ui.C("#1e293b"),
-                Stroke = new SolidColorBrush(Ui.C("#334155")),
-                StrokeThickness = 1,
-                StrokeShape = new RoundRectangle { CornerRadius = 14 },
-                Content = g
-            };
+            var riquadro = StileFinestre.Scheda(corpo);
             Content = riquadro;
-            Dimensiona(riquadro, 480);
+            Dimensiona(riquadro, 420);
         }
 
         private readonly ScrollView _testo;
@@ -69,17 +66,17 @@ namespace PosTouch.App.Dialoghi
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
-            if (height > 0) _testo.MaximumHeightRequest = Math.Max(80, Math.Min(380, height - 24 - 300));
+            if (height > 0) _testo.MaximumHeightRequest = Math.Max(80, Math.Min(380, height - 24 - 230));
         }
 
         public static Task Info(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "ℹ️", null, "OK", null, "#2196F3"));
-        public static Task Successo(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "✅", null, "OK", null, "#4CAF50"));
-        public static Task Errore(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❌", null, "OK", null, "#F44336"));
-        public static Task Avviso(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "⚠️", null, "OK", null, "#FF9800"));
+        public static Task Successo(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "✅", null, "OK", null, "#2E7D32"));
+        public static Task Errore(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❌", null, "OK", null, "#D32F2F"));
+        public static Task Avviso(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "⚠️", null, "OK", null, "#455A64"));
         /// <summary>Domanda NO / SÌ.</summary>
-        public static Task<bool> Domanda(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❓", "NO", "SÌ", "#9E9E9E", "#4CAF50"));
+        public static Task<bool> Domanda(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❓", "NO", "SÌ", "#9E9E9E", "#2E7D32"));
         /// <summary>Domanda su un esito fiscale incerto: si risponde solo con i tasti (indietro disattivato).</summary>
-        public static Task<bool> DomandaFiscale(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❓", "NO", "SÌ", "#9E9E9E", "#4CAF50", bloccaIndietro: true));
+        public static Task<bool> DomandaFiscale(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "❓", "NO", "SÌ", "#9E9E9E", "#2E7D32", bloccaIndietro: true));
         /// <summary>Conferma critica ANNULLA / CONFERMA (rosso).</summary>
         /// <summary>
         /// Chiusura con modifiche: SALVA (true), NON SALVARE (false), indietro/annulla = resta nella pagina (null).
@@ -91,6 +88,6 @@ namespace PosTouch.App.Dialoghi
             return k == 0 ? true : k == 1 ? false : (bool?)null;
         }
 
-        public static Task<bool> Conferma(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "⚠️", "ANNULLA", "CONFERMA", "#9E9E9E", "#F44336"));
+        public static Task<bool> Conferma(string titolo, string messaggio) => Dialogo.Mostra(new MessaggioBox(titolo, messaggio, "⚠️", "ANNULLA", "CONFERMA", "#9E9E9E", "#D32F2F"));
     }
 }

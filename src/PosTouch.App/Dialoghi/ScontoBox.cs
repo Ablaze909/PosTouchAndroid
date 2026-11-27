@@ -4,103 +4,122 @@ using PosTouch.App.Controlli;
 
 namespace PosTouch.App.Dialoghi
 {
-    /// <summary>Copia di ScontoDialog del PC: percentuale o valore, display grigio, tastiera con ⌫, ANNULLA/APPLICA.</summary>
-    public class ScontoBox : DialogoBase<decimal?>
+    /// <summary>
+    /// Sconto sul subtotale: percentuale o importo si sceglie DENTRO la finestra (prima: una domanda in più),
+    /// con 5-10-15-20% rapidi. Mostra subito quanto si toglie. Restituisce (percentuale?, valore) o null.
+    /// </summary>
+    public class ScontoBox : DialogoBase<(bool percentuale, decimal valore)?>
     {
-        private readonly bool _percentuale;
+        private bool _percentuale = true;
         private readonly decimal _subtotale;
-        private readonly Label _display;
+        private readonly Label _display = new Label();
+        private readonly Label _effetto = new Label { Text = " " };
         private readonly Label _errore;
+        private readonly Button _btnPerc, _btnEuro;
+        private readonly Grid _veloci;
+        private readonly List<Button> _tasti = new List<Button>();
         private string _input = "";
 
-        public ScontoBox(bool percentuale, decimal subtotale)
+        public ScontoBox(decimal subtotale)
         {
-            _percentuale = percentuale;
             _subtotale = subtotale;
-            _display = new Label { Text = "0", FontSize = 40, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"), HorizontalTextAlignment = TextAlignment.End };
-            _errore = new Label { FontSize = 13, TextColor = Ui.C("#F44336"), HorizontalTextAlignment = TextAlignment.Center, IsVisible = false };
+            var t = StileFinestre.T;
+            _errore = new Label { FontSize = 13, TextColor = Ui.C("#E53935"), HorizontalTextAlignment = TextAlignment.Center, IsVisible = false };
 
-            var tastiera = Ui.Griglia(4, 3);
-            string[] tasti = { "7", "8", "9", "4", "5", "6", "1", "2", "3", ",", "0", "⌫" };
-            for (int i = 0; i < tasti.Length; i++)
+            // scelta % / € (interruttore a due posizioni)
+            _btnPerc = Scelta("%  PERCENTUALE", () => Modo(true));
+            _btnEuro = Scelta("€  IMPORTO", () => Modo(false));
+            var interruttore = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star) }, ColumnSpacing = 4 };
+            interruttore.Add(_btnPerc, 0, 0);
+            interruttore.Add(_btnEuro, 1, 0);
+            var cornice = new Border { BackgroundColor = t.Campo, Stroke = new SolidColorBrush(t.Bordo), StrokeThickness = 1,
+                                       StrokeShape = new RoundRectangle { CornerRadius = 12 }, Padding = new Thickness(3), Content = interruttore };
+
+            // percentuali rapide
+            _veloci = new Grid { ColumnSpacing = 6 };
+            int col = 0;
+            foreach (var v in new[] { 5, 10, 15, 20 })
             {
-                string t = tasti[i];
-                Button b = t == "⌫"
-                    ? Ui.Tasto("⌫", "#FF9800", "#FFFFFF", 24, 8, (s, e) => { if (_input.Length > 0) _input = _input[..^1]; Aggiorna(); })
-                    : Ui.Tasto(t, "#FFFFFF", "#37474F", 24, 8, (s, e) => Premi(t));
-                b.BorderColor = Ui.C("#E0E0E0");
-                b.BorderWidth = t == "⌫" ? 0 : 1;
-                b.Margin = new Thickness(4);
-                b.HeightRequest = 56;
-                _tasti.Add(b);
-                tastiera.Add(b, i % 3, i / 3);
+                _veloci.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+                var b = StileFinestre.TastoSecondario($"{v}%", (s, e) => { _input = v.ToString(); Aggiorna(); }, 38);
+                b.CornerRadius = 9;
+                _veloci.Add(b, col++, 0);
             }
 
-            var azioni = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star) }, ColumnSpacing = 10, Margin = new Thickness(0, 20, 0, 0) };
-            azioni.Add(Ui.Tasto("ANNULLA", "#9E9E9E", fontSize: 18, altezza: 55, clic: (s, e) => Chiudi(null)), 0, 0);
-            azioni.Add(Ui.Tasto("APPLICA", "#4CAF50", fontSize: 18, altezza: 55, clic: (s, e) => Applica()), 1, 0);
+            var virgola = StileFinestre.TastoCifra(",", (s, e) => Premi(","));
+            var cancella = StileFinestre.TastoIcona(StileFinestre.IcoCancella, "Cancella", (s, e) => { if (_input.Length > 0) _input = _input[..^1]; Aggiorna(); });
+            var tastiera = StileFinestre.Tastierino(Premi, virgola, cancella, _tasti);
 
-            var corpo = _corpo = new VerticalStackLayout { Padding = new Thickness(25) };
-            corpo.Add(new Label
-            {
-                Text = percentuale ? "SCONTO PERCENTUALE" : $"SCONTO A VALORE\n(max € {subtotale:N2})",
-                FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"),
-                HorizontalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 15)
-            });
-            var disp = Ui.Riquadro(_display, "#ECEFF1", 8, new Thickness(15));
-            disp.Margin = new Thickness(0, 0, 0, 20);
-            _disp = disp; _azioni = azioni;
-            corpo.Add(disp);
+            var corpo = new VerticalStackLayout { Spacing = 10 };
+            corpo.Add(StileFinestre.Intestazione(StileFinestre.IcoSconto, "SCONTO", $"subtotale € {subtotale:N2}", () => Chiudi(null)));
+            corpo.Add(cornice);
+            corpo.Add(StileFinestre.Campo(_display, _effetto));
+            corpo.Add(_veloci);
             corpo.Add(tastiera);
             corpo.Add(_errore);
-            corpo.Add(azioni);
-
-            var riquadro = new Border
-            {
-                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
-                BackgroundColor = Colors.White, StrokeThickness = 0,
-                StrokeShape = new RoundRectangle { CornerRadius = 16 },
-                Content = new ScrollView { Content = corpo }
-            };
+            corpo.Add(StileFinestre.Azioni(StileFinestre.TastoSecondario("ANNULLA", (s, e) => Chiudi(null)),
+                                           StileFinestre.TastoPrincipale("APPLICA", (s, e) => Applica())));
+            var riquadro = StileFinestre.Scheda(new ScrollView { Content = corpo });
             Content = riquadro;
-            Dimensiona(riquadro, 400);
+            Dimensiona(riquadro, 350);
+            Modo(true);
         }
 
-        private readonly List<Button> _tasti = new List<Button>();
-        private VerticalStackLayout _corpo;
-        private View _disp, _azioni;
+        private Button Scelta(string testo, Action azione)
+        {
+            var b = new Button { Text = testo, FontSize = 14, FontAttributes = FontAttributes.Bold, CornerRadius = 9, HeightRequest = 40, Padding = 0 };
+            b.Clicked += (s, e) => azione();
+            return b;
+        }
 
-        /// <summary>Schermo basso (8"): margini e tasti si stringono perché ANNULLA/APPLICA restino sempre in vista.</summary>
+        private void Modo(bool percentuale)
+        {
+            if (_percentuale != percentuale) _input = "";
+            _percentuale = percentuale;
+            var t = StileFinestre.T;
+            _btnPerc.BackgroundColor = percentuale ? StileFinestre.Verde : Colors.Transparent;
+            _btnPerc.TextColor = percentuale ? Colors.White : t.Muto;
+            _btnEuro.BackgroundColor = !percentuale ? StileFinestre.Verde : Colors.Transparent;
+            _btnEuro.TextColor = !percentuale ? Colors.White : t.Muto;
+            _veloci.IsVisible = percentuale;
+            Aggiorna();
+        }
+
+        /// <summary>Schermo basso (8"): i tasti si accorciano perché ANNULLA/APPLICA restino in vista.</summary>
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
-            if (height <= 0 || _corpo == null) return;
-            bool basso = height < 640;
-            _corpo.Padding = new Thickness(basso ? 16 : 25, basso ? 10 : 25);
-            _disp.Margin = new Thickness(0, 0, 0, basso ? 8 : 20);
-            _azioni.Margin = new Thickness(0, basso ? 8 : 20, 0, 0);
-            // spazio fisso: titolo, display, tasti finali, margini; il resto ai 4 righe di tasti
-            double fisso = basso ? 230 : 300;
-            double tasto = Math.Clamp((height - 24 - fisso) / 4 - 8, 44, 56);
-            foreach (var b in _tasti) b.HeightRequest = tasto;
+            if (height <= 0) return;
+            double tasto = Math.Clamp((height - 24 - 370) / 4, 40, 52);
+            foreach (var b in _tasti) if (Math.Abs(b.HeightRequest - tasto) > 0.5) b.HeightRequest = tasto;
         }
 
-        private void Premi(string t)
+        private void Premi(string c)
         {
-            if (t == ",") { if (!_input.Contains(",")) _input += _input.Length == 0 ? "0," : ","; }
-            else if (_input.Length < 8) _input += t;
+            if (c == ",") { if (!_input.Contains(",")) _input += _input.Length == 0 ? "0," : ","; }
+            else if (_input.Length < 8) _input = _input == "0" ? c : _input + c;
             Aggiorna();
+        }
+
+        private decimal Valore()
+        {
+            decimal.TryParse(_input.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v);
+            return v;
         }
 
         private void Aggiorna()
         {
             _errore.IsVisible = false;
-            _display.Text = (_input.Length == 0 ? "0" : _input) + (_percentuale ? " %" : " €");
+            string n = _input.Length == 0 ? "0" : _input;
+            _display.Text = _percentuale ? $"{n} %" : $"€ {n}";
+            decimal v = Valore();
+            decimal togli = _percentuale ? Math.Round(_subtotale * v / 100m, 2, MidpointRounding.AwayFromZero) : v;
+            _effetto.Text = v > 0 ? $"= − € {togli:N2}" : " ";
         }
 
         private void Applica()
         {
-            decimal.TryParse(_input.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v);
+            decimal v = Valore();
             string err = null;
             if (v <= 0) err = "Inserire un valore maggiore di zero";
             else if (_percentuale && v >= 100) err = "La percentuale deve essere minore di 100";
@@ -111,9 +130,9 @@ namespace PosTouch.App.Dialoghi
                 _errore.IsVisible = true;
                 return;
             }
-            Chiudi(v);
+            Chiudi((_percentuale, v));
         }
 
-        public static Task<decimal?> Chiedi(bool percentuale, decimal subtotale) => Dialogo.Mostra(new ScontoBox(percentuale, subtotale));
+        public static Task<(bool percentuale, decimal valore)?> Chiedi(decimal subtotale) => Dialogo.Mostra(new ScontoBox(subtotale));
     }
 }

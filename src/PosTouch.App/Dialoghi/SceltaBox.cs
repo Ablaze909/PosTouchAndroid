@@ -15,28 +15,34 @@ namespace PosTouch.App.Dialoghi
             for (int c = 0; c < colonne; c++) griglia.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             int righe = (voci.Count + colonne - 1) / colonne;
             for (int r = 0; r < righe; r++) griglia.RowDefinitions.Add(new RowDefinition(new GridLength(altezzaTasto)));
+            var t = StileFinestre.T;
             for (int i = 0; i < voci.Count; i++)
             {
                 int indice = i;
-                string sfondo = colori?[i] ?? "#F5F5F5";
-                string testo = colori == null ? "#111111" : "#FFFFFF";
-                var b = Ui.Tasto(voci[i], sfondo, testo, fontSize, 8, (s, e) => Chiudi(indice));
-                if (colori == null) { b.BorderColor = Ui.C("#E0E0E0"); b.BorderWidth = 1; }
+                Button b;
+                if (colori != null)
+                {
+                    b = Ui.Tasto(voci[i], colori[i], "#FFFFFF", fontSize, 10, (s, e) => Chiudi(indice));
+                    b.BorderColor = t.Bordo; b.BorderWidth = 1;
+                }
+                else
+                {
+                    // voce: senza l'emoji iniziale (le icone dei tasti categoria invece restano: sono la scelta)
+                    string testo = fontSize >= 24 ? voci[i] : StileFinestre.SenzaEmoji(voci[i]);
+                    b = new Button { Text = testo, FontSize = fontSize, FontAttributes = FontAttributes.Bold, TextColor = t.TastoTesto, BackgroundColor = t.Tasto,
+                                     BorderColor = t.Bordo, BorderWidth = 1, CornerRadius = 12, Padding = new Thickness(6, 0), LineBreakMode = LineBreakMode.WordWrap };
+                    b.Clicked += (s, e) => Chiudi(indice);
+                }
                 griglia.Add(b, i % colonne, i / colonne);
             }
 
-            var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, Padding = new Thickness(25), RowSpacing = 15 };
-            corpo.Add(new Label { Text = titolo, FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"), HorizontalOptions = LayoutOptions.Center }, 0, 0);
+            var (tit, dettaglio) = StileFinestre.Dividi(titolo);
+            var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, RowSpacing = 12 };
+            corpo.Add(StileFinestre.Intestazione(StileFinestre.IcoElenco, tit, dettaglio, () => Chiudi(-1)), 0, 0);
             corpo.Add(new ScrollView { Content = griglia }, 0, 1);
-            corpo.Add(Ui.Tasto("ANNULLA", "#9E9E9E", altezza: 55, clic: (s, e) => Chiudi(-1)), 0, 2);
+            corpo.Add(StileFinestre.TastoSecondario("ANNULLA", (s, e) => Chiudi(-1)), 0, 2);
 
-            var riquadro = new Border
-            {
-                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
-                BackgroundColor = Colors.White, StrokeThickness = 0,
-                StrokeShape = new RoundRectangle { CornerRadius = 16 },
-                Content = corpo
-            };
+            var riquadro = StileFinestre.Scheda(corpo);
             Content = riquadro;
             // minimo 460 di larghezza: con 1-2 colonne il titolo andava a capo e le voci lunghe si tagliavano
             Dimensiona(riquadro, Math.Min(760, Math.Max(460, 110 * colonne + 80)), Math.Min(720, 200 + righe * (altezzaTasto + 8)));

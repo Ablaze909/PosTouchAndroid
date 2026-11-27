@@ -1,5 +1,4 @@
 using System.Globalization;
-using Microsoft.Maui.Controls.Shapes;
 using PosTouch.App.Controlli;
 
 namespace PosTouch.App.Dialoghi
@@ -7,7 +6,7 @@ namespace PosTouch.App.Dialoghi
     public enum ModoTastierino { Euro, Quantita, Codice }
 
     /// <summary>
-    /// Copia di TastierinoPrezzoDialog del PC (500×600, bordo nero, display verde, tastiera 4×3, ANNULLA/OK).
+    /// Tastierino numerico (coperti, quantità, prezzi, codici, PIN) nello stile comune delle finestre (StileFinestre).
     /// Euro: "€ 0,00"; Quantita: numero; Codice: cifre (reparto, barcode, password).
     /// Restituisce il testo digitato (null = annullato).
     /// </summary>
@@ -24,55 +23,41 @@ namespace PosTouch.App.Dialoghi
         {
             _modo = modo;
             _nascosto = nascondi;
-            _display = new Label { FontSize = 36, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.End };
-            var attuale = new Label
-            {
-                Text = string.IsNullOrEmpty(valoreAttuale) ? "" : $"(Attuale: {valoreAttuale})",
-                FontSize = 12, TextColor = Colors.White, Opacity = 0.8, HorizontalTextAlignment = TextAlignment.End, Margin = new Thickness(0, 5, 0, 0),
-                IsVisible = !string.IsNullOrEmpty(valoreAttuale)
-            };
-            var display = Ui.Riquadro(new VerticalStackLayout { Children = { _display, attuale } }, "#4CAF50", 8, new Thickness(15));
-            display.Margin = new Thickness(0, 0, 0, 5);
+            var (tit, dettaglio) = StileFinestre.Dividi(titolo);
+            _display = new Label { LineBreakMode = LineBreakMode.NoWrap };
+            var nota = string.IsNullOrEmpty(valoreAttuale) ? null : new Label { Text = $"attuale: {valoreAttuale}" };
 
-            var tastiera = Ui.Griglia(4, 3);
-            string[] tasti = { "7", "8", "9", "4", "5", "6", "1", "2", "3", modo == ModoTastierino.Codice ? "00" : ",", "0", "C" };
-            for (int i = 0; i < tasti.Length; i++)
+            // in basso a sinistra: "00" per i codici, la virgola per importi e quantità; a destra cancella l'ultima cifra
+            string speciale = modo == ModoTastierino.Codice ? "00" : ",";
+            var sinistra = StileFinestre.TastoCifra(speciale, (s, e) => Premi(speciale));
+            var cancella = StileFinestre.TastoIcona(StileFinestre.IcoCancella, "Cancella", (s, e) =>
             {
-                string t = tasti[i];
-                Button b = t == "C"
-                    ? Ui.Tasto("C", "#F44336", "#FFFFFF", 24, 8, (s, e) => { _input = ""; Aggiorna(); })
-                    : Ui.Tasto(t, "#FFFFFF", "#37474F", 24, 8, (s, e) => Premi(t));
-                b.BorderColor = Ui.C("#E0E0E0");
-                b.BorderWidth = t == "C" ? 0 : 1;
-                b.Margin = new Thickness(4);
-                tastiera.Add(b, i % 3, i / 3);
-            }
+                if (_input.Length > 0) _input = _input[..^1];
+                Aggiorna();
+            });
+            var tastiera = StileFinestre.Tastierino(Premi, sinistra, cancella, _tasti);
 
-            var azioni = new Grid { ColumnDefinitions = { new(GridLength.Star), new(new GridLength(10)), new(GridLength.Star) }, Margin = new Thickness(0, 15, 0, 0) };
-            azioni.Add(Ui.Tasto("ANNULLA", "#9E9E9E", altezza: 55, clic: (s, e) => Chiudi(null)), 0, 0);
-            azioni.Add(Ui.Tasto("OK", "#4CAF50", altezza: 55, clic: (s, e) => Conferma()), 2, 0);
-
-            var corpo = new Grid
-            {
-                RowDefinitions = { new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) },
-                Padding = new Thickness(25)
-            };
-            corpo.Add(new Label { Text = titolo, FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"),
-                                  HorizontalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 15) }, 0, 0);
-            corpo.Add(display, 0, 1);
-            corpo.Add(tastiera, 0, 2);
-            corpo.Add(azioni, 0, 3);
-
-            var riquadro = new Border
-            {
-                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
-                BackgroundColor = Colors.White, Stroke = new SolidColorBrush(Colors.Black), StrokeThickness = 3,
-                StrokeShape = new Rectangle(),
-                Content = corpo
-            };
+            var corpo = new VerticalStackLayout { Spacing = 12 };
+            corpo.Add(StileFinestre.Intestazione(StileFinestre.IconaPer(tit), tit, dettaglio, () => Chiudi(null)));
+            corpo.Add(StileFinestre.Campo(_display, nota));
+            corpo.Add(tastiera);
+            corpo.Add(StileFinestre.Azioni(StileFinestre.TastoSecondario("ANNULLA", (s, e) => Chiudi(null)),
+                                           StileFinestre.TastoPrincipale("OK", (s, e) => Conferma())));
+            var riquadro = StileFinestre.Scheda(new ScrollView { Content = corpo });
             Content = riquadro;
-            Dimensiona(riquadro, 500, 600);
+            Dimensiona(riquadro, 340);
             Aggiorna();
+        }
+
+        private readonly List<Button> _tasti = new List<Button>();
+
+        /// <summary>Schermi bassi (8"): i tasti si accorciano perché ANNULLA/OK restino in vista.</summary>
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+            if (height <= 0) return;
+            double tasto = Math.Clamp((height - 24 - 270) / 4, 42, 54);
+            foreach (var b in _tasti) if (Math.Abs(b.HeightRequest - tasto) > 0.5) b.HeightRequest = tasto;
         }
 
         private void Premi(string t)
@@ -102,7 +87,7 @@ namespace PosTouch.App.Dialoghi
             if (_modo == ModoTastierino.Euro)
                 _display.Text = $"€ {Valore():N2}";
             else if (_nascosto)
-                _display.Text = new string('●', _input.Length);
+                _display.Text = _input.Length == 0 ? "–" : new string('●', _input.Length);
             else
                 _display.Text = _input.Length == 0 ? "0" : _input;
         }

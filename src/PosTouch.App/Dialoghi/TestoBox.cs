@@ -13,27 +13,26 @@ namespace PosTouch.App.Dialoghi
             _campo = new Entry { Text = valore ?? "", FontSize = 22, MaxLength = lunghezzaMax, BackgroundColor = Ui.C("#FAFAFA"), Keyboard = codice ? Keyboard.Plain : Keyboard.Text };
             if (codice) { _campo.IsTextPredictionEnabled = false; _campo.IsSpellCheckEnabled = false; }   // barcode: niente suggerimenti
             _campo.Completed += (s, e) => Conferma();
-            var azioni = new Grid { ColumnDefinitions = { new(GridLength.Star), new(GridLength.Star) }, ColumnSpacing = 10 };
-            azioni.Add(Ui.Tasto("ANNULLA", "#9E9E9E", altezza: 55, clic: (s, e) => Chiudi(null)), 0, 0);
-            azioni.Add(Ui.Tasto("OK", "#4CAF50", altezza: 55, clic: (s, e) => Conferma()), 1, 0);
-            var corpo = new VerticalStackLayout
+            var t = StileFinestre.T;
+            _campo.BackgroundColor = Colors.Transparent;
+            _campo.TextColor = t.Testo;
+            _campo.FontSize = 20;
+            var (tit, dettaglio) = StileFinestre.Dividi(titolo);
+            var corpo = new VerticalStackLayout { Spacing = 12 };
+            corpo.Add(StileFinestre.Intestazione(StileFinestre.IconaPer(tit), tit, dettaglio, () => Indietro()));
+            corpo.Add(new Border
             {
-                Spacing = 18, Padding = new Thickness(25),
-                Children =
-                {
-                    new Label { Text = titolo, FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"), HorizontalOptions = LayoutOptions.Center },
-                    Ui.Riquadro(_campo, "#FAFAFA", 8, new Thickness(10, 4), "#B0BEC5", 1),
-                    azioni
-                }
-            };
-            var riquadro = new Border
-            {
-                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 40, 0, 0),
-                BackgroundColor = Colors.White, StrokeShape = new RoundRectangle { CornerRadius = 12 }, StrokeThickness = 0,
-                Content = corpo
-            };
+                BackgroundColor = t.Campo, Stroke = new SolidColorBrush(Ui.C("#00897B")), StrokeThickness = 2,
+                StrokeShape = new RoundRectangle { CornerRadius = 12 }, Padding = new Thickness(10, 0), Content = _campo
+            });
+            corpo.Add(StileFinestre.Azioni(StileFinestre.TastoSecondario("ANNULLA", (s, e) => Indietro()),
+                                           StileFinestre.TastoPrincipale("OK", (s, e) => Conferma())));
+            // in alto (non al centro): sotto si apre la tastiera di Android
+            var riquadro = StileFinestre.Scheda(corpo);
+            riquadro.VerticalOptions = LayoutOptions.Start;
+            riquadro.Margin = new Thickness(0, 24, 0, 0);
             Content = riquadro;
-            Dimensiona(riquadro, 520);
+            Dimensiona(riquadro, 480);
             Loaded += (s, e) => _campo.Focus();
         }
 

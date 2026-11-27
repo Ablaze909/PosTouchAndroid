@@ -4,7 +4,7 @@ using PosTouch.Core.Cassa;
 
 namespace PosTouch.App.Dialoghi
 {
-    /// <summary>Copia di FunzioniCassaDialog del PC (500×600, sfondo #ECEFF1), aperta sopra la schermata.</summary>
+    /// <summary>Funzioni fiscali e di cassa (Z, X, reparti, ristampe, reset RT) come elenco nello stile comune delle finestre.</summary>
     public class FunzioniCassaBox : DialogoBase<bool>
     {
         private readonly Grid _attesa;
@@ -12,10 +12,13 @@ namespace PosTouch.App.Dialoghi
 
         public FunzioniCassaBox()
         {
-            var lista = new VerticalStackLayout();
-            lista.Add(Sezione("📊 RAPPORTI FISCALI", 0));
-            // Z in fondo ai rapporti e arancione: è l'unica che non si può annullare
-            var tastoZ = Tasto("🔒 CHIUSURA FISCALE (Z)", "#E65100", async () =>
+            var t = StileFinestre.T;
+            var lista = new VerticalStackLayout { Spacing = 6 };
+            lista.Add(Sezione("RAPPORTI FISCALI"));
+            lista.Add(Voce(StileFinestre.IcoGrafico, null, "LETTURA GIORNALIERA (X)", "Totali del giorno, senza chiudere", () => EseguiAsync(Funzioni.LetturaGiornalieraAsync)));
+            lista.Add(Voce(StileFinestre.IcoBarre, null, "RAPPORTO REPARTI", "Lettura per reparto", () => EseguiAsync(Funzioni.RapportoRepartiAsync)));
+            // Z in fondo ai rapporti e in rosso: è l'unica che non si può annullare
+            lista.Add(Voce(StileFinestre.IcoChiusura, Ui.C("#E53935"), "CHIUSURA FISCALE (Z)", "Chiusura giornaliera del registratore", async () =>
             {
                 if (!await Accesso.VerificaAsync(PosTouch.Core.Modelli.Permesso.ChiusuraFiscale, "CHIUSURA FISCALE (Z)")) return;
                 if (await MessaggioBox.Conferma("CHIUSURA FISCALE", "Eseguire la chiusura fiscale giornaliera (Z)?\n\nL'operazione non può essere annullata."))
@@ -24,32 +27,21 @@ namespace PosTouch.App.Dialoghi
                         try { ContestoCassa.Tavoli.AzzeraEliminacode(); }   // come il PC: l'eliminacode riparte da 1
                         catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Warning($"Azzera eliminacode: {ex.Message}"); }
                     });
-            });
-            lista.Add(Tasto("📋 LETTURA GIORNALIERA (X)", "#2196F3", () => EseguiAsync(Funzioni.LetturaGiornalieraAsync)));
-            lista.Add(Tasto("📊 RAPPORTO REPARTI (Lettura)", "#2196F3", () => EseguiAsync(Funzioni.RapportoRepartiAsync)));
-            tastoZ.Margin = new Thickness(tastoZ.Margin.Left, 14, tastoZ.Margin.Right, tastoZ.Margin.Bottom);
-            lista.Add(tastoZ);
-            lista.Add(Sezione("🖨️ RISTAMPE", 20));
-            lista.Add(Tasto("📄 ULTIMO SCONTRINO", "#2196F3", () => EseguiAsync(Funzioni.RistampaUltimoAsync)));
-            lista.Add(Tasto("📄 PENULTIMO SCONTRINO", "#2196F3", () => EseguiAsync(Funzioni.RistampaPenultimoAsync)));
-            lista.Add(Sezione("🔧 MANUTENZIONE RT", 20));
-            lista.Add(Tasto("🔄 RESET RT (Sblocca scontrino aperto)", "#F44336", async () =>
+            }));
+            lista.Add(Sezione("RISTAMPE"));
+            lista.Add(Voce(StileFinestre.IcoScontrino, null, "ULTIMO SCONTRINO", "Ristampa", () => EseguiAsync(Funzioni.RistampaUltimoAsync)));
+            lista.Add(Voce(StileFinestre.IcoScontrino, null, "PENULTIMO SCONTRINO", "Ristampa", () => EseguiAsync(Funzioni.RistampaPenultimoAsync)));
+            lista.Add(Sezione("MANUTENZIONE RT"));
+            lista.Add(Voce(StileFinestre.IcoRiavvia, Ui.C("#FB8C00"), "RESET RT", "Sblocca uno scontrino rimasto aperto", async () =>
             {
                 if (await MessaggioBox.Domanda("RESET RT", "Annullare l'eventuale scontrino rimasto aperto sul registratore?"))
                     await EseguiAsync(Funzioni.SbloccaRTAsync);
             }));
 
-            var chiudi = Tasto("✖ CHIUDI", "#78909C", () => { Chiudi(true); return Task.CompletedTask; });
-            chiudi.Margin = new Thickness(10, 20, 10, 0);
-
-            var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, Padding = new Thickness(20) };
-            corpo.Add(new Label
-            {
-                Text = "FUNZIONI FISCALI E GESTIONE CASSA", FontSize = 20, FontAttributes = FontAttributes.Bold,
-                TextColor = Ui.C("#37474F"), HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 0, 20)
-            }, 0, 0);
+            var corpo = new Grid { RowDefinitions = { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }, RowSpacing = 12 };
+            corpo.Add(StileFinestre.Intestazione(StileFinestre.IcoContanti, "FUNZIONI CASSA", "Registratore fiscale e ristampe", () => Indietro()), 0, 0);
             corpo.Add(new ScrollView { Content = lista }, 0, 1);
-            corpo.Add(chiudi, 0, 2);
+            corpo.Add(StileFinestre.TastoSecondario("CHIUDI", (s, e) => Indietro()), 0, 2);
 
             _attesa = new Grid { BackgroundColor = Ui.C("#99000000"), IsVisible = false };
             _attesa.GestureRecognizers.Add(new TapGestureRecognizer());   // durante la chiusura Z i tocchi non passano a CHIUDI
@@ -59,42 +51,31 @@ namespace PosTouch.App.Dialoghi
                 Children =
                 {
                     new ActivityIndicator { IsRunning = true, Color = Colors.White, WidthRequest = 60, HeightRequest = 60 },
-                    new Label { Text = "⏳ Operazione in corso...", TextColor = Colors.White, FontSize = 20 }
+                    new Label { Text = "Operazione in corso...", TextColor = Colors.White, FontSize = 18 }
                 }
             });
 
-            var riquadro = new Border
-            {
-                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
-                BackgroundColor = Ui.C("#ECEFF1"), StrokeThickness = 0,
-                Content = new Grid { Children = { corpo, _attesa } }
-            };
+            var riquadro = StileFinestre.Scheda(new Grid { Children = { corpo, _attesa } });
             Content = riquadro;
-            Dimensiona(riquadro, 500, 680);
+            Dimensiona(riquadro, 460, 640);
         }
 
-        private static Label Sezione(string testo, double sopra) => new Label
+        private static Label Sezione(string testo) => new Label
         {
-            Text = testo, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Ui.C("#37474F"),
-            Margin = new Thickness(10, sopra, 0, 10)
+            Text = testo, FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = StileFinestre.T.Muto, Margin = new Thickness(4, 8, 0, 0)
         };
 
-        /// <summary>FunctionButton del PC: blu, angoli 8, testo 16 grassetto.</summary>
         private static bool _tastoInCorso;
 
-        private static Button Tasto(string testo, string colore, Func<Task> azione)
-        {
-            // un tocco alla volta: un doppio tocco su CHIUSURA Z apriva due conferme (seconda Z)
-            var b = Ui.Tasto(testo, colore, "#FFFFFF", 16, 8, async (s, e) =>
+        /// <summary>Una riga dell'elenco; un tocco alla volta (un doppio tocco su CHIUSURA Z apriva due conferme).</summary>
+        private static View Voce(string icona, Color colore, string titolo, string spiegazione, Func<Task> azione)
+            => StileFinestre.RigaElenco(icona, colore, titolo, spiegazione, async () =>
             {
                 if (_tastoInCorso) return;
                 _tastoInCorso = true;
                 try { await azione(); }
                 finally { _tastoInCorso = false; }
-            }, 64);
-            b.Margin = new Thickness(10);
-            return b;
-        }
+            });
 
         /// <summary>Durante un'operazione sull'RT il tasto indietro non chiude.</summary>
         public override void Indietro()
