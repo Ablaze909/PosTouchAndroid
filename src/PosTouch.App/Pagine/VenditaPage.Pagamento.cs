@@ -209,10 +209,7 @@ namespace PosTouch.App.Pagine
             {
                 // lo scontrino è già uscito: un errore qui non deve fermare la chiusura della vendita
                 PosTouch.Core.Diagnostica.LogManager.Error($"Comanda banco N. {eliminacode} non accodata: {ex}");
-                await MessaggioBox.Errore("⚠️ COMANDA BANCO", $"La comanda N. {eliminacode} non è stata mandata in produzione:
-{ex.Message}
-
-Avvisa la cucina/il bar.");
+                await MessaggioBox.Errore("⚠️ COMANDA BANCO", $"La comanda N. {eliminacode} non è stata mandata in produzione:\n{ex.Message}\n\nAvvisa la cucina/il bar.");
                 return;
             }
             if (avvisi.Count > 0)
