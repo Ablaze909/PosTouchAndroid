@@ -63,6 +63,10 @@ namespace PosTouch.Core.Dati
             public Dictionary<int, Prodotto> PerId = new();
             public Dictionary<int, List<Prodotto>> PerCategoria = new();
             public List<Prodotto> Preferiti = new();
+            // lettore barcode: ricerca immediata anche con migliaia di articoli (prima si scorreva tutto il catalogo
+            // a ogni lettura). Solo articoli vendibili, il primo in ordine di catalogo vince, come prima.
+            public Dictionary<string, Prodotto> PerBarcode = new(StringComparer.Ordinal);
+            public Dictionary<string, Prodotto> PerCodiceSenzaBarcode = new(StringComparer.Ordinal);
         }
         private Indice _indice = new Indice();
 
@@ -78,6 +82,8 @@ namespace PosTouch.Core.Dati
                 if (!i.PerCategoria.TryGetValue(p.CategoriaId, out var l)) i.PerCategoria[p.CategoriaId] = l = new List<Prodotto>();
                 l.Add(p);
                 if (p.IsPreferito) i.Preferiti.Add(p);
+                if (!string.IsNullOrEmpty(p.Barcode)) i.PerBarcode.TryAdd(p.Barcode, p);
+                else if (p.Codice != null) i.PerCodiceSenzaBarcode.TryAdd(p.Codice, p);
             }
             return i;
         }
@@ -104,14 +110,12 @@ namespace PosTouch.Core.Dati
         {
             if (string.IsNullOrWhiteSpace(codice)) return (null, 1);
             codice = codice.Trim();
-            if (_barcode.TryGetValue(codice, out var b))
-            {
-                var p = _prodotti.FirstOrDefault(x => x.Id == b.prodottoId && Vendibile(x));
-                if (p != null) return (p, Math.Max(1, b.pezzi));
-            }
-            var trovato = _prodotti.FirstOrDefault(p => Vendibile(p) && p.Barcode == codice)
-                       ?? _prodotti.FirstOrDefault(p => Vendibile(p) && string.IsNullOrEmpty(p.Barcode) && p.Codice == codice);
-            return (trovato, 1);
+            var indice = _indice;   // una sola lettura: un ricaricamento del catalogo in contemporanea non mescola i dati
+            if (_barcode.TryGetValue(codice, out var b)
+                && indice.PerId.TryGetValue(b.prodottoId, out var p) && p.Attivo && indice.IdCategorieAttive.Contains(p.CategoriaId))
+                return (p, Math.Max(1, b.pezzi));
+            if (indice.PerBarcode.TryGetValue(codice, out var conBarcode)) return (conBarcode, 1);
+            return (indice.PerCodiceSenzaBarcode.TryGetValue(codice, out var perCodice) ? perCodice : null, 1);
         }
 
         private Dictionary<string, (int prodottoId, int pezzi)> _barcode = new Dictionary<string, (int, int)>();

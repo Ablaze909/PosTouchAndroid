@@ -10,7 +10,25 @@ namespace PosTouch.App.Pagine
     {
         // ══════════════ PRODOTTI ══════════════
 
-        private void OnFiltroCambiato(object sender, EventArgs e) => FiltraProdotti();
+        private IDispatcherTimer _timerRicerca;
+
+        /// <summary>
+        /// Ricerca: mentre si scrive si aspetta una pausa di 350 ms e poi si filtra UNA volta
+        /// (prima: a ogni lettera tutto il catalogo filtrato e la lista ridisegnata). Il filtro categoria resta immediato.
+        /// </summary>
+        private void OnFiltroCambiato(object sender, EventArgs e)
+        {
+            if (sender is not Entry) { _timerRicerca?.Stop(); FiltraProdotti(); return; }
+            if (_timerRicerca == null)
+            {
+                _timerRicerca = Dispatcher.CreateTimer();
+                _timerRicerca.Interval = TimeSpan.FromMilliseconds(350);
+                _timerRicerca.IsRepeating = false;
+                _timerRicerca.Tick += (s, a) => FiltraProdotti();
+            }
+            _timerRicerca.Stop();
+            _timerRicerca.Start();
+        }
 
         private void OnChipPreferiti(object sender, TappedEventArgs e)
         {
@@ -37,7 +55,8 @@ namespace PosTouch.App.Pagine
             _voci = ContestoCassa.Catalogo.TuttiProdotti
                 .Where(p => catId == 0 || p.CategoriaId == catId)
                 .Where(p => testo.Length == 0 || p.Descrizione.Contains(testo, StringComparison.OrdinalIgnoreCase) || p.Codice.Contains(testo))
-                .Where(p => barcode.Length == 0 || (p.Barcode ?? "").Contains(barcode))
+                .Where(p => barcode.Length == 0 || (p.Barcode ?? "").Contains(barcode)
+                            || (p.BarcodeAggiuntivi?.Any(b => (b.Barcode ?? "").Contains(barcode)) ?? false))   // anche i barcode delle confezioni
                 .Where(p => !_soloPreferiti || p.IsPreferito)
                 .Where(p => !_soloNascosti || !p.Attivo)
                 .Select(p => new VoceProdotto { P = p, Selezionato = selezionati.Contains(p.Id) })
