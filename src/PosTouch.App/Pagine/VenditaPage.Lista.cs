@@ -148,6 +148,8 @@ namespace PosTouch.App.Pagine
             EtichettaPezzi.Text = $"{Carrello.Pezzi} pz";
             if (_sessione != null) AggiornaPosto();   // coperti, preconto e portata possono cambiare
             if (Carrello.Righe.Count == 0) { _primaVisibile = 0; _ultimaVisibile = 0; }
+            // si sta battendo: si sveglia la rete verso RT e stampanti, così scontrino e comanda partono subito
+            else PosTouch.Core.Stampa.RisveglioRete.Sveglia(Cfg);
             AggiornaFrecce();
             AggiornaBarraPortate();   // la casella accesa segue la portata di destinazione
             ColoraPortate();

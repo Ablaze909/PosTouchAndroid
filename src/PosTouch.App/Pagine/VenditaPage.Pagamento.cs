@@ -14,6 +14,7 @@ namespace PosTouch.App.Pagine
 
         private async void OnCassa(object sender, EventArgs e)
         {
+            PosTouch.Core.Stampa.RisveglioRete.Sveglia(Cfg);   // mentre si sceglie il pagamento la rete è già pronta
             if (CombinazioneAperta()) return;
             if (Carrello.Vuoto)
             {

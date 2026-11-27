@@ -89,7 +89,11 @@ namespace PosTouch.Core.Vendita
         private async Task<EsitoVendita> PreparaRTAsync(IFiscalConnector rt, Emissione e)
         {
             var cfg = e.Cfg;
-            if (!await rt.ConnectAsync())
+            var inizio = DateTime.UtcNow;
+            bool collegato = await rt.ConnectAsync();
+            double ms = (DateTime.UtcNow - inizio).TotalMilliseconds;
+            if (collegato && ms > 700) LogManager.Info($"RT collegato in {ms:0} ms (rete lenta)");
+            if (!collegato)
             {
                 LogManager.Error("Connessione RT fallita");
                 return EsitoVendita.Errore("REGISTRATORE NON RAGGIUNGIBILE",

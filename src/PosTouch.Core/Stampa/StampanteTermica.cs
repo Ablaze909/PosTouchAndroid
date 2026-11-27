@@ -9,7 +9,8 @@ namespace PosTouch.Core.Stampa
     /// <summary>Collegamento TCP alla stampante termica in rete (porta 9100), come sul PC.</summary>
     public class StampanteTermica : IDisposable
     {
-        private const int TimeoutConnessioneMs = 1500;
+        /// <summary>In Wi-Fi il primo collegamento dopo una pausa può superare 1,5 s: 3 s, poi un secondo tentativo immediato.</summary>
+        private const int TimeoutConnessioneMs = 3000;
         private const int TimeoutInvioMs = 5000;
 
         private readonly string _ip;
@@ -27,9 +28,26 @@ namespace PosTouch.Core.Stampa
 
         public async Task<bool> ConnettiAsync()
         {
+            var inizio = DateTime.UtcNow;
+            if (await TentativoAsync()) { Durata(inizio); return true; }
+            await Task.Delay(300);   // rete appena svegliata: il secondo tentativo di solito va
+            if (await TentativoAsync()) { Durata(inizio); return true; }
+            LogManager.Warning($"Termica: {UltimoErrore}");
+            return false;
+        }
+
+        /// <summary>Collegamenti lenti nel log: servono a capire se la rete ritarda le stampe.</summary>
+        private void Durata(DateTime inizio)
+        {
+            var ms = (DateTime.UtcNow - inizio).TotalMilliseconds;
+            if (ms > 700) LogManager.Info($"Termica {_ip}: collegata in {ms:0} ms (rete lenta)");
+        }
+
+        private async Task<bool> TentativoAsync()
+        {
             try
             {
-                _client = new TcpClient { SendTimeout = TimeoutInvioMs };
+                _client = new TcpClient { SendTimeout = TimeoutInvioMs, NoDelay = true };
                 using var cts = new CancellationTokenSource(TimeoutConnessioneMs);
                 await _client.ConnectAsync(_ip, _porta, cts.Token);
                 _stream = _client.GetStream();
@@ -43,7 +61,6 @@ namespace PosTouch.Core.Stampa
             {
                 UltimoErrore = $"Stampante non raggiungibile ({_ip}:{_porta}): {ex.Message}";
             }
-            LogManager.Warning($"Termica: {UltimoErrore}");
             Chiudi();
             return false;
         }

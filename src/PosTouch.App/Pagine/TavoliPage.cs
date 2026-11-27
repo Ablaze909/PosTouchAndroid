@@ -70,6 +70,7 @@ namespace PosTouch.App.Pagine
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            PosTouch.Core.Stampa.RisveglioRete.Sveglia(ContestoCassa.Impostazioni);   // in sala si sta per prendere una comanda
             Aggiorna();
             _aggiorna ??= Dispatcher.CreateTimer();
             _aggiorna.Interval = TimeSpan.FromSeconds(10);   // coda e tavoli possono cambiare (spooler)
