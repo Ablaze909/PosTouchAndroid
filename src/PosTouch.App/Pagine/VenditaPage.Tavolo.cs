@@ -10,7 +10,7 @@ namespace PosTouch.App.Pagine
 {
     /// <summary>
     /// VenditaPage — modalità TAVOLO (VenditaContoClienteDialog del PC): stessa schermata della vendita al banco
-    /// con lo scontrino del tavolo, barra CASSA / CONTO / PRECONTO / NO STAMPA / ANNULLA / FUNZIONI / AVANZA
+    /// con lo scontrino del tavolo, barra CASSA / CONTO / PRECONTO / NO STAMPA / AVANZA
     /// e 🚪 che diventa ⬅ SALA (salva e manda la comanda).
     /// </summary>
     public partial class VenditaPage
@@ -101,16 +101,6 @@ namespace PosTouch.App.Pagine
                     $"{nuovi} articoli non ancora inviati verranno segnati come comandati SENZA stampare la comanda.\n\nLa cucina non li riceverà. Continuare?")) return;
             await EsciDalTavoloAsync(s => s.EsciNoStampa());
         }
-        private async void OnAnnullaTavolo(object sender, EventArgs e)
-        {
-            // ANNULLA esce salvando il tavolo ma SENZA mandare la comanda: con articoli nuovi si avvisa
-            if (!UscitaPossibile()) return;   // prima i controlli, poi la domanda (niente conferma inutile)
-            int nuovi = Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto && !r.Comandata);
-            if (nuovi > 0 && !await MessaggioBox.Conferma("💾 SALVA ED ESCI SENZA COMANDA",
-                    $"{nuovi} articoli nuovi restano sul tavolo ma NON vengono mandati in cucina.\n\n(Per eliminare tutto usa 🗑️ ANNULLA sotto la tastiera.)\n\nUscire senza comanda?")) return;
-            await EsciDalTavoloAsync(s => s.EsciSenzaInvio());
-        }
-
         private bool _uscitaInCorso;
 
         private bool UscitaPossibile() => !CombinazioneAperta() && _sessione != null && !_uscitaInCorso && !Attesa.IsVisible && !_venditaAvviata;
