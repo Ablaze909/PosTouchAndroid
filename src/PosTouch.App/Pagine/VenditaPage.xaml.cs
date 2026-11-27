@@ -61,6 +61,8 @@ namespace PosTouch.App.Pagine
         {
             base.OnAppearing();
             _orologio.Start();
+            ReteLocale.Cambiata += AggiornaAvvisoRete;
+            AggiornaAvvisoRete();
             _tastierino.BloccoModificaQuantita = Cfg.BloccoModificaQuantita;
             _tastierino.VirgolaImplicita = Cfg.VirgolaImplicita;
             BtnStrumenti.IsVisible = Cfg.MostraStrumentiVendita;
@@ -85,6 +87,7 @@ namespace PosTouch.App.Pagine
         {
             base.OnDisappearing();
             _orologio.Stop();
+            ReteLocale.Cambiata -= AggiornaAvvisoRete;
             LettoreBarcode.Destinatario = null;
         }
 
@@ -96,6 +99,8 @@ namespace PosTouch.App.Pagine
             if (Orologio.Text != o) Orologio.Text = o;
             if (Data.Text != d) Data.Text = d;
         }
+
+        private void AggiornaAvvisoRete() => AvvisoRete.IsVisible = !ReteLocale.Collegata;
 
         private double _larghezzaTasti;
 

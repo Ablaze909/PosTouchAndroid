@@ -143,6 +143,10 @@
         <Label x:Name="AvvisoSalvataggio" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="⚠️ TAVOLO NON SALVATO" FontSize="14" FontAttributes="Bold"
                TextColor="White" BackgroundColor="#C62828" Padding="10,0" HorizontalOptions="Start" Margin="150,4,0,4" VerticalOptions="Fill" VerticalTextAlignment="Center"
                IsVisible="False" InputTransparent="True" />
+        <!-- rete del locale scollegata: le comande e lo scontrino non partirebbero -->
+        <Label x:Name="AvvisoRete" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="📶 RETE SCOLLEGATA" FontSize="14" FontAttributes="Bold"
+               TextColor="White" BackgroundColor="#E65100" Padding="10,0" HorizontalOptions="Center" Margin="0,4,0,4" VerticalOptions="Fill" VerticalTextAlignment="Center"
+               IsVisible="False" InputTransparent="True" />
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie (scorrono col dito) → VAR＋ VAR﹣ → 🏠 ═════════ -->
         <Grid x:Name="ColonnaSinistra" Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="60,*,54,50">

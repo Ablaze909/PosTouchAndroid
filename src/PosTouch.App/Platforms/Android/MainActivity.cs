@@ -39,6 +39,7 @@ namespace PosTouch.App
             if (Window?.DecorView != null)
                 ViewCompat.SetWindowInsetsAnimationCallback(Window.DecorView, new AscoltoTastiera(LeggiTastiera));
             SchermoIntero();
+            ReteLocale.Avvia(this);   // Wi-Fi sveglio, rete del locale sempre usata, comande ripartono quando torna
 
             // Quando si chiude la tastiera a schermo Android rimostra le barre: le rinascondiamo
             if (Window?.DecorView?.ViewTreeObserver is ViewTreeObserver osservatore)
@@ -74,9 +75,13 @@ namespace PosTouch.App
             };
         }
 
+        private bool _batteriaChiesta;
+
         protected override void OnResume()
         {
             base.OnResume();
+            ReteLocale.Riprendi();
+            if (!_batteriaChiesta) { _batteriaChiesta = true; ReteLocale.ChiediEsclusioneBatteria(this); }
             SchermoInteroRitardato();
         }
 

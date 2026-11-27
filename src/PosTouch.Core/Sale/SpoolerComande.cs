@@ -15,8 +15,10 @@ namespace PosTouch.Core.Sale
     /// </summary>
     public class SpoolerComande
     {
-        public const int MaxTentativi = 2;
-        private static readonly TimeSpan IntervalloErrori = TimeSpan.FromSeconds(30);
+        /// <summary>Tentativi ravvicinati (dopo 1, 3 e 6 s) prima di dare l'errore: il Wi-Fi che si risveglia non basta a far fallire la comanda.</summary>
+        public const int MaxTentativi = 4;
+        private static readonly int[] AttesaTentativoMs = { 1000, 3000, 6000 };
+        private static readonly TimeSpan IntervalloErrori = TimeSpan.FromSeconds(20);
 
         private readonly ArchivioTavoli _archivio;
         private readonly SemaphoreSlim _sveglia = new SemaphoreSlim(0);
@@ -38,6 +40,13 @@ namespace PosTouch.Core.Sale
 
         /// <summary>Da chiamare dopo aver accodato nuove stampe.</summary>
         public void Sveglia() => _sveglia.Release();
+
+        /// <summary>La rete del locale è tornata: si riprova subito anche ciò che era in errore (senza aspettare il giro).</summary>
+        public void ReteTornata()
+        {
+            _ultimoGiroErrori = DateTime.MinValue;
+            Sveglia();
+        }
 
         public void RiprovaTutto()
         {
@@ -128,8 +137,9 @@ namespace PosTouch.Core.Sale
                 }
                 else if (!inErrore)
                 {
-                    // secondo tentativo a breve
-                    _ = Task.Delay(2000).ContinueWith(_ => Sveglia());
+                    // nuovo tentativo a breve, ogni volta un po' più in là
+                    int attesa = AttesaTentativoMs[Math.Min(job.Tentativi, AttesaTentativoMs.Length - 1)];
+                    _ = Task.Delay(attesa).ContinueWith(_ => Sveglia());
                 }
             }
             if (cambiato) Cambiato?.Invoke(_archivio.ContaInErrore());
