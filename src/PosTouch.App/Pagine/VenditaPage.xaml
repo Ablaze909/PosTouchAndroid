@@ -199,20 +199,14 @@
                 </HorizontalStackLayout>
             </Grid>
 
-            <!-- Lista con frecce ▲ / ▼ GIÙ -->
-            <!-- frecce SOPRA la lista (non le tolgono spazio): quando comparivano/sparivano la lista cambiava altezza
-                 e l'ultima riga battuta finiva fuori vista ("righe sfalsate" battendo veloce) -->
+            <!-- Lista: si scorre col dito (niente frecce, coprivano 2 righe su 8"); barra di scorrimento sempre visibile
+                 e "N righe" nella barra nera quando non stanno tutte a video -->
             <Grid Grid.Row="1">
                 <CollectionView x:Name="ListaRighe" SelectionMode="None" Scrolled="OnListaScrolled" ItemTemplate="{StaticResource SelettoreRighe}"
+                                VerticalScrollBarVisibility="Always"
                                 ItemSizingStrategy="MeasureAllItems">
                 </CollectionView>
 
-                <Button x:Name="BtnScrollSu" Text="▲ SU" FontSize="13" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
-                        HeightRequest="40" MinimumHeightRequest="40" Margin="2,0,2,0" CornerRadius="0" Padding="0" VerticalOptions="Start"
-                        IsVisible="False" Clicked="OnScrollSu" />
-                <Button x:Name="BtnScrollGiu" Text="▼ GIÙ" FontSize="13" FontAttributes="Bold" BackgroundColor="#E0E5E5E5" TextColor="#444444"
-                        HeightRequest="40" MinimumHeightRequest="40" Margin="2,0,2,2" CornerRadius="0" Padding="0" VerticalOptions="End"
-                        IsVisible="False" Clicked="OnScrollGiu" />
             </Grid>
 
             <!-- Display + pezzi + totale: tocco = calcolo resto -->

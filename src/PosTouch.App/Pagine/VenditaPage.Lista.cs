@@ -97,17 +97,7 @@ namespace PosTouch.App.Pagine
             BarraListaEspansa.IsVisible = espanso;
         }
 
-        private void OnScrollSu(object sender, EventArgs e) => ScorriLista(-3);
-        private void OnScrollGiu(object sender, EventArgs e) => ScorriLista(+3);
-
         private int _primaVisibile, _ultimaVisibile;
-
-        private void ScorriLista(int righe)
-        {
-            if (Carrello.Righe.Count == 0) return;
-            int indice = Math.Clamp(righe < 0 ? _primaVisibile + righe : _ultimaVisibile + righe, 0, Carrello.Righe.Count - 1);
-            ListaRighe.ScrollTo(indice, position: righe < 0 ? ScrollToPosition.Start : ScrollToPosition.End, animate: true);
-        }
 
         private void OnListaScrolled(object sender, ItemsViewScrolledEventArgs e)
         {
@@ -143,11 +133,13 @@ namespace PosTouch.App.Pagine
             });
         }
 
+        /// <summary>Senza frecce: quando le righe non stanno tutte a video la barra nera dice quante sono.</summary>
         private void AggiornaFrecce()
         {
             int n = Carrello.Righe.Count;
-            BtnScrollSu.IsVisible = n > 0 && _primaVisibile > 0;
-            BtnScrollGiu.IsVisible = n > 0 && _ultimaVisibile < n - 1 && _ultimaVisibile >= 0;
+            bool nascoste = n > 0 && (_primaVisibile > 0 || (_ultimaVisibile >= 0 && _ultimaVisibile < n - 1));
+            string testo = nascoste ? $"📋 SCONTRINO · {n} righe ↕" : "📋 SCONTRINO";
+            if (TitoloScontrino.Text != testo) TitoloScontrino.Text = testo;
         }
 
         private void AggiornaTotale()
