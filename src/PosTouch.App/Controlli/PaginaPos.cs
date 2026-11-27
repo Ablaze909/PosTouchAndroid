@@ -36,9 +36,23 @@ namespace PosTouch.App.Controlli
 
         private bool _spunteFatte;
 
+        /// <summary>false per le pagine con un tema proprio (la vendita).</summary>
+        protected virtual bool TemaPagina => true;
+        private bool _temaApplicato;
+
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            if (TemaPagina && !_temaApplicato)
+            {
+                _temaApplicato = true;
+                try { StilePagine.Applica(this); } catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Warning($"Tema pagina: {ex.Message}"); }
+                // contenuto creato dopo (tavoli ridisegnati, elenchi…): stesso tema; le finestre hanno il loro
+                DescendantAdded += (s, e) =>
+                {
+                    try { if (!DentroFinestra(e.Element)) StilePagine.Adatta(e.Element); } catch { }
+                };
+            }
             Servizi.TastieraSchermo.Cambiata += OnTastiera;
             OnTastiera();
             if (_spunteFatte) return;
@@ -98,6 +112,12 @@ namespace PosTouch.App.Controlli
                     scritta.GestureRecognizers.Add(tap);
                 }
             }
+        }
+
+        private static bool DentroFinestra(Element e)
+        {
+            for (var p = e; p != null; p = p.Parent) if (p is Dialoghi.IFinestra) return true;
+            return false;
         }
 
         internal void AggiungiLivello(View livello)

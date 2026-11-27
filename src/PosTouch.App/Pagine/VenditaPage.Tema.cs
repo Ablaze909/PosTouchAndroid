@@ -11,6 +11,8 @@ namespace PosTouch.App.Pagine
     public partial class VenditaPage
     {
         private const int Classico = 0, Scuro = 1, Chiaro = 2;
+        /// <summary>La vendita ha il suo tema (barre); il tema automatico delle pagine non la tocca.</summary>
+        protected override bool TemaPagina => false;
         private int Tema => Math.Clamp(Cfg.TemaInterfaccia, 0, 2);
         private const string FontIcone = "MDI";
 

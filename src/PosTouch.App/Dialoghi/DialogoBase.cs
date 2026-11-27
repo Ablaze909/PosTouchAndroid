@@ -8,7 +8,10 @@ namespace PosTouch.App.Dialoghi
     /// Viene mostrato come livello dentro la pagina (non come finestra Android separata),
     /// così lo schermo intero resta attivo.
     /// </summary>
-    public abstract class DialogoBase<T> : ContentView
+    /// <summary>Segna le finestre (il tema delle pagine non le tocca: hanno il loro).</summary>
+    public interface IFinestra { }
+
+    public abstract class DialogoBase<T> : ContentView, IFinestra
     {
         private readonly TaskCompletionSource<T> _tcs = new TaskCompletionSource<T>();
         private bool _chiuso;
