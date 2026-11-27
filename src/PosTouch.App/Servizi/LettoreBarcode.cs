@@ -18,6 +18,9 @@ namespace PosTouch.App.Servizi
 
         public static bool Attivo => Destinatario != null;
 
+        /// <summary>Caratteri di un barcode: lettere, cifre e simboli stampabili (CODE39/128: - . / + $ % …), niente spazi.</summary>
+        public static bool Valido(char c) => char.IsLetterOrDigit(c) || (c > ' ' && c < (char)0x7F);
+
         /// <summary>Restituisce true se il tasto è stato usato dal lettore.</summary>
         public static bool Tasto(char c, bool invio)
         {
@@ -34,7 +37,7 @@ namespace PosTouch.App.Servizi
                 if (codice.Length > 0) MainThread.BeginInvokeOnMainThread(() => Destinatario?.Invoke(codice));
                 return true;
             }
-            if (char.IsLetterOrDigit(c) || c == '-' || c == '.')
+            if (Valido(c))
             {
                 _buffer.Append(c);
                 return true;

@@ -26,9 +26,10 @@ namespace PosTouch.Core.Dati
         // ══════════════ INTERNI ══════════════
 
         /// <summary>Codice interno progressivo come sul PC ("001", "002"...).</summary>
-        private static string ProssimoCodice(SqliteConnection conn)
+        private static string ProssimoCodice(SqliteConnection conn, SqliteTransaction tx = null)
         {
             using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
             // solo codici numerici "normali" (fino a 9 cifre): un codice lunghissimo non deve mandare in overflow
             cmd.CommandText = "SELECT IFNULL(MAX(CAST(Codice AS INTEGER)),0) FROM Prodotti WHERE Codice GLOB '[0-9]*' AND Codice NOT GLOB '*[^0-9]*' AND LENGTH(Codice) <= 9";
             long max = Convert.ToInt64(cmd.ExecuteScalar());
@@ -38,6 +39,7 @@ namespace PosTouch.Core.Dati
             {
                 string cod = n.ToString("D3");
                 using var chk = conn.CreateCommand();
+                chk.Transaction = tx;
                 chk.CommandText = "SELECT COUNT(*) FROM Prodotti WHERE Codice=$c";
                 chk.Parameters.AddWithValue("$c", cod);
                 if ((long)chk.ExecuteScalar() == 0) return cod;
@@ -131,6 +133,19 @@ namespace PosTouch.Core.Dati
                 cmd.ExecuteNonQuery();
             }
             AggiungiColonna(conn, "Varianti", "Tipo", "INTEGER NOT NULL DEFAULT 0");
+            // più barcode per articolo, con i pezzi della confezione: stessa tabella del PC (pos.db v9)
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS ProdottiBarcode (
+                        ProdottoId          INTEGER NOT NULL,
+                        Barcode             TEXT    NOT NULL,
+                        QuantitaConfezione  INTEGER NOT NULL DEFAULT 1,
+                        PRIMARY KEY (ProdottoId, Barcode)
+                    );
+                    CREATE INDEX IF NOT EXISTS IX_ProdottiBarcode_Barcode ON ProdottiBarcode(Barcode);";
+                cmd.ExecuteNonQuery();
+            }
         }
 
         private static void AggiungiColonna(SqliteConnection conn, string tabella, string colonna, string tipo)

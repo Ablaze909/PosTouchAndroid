@@ -116,18 +116,23 @@ namespace PosTouch.Core.Dati
 
         private Dictionary<string, (int prodottoId, int pezzi)> _barcode = new Dictionary<string, (int, int)>();
 
-        private static Dictionary<string, (int, int)> CaricaBarcodeMultipli(SqliteConnection conn)
+        private static Dictionary<string, (int, int)> CaricaBarcodeMultipli(SqliteConnection conn, out Dictionary<int, List<BarcodeConfezione>> perProdotto)
         {
             var m = new Dictionary<string, (int, int)>();
+            perProdotto = new Dictionary<int, List<BarcodeConfezione>>();
             try
             {
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT ProdottoId, TRIM(Barcode), QuantitaConfezione FROM ProdottiBarcode";
+                cmd.CommandText = "SELECT ProdottoId, TRIM(Barcode), QuantitaConfezione FROM ProdottiBarcode ORDER BY ROWID";
                 using var r = cmd.ExecuteReader();
                 while (r.Read())
                 {
                     string bc = r.IsDBNull(1) ? "" : r.GetString(1);
-                    if (bc.Length > 0 && !m.ContainsKey(bc)) m[bc] = (r.GetInt32(0), r.IsDBNull(2) ? 1 : r.GetInt32(2));
+                    if (bc.Length == 0 || m.ContainsKey(bc)) continue;
+                    int id = r.GetInt32(0), pezzi = r.IsDBNull(2) ? 1 : Math.Max(1, r.GetInt32(2));
+                    m[bc] = (id, pezzi);
+                    if (!perProdotto.TryGetValue(id, out var l)) perProdotto[id] = l = new List<BarcodeConfezione>();
+                    l.Add(new BarcodeConfezione { Barcode = bc, Pezzi = pezzi });
                 }
             }
             catch (SqliteException) { /* pos.db senza la tabella (versioni vecchie): solo Prodotti.Barcode */ }
@@ -219,7 +224,10 @@ namespace PosTouch.Core.Dati
             }
             prodotti = prodotti.OrderBy(p => p.Ordine).ThenBy(p => p.Descrizione).ToList();   // come il PC
             var varianti = CaricaVarianti(conn);
-            var barcode = CaricaBarcodeMultipli(conn);
+            var barcode = CaricaBarcodeMultipli(conn, out var perProdotto);
+            foreach (var p in prodotti)
+                if (perProdotto.TryGetValue(p.Id, out var lista))
+                    p.BarcodeAggiuntivi = lista.Where(b => !(b.Barcode == p.Barcode && b.Pezzi <= 1)).ToList();   // il principale non si ripete
             foreach (var c in categorie)
                 c.NumeroProdotti = prodotti.Count(p => p.CategoriaId == c.Id && p.Attivo);
 

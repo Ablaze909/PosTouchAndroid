@@ -36,7 +36,9 @@ namespace PosTouch.App.Pagine
                     VenditaAPeso = esistente.VenditaAPeso, UnitaPeso = esistente.UnitaPeso, IsCodiceBilancia = esistente.IsCodiceBilancia,
                     IsCombinazione = esistente.IsCombinazione, NumeroGusti = esistente.NumeroGusti, PoliticaPrezzo = esistente.PoliticaPrezzo,
                     VariantiProporzionali = esistente.VariantiProporzionali, IsCoperto = esistente.IsCoperto,
-                    Prezzo2Centesimi = esistente.Prezzo2Centesimi, Prezzo3Centesimi = esistente.Prezzo3Centesimi, Prezzo4Centesimi = esistente.Prezzo4Centesimi
+                    Prezzo2Centesimi = esistente.Prezzo2Centesimi, Prezzo3Centesimi = esistente.Prezzo3Centesimi, Prezzo4Centesimi = esistente.Prezzo4Centesimi,
+                    // copia: le modifiche nella pagina non toccano il catalogo finché non si salva
+                    BarcodeAggiuntivi = esistente.BarcodeAggiuntivi.Select(b => new BarcodeConfezione { Barcode = b.Barcode, Pezzi = b.Pezzi }).ToList()
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVO PRODOTTO" : "✏️ MODIFICA PRODOTTO";
@@ -64,6 +66,7 @@ namespace PosTouch.App.Pagine
             SceltaCategoria.Indice = _categorie.FindIndex(c => c.Id == _p.CategoriaId);
             CampoDescrizione.Text = _p.Descrizione;
             CampoBarcode.Text = _p.Barcode;
+            DisegnaBarcode();
             ChkPreferito.IsChecked = _p.IsPreferito;
             Aggiorna();
         }

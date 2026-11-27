@@ -16,35 +16,19 @@ namespace PosTouch.Core.Dati
             if (string.IsNullOrWhiteSpace(p.Descrizione)) throw new ArgumentException("La descrizione è obbligatoria.");
             if (p.PrezzoCentesimi < 0) throw new ArgumentException("Prezzo non valido.");
             if (p.CategoriaId <= 0) throw new ArgumentException("Scegliere la categoria.");
-            string barcode = (p.Barcode ?? "").Trim();
+            string barcode = NormalizzaBarcode(p.Barcode);
+            var aggiuntivi = ControllaBarcode(barcode, p.BarcodeAggiuntivi);
 
             Esegui(conn =>
             {
-                if (barcode.Length > 0)
-                {
-                    using var chk = conn.CreateCommand();
-                    chk.CommandText = "SELECT Descrizione FROM Prodotti WHERE Barcode=$b AND Id<>$id AND IFNULL(Attivo,1) >= 0";   // eliminati sul PC (-1): non bloccano
-                    chk.Parameters.AddWithValue("$b", barcode);
-                    chk.Parameters.AddWithValue("$id", p.Id);
-                    if (chk.ExecuteScalar() is string altro)
-                        throw new ArgumentException($"Barcode già usato da \"{altro}\".");
-                    // anche i barcode multipli del PC (ProdottiBarcode): in vendita hanno la precedenza
-                    if (TabellaEsiste(conn, "ProdottiBarcode"))
-                    {
-                        using var chk2 = conn.CreateCommand();
-                        chk2.CommandText = @"SELECT p.Descrizione FROM ProdottiBarcode b JOIN Prodotti p ON p.Id = b.ProdottoId
-                                             WHERE TRIM(b.Barcode)=$b AND b.ProdottoId<>$id AND IFNULL(p.Attivo,1) >= 0";
-                        chk2.Parameters.AddWithValue("$b", barcode);
-                        chk2.Parameters.AddWithValue("$id", p.Id);
-                        if (chk2.ExecuteScalar() is string altro2)
-                            throw new ArgumentException($"Barcode già usato da \"{altro2}\" (barcode multipli del PC).");
-                    }
-                }
+                using var tx = conn.BeginTransaction();   // articolo e suoi barcode insieme: o tutto o niente
+                ControllaBarcodeLiberi(conn, tx, p.Id, barcode, aggiuntivi);
 
                 using var cmd = conn.CreateCommand();
+                cmd.Transaction = tx;
                 if (p.Id == 0)
                 {
-                    p.Codice = ProssimoCodice(conn);
+                    p.Codice = ProssimoCodice(conn, tx);
                     cmd.CommandText = @"INSERT INTO Prodotti (Codice, Barcode, Descrizione, PrezzoCentesimi, CostoCentesimi, CategoriaId, Colore, ColoreTestoTasto, DimensioneFontTasto, IsPreferito, Attivo, CentroProduzioneId,
                                                               VenditaAPeso, UnitaPeso, IsCodiceBilancia, IsCombinazione, NumeroGusti, PoliticaPrezzo, VariantiProporzionali, IsCoperto,
                                                               Prezzo2Centesimi, Prezzo3Centesimi, Prezzo4Centesimi)
@@ -83,13 +67,19 @@ namespace PosTouch.Core.Dati
                 cmd.Parameters.AddWithValue("$p3", Math.Max(0, p.Prezzo3Centesimi));
                 cmd.Parameters.AddWithValue("$p4", Math.Max(0, p.Prezzo4Centesimi));
                 cmd.ExecuteNonQuery();
+                int nuovoId = p.Id;
                 if (p.Id == 0)
                 {
                     // l'articolo nuovo prende il suo Id: un secondo SALVA dalla stessa pagina aggiorna invece di duplicare
                     using var id = conn.CreateCommand();
+                    id.Transaction = tx;
                     id.CommandText = "SELECT last_insert_rowid()";
-                    p.Id = Convert.ToInt32(id.ExecuteScalar());
+                    nuovoId = Convert.ToInt32(id.ExecuteScalar());
                 }
+                SalvaBarcodeAggiuntivi(conn, tx, nuovoId, barcode, aggiuntivi);
+                tx.Commit();
+                p.Id = nuovoId;   // solo a salvataggio riuscito
+                p.BarcodeAggiuntivi = aggiuntivi;
             });
             LogManager.Info($"Articolo salvato: {p.Descrizione} €{p.PrezzoCentesimi / 100m:F2} cat {p.CategoriaId}");
         }

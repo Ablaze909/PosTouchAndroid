@@ -35,7 +35,7 @@
                             <Label Grid.Column="5" Text="{Binding P.CategoriaNome}" Style="{StaticResource Cella}" />
                             <Label Grid.Column="6" Text="{Binding P.RepartoFiscale}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
                             <Label Grid.Column="7" Text="{Binding Iva}" Style="{StaticResource Cella}" HorizontalTextAlignment="Center" />
-                            <Label Grid.Column="8" Text="{Binding P.Barcode}" Style="{StaticResource Cella}" FontSize="13" TextColor="#757575" />
+                            <Label Grid.Column="8" Text="{Binding P.BarcodeDisplay}" Style="{StaticResource Cella}" FontSize="13" TextColor="#757575" />
                             <BoxView Grid.ColumnSpan="9" HeightRequest="1" Color="#EEEEEE" VerticalOptions="End" />
                         </Grid>
                     </DataTemplate>
@@ -50,7 +50,7 @@
                             <Label Grid.Column="1" Text="{Binding P.Codice}" Style="{StaticResource Cella}" TextColor="#757575" />
                             <VerticalStackLayout Grid.Column="2" VerticalOptions="Center">
                                 <Label Text="{Binding Titolo}" Style="{StaticResource Cella}" FontAttributes="Bold" />
-                                <Label Text="{Binding P.Barcode}" Style="{StaticResource Cella}" FontSize="12" TextColor="#757575" />
+                                <Label Text="{Binding P.BarcodeDisplay}" Style="{StaticResource Cella}" FontSize="12" TextColor="#757575" />
                             </VerticalStackLayout>
                             <Label Grid.Column="3" Text="{Binding P.PrezzoDisplay}" Style="{StaticResource Cella}" HorizontalTextAlignment="End" FontAttributes="Bold" />
                             <Label Grid.Column="4" Text="{Binding P.CategoriaNome}" Style="{StaticResource Cella}" />

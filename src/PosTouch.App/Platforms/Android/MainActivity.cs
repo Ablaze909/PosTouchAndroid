@@ -130,7 +130,7 @@ namespace PosTouch.App
                     char c = (char)e.UnicodeChar;
                     if (LettoreBarcode.Tasto(c, invio)) return true;
                 }
-                else if (e.Action == KeyEventActions.Up && (invio || char.IsLetterOrDigit((char)e.UnicodeChar)))
+                else if (e.Action == KeyEventActions.Up && (invio || LettoreBarcode.Valido((char)e.UnicodeChar)))
                 {
                     return true; // consumo anche il rilascio dei tasti già usati
                 }

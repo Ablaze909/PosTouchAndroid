@@ -6,6 +6,15 @@ namespace PosTouch.Core.Modelli
         public int Id { get; set; }
         public string Codice { get; set; } = "";
         public string Barcode { get; set; } = "";
+        /// <summary>
+        /// Altri barcode dello stesso articolo, ognuno con i pezzi che vale (confezione da 6 → 6 pezzi).
+        /// Tabella ProdottiBarcode del PC; il barcode principale qui non c'è (è <see cref="Barcode"/>, 1 pezzo).
+        /// </summary>
+        public System.Collections.Generic.List<BarcodeConfezione> BarcodeAggiuntivi { get; set; } = new System.Collections.Generic.List<BarcodeConfezione>();
+        /// <summary>Per le liste: "8001234 +2" se ci sono altri barcode.</summary>
+        public string BarcodeDisplay => BarcodeAggiuntivi?.Count > 0
+            ? (string.IsNullOrEmpty(Barcode) ? BarcodeAggiuntivi[0].Barcode + (BarcodeAggiuntivi.Count > 1 ? $" +{BarcodeAggiuntivi.Count - 1}" : "") : $"{Barcode} +{BarcodeAggiuntivi.Count}")
+            : Barcode ?? "";
         public string Descrizione { get; set; } = "";
         public int PrezzoCentesimi { get; set; }
         public int CostoCentesimi { get; set; }
@@ -62,5 +71,13 @@ namespace PosTouch.Core.Modelli
         public decimal MargineEuro => PrezzoEuro - CostoEuro;
         public string PrezzoDisplay => $"€ {PrezzoEuro:F2}".Replace('.', ',');
         public string MargineDisplay => CostoCentesimi > 0 ? $"€ {MargineEuro:F2}".Replace('.', ',') : "—";
+    }
+
+    /// <summary>Un barcode in più di un articolo e quanti pezzi vale (confezione).</summary>
+    public class BarcodeConfezione
+    {
+        public string Barcode { get; set; } = "";
+        public int Pezzi { get; set; } = 1;
+        public string Testo => Pezzi > 1 ? $"{Barcode}  ×{Pezzi} pz" : Barcode;
     }
 }
