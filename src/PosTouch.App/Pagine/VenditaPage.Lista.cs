@@ -155,6 +155,7 @@ namespace PosTouch.App.Pagine
 
         private void SvuotaScontrino()
         {
+            TornaAllaHome();   // scontrino/conto chiuso o annullato: si riparte dai preferiti
             if (_scontrinoEspanso) ApplicaModalitaEspansa(false);
             Carrello.Svuota();
             _tastierino.Azzera();

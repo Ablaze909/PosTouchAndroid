@@ -37,6 +37,7 @@ namespace PosTouch.App.Pagine
             AggiornaTotale();
             AggiornaModoTavolo();
             if (BannerCombinazione != null) { BannerCombinazione.IsVisible = false; MostraArticoli(); }
+            if (GrigliaArticoli != null && _tastiCategoria.Count > 0) TornaAllaHome();   // cambio modalità (banco ↔ tavolo/conto): si riparte dai preferiti
         }
 
         private void AggiornaModoTavolo()

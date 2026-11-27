@@ -33,6 +33,20 @@ namespace PosTouch.App.Pagine
             MostraArticoli();
         }
 
+        /// <summary>
+        /// Pagina iniziale degli articoli: PREFERITI, o la prima categoria se non ci sono preferiti.
+        /// Si torna qui aprendo un tavolo/conto, tornando al banco e a fine scontrino/conto (o ANNULLA).
+        /// </summary>
+        private void TornaAllaHome()
+        {
+            if (_combinazione != null) return;   // durante una combinazione restano i gusti
+            var catalogo = ContestoCassa.Catalogo;
+            int home = catalogo.Preferiti().Any() || catalogo.Categorie.Count == 0 ? IdPreferiti : catalogo.Categorie[0].Id;
+            if (_categoriaCorrente == home) return;
+            _categoriaCorrente = home;
+            MostraArticoli();
+        }
+
         private readonly Dictionary<int, Border> _tastiCategoria = new();
         private int _categoriaMostrata = int.MinValue;
 
