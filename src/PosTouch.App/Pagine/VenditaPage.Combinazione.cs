@@ -75,8 +75,15 @@ namespace PosTouch.App.Pagine
             if (_combinazione != null && !_combinazione.Presente) _combinazione = null;
             BannerCombinazione.IsVisible = _combinazione != null;
             if (_combinazione != null) TestoCombinazione.Text = _combinazione.Banner;
-            MostraArticoli();
+            // i tasti si rifanno solo entrando o uscendo dalla combinazione (i gusti non cambiano a ogni tocco)
+            if (!ReferenceEquals(_combinazioneMostrata, _combinazione))
+            {
+                _combinazioneMostrata = _combinazione;
+                MostraArticoli();
+            }
         }
+
+        private CombinazioneInCorso _combinazioneMostrata;
 
         /// <summary>CombinazioneApertaBlocca del PC: true (e avviso) se c'è una combinazione da chiudere.</summary>
         private bool CombinazioneAperta()

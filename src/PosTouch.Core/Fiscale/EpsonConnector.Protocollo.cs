@@ -134,6 +134,16 @@ namespace PosTouch.Core.Fiscale
                 LogManager.Debug($"   TX hex: {BitConverter.ToString(frame)}");
                 LogManager.Debug($"   TX ascii: {Encoding.ASCII.GetString(frame).Replace("\x02","<STX>").Replace("\x03","<ETX>")}");
 
+                // risposte vecchie rimaste nel canale (es. arrivate dopo un timeout): via prima di scrivere,
+                // altrimenti verrebbero lette come risposta a questo comando
+                if (_stream.DataAvailable)
+                {
+                    var scarto = new byte[1024];
+                    int buttati = 0;
+                    while (_stream.DataAvailable && buttati < 64 * 1024)
+                        buttati += _stream.Read(scarto, 0, scarto.Length);
+                    LogManager.Warning($"EPSON [{cmd}]: scartati {buttati} byte di risposte vecchie prima dell'invio");
+                }
                 await _stream.WriteAsync(frame, 0, frame.Length);
                 await _stream.FlushAsync();
 

@@ -52,7 +52,7 @@ namespace PosTouch.Core.Fiscale
                         + "01"                   // IND: 01
                         + "1";                   // L/R: 1
 
-            var resp = await SendAsync(1, 84, data);
+            var resp = await SendAsync(1, 84, data, TIMEOUT_PRINT);
             return EsitoChiusura(resp);
         }
 
@@ -61,7 +61,7 @@ namespace PosTouch.Core.Fiscale
             // AMN=000000000 → pagamento automatico importo esatto
             string descr = "CONTANTI";
             string data = Op2 + descr + Amt9(0) + "0" + "01" + "1";
-            var resp = await SendAsync(1, 84, data);
+            var resp = await SendAsync(1, 84, data, TIMEOUT_PRINT);
             return EsitoChiusura(resp);
         }
 
@@ -70,7 +70,7 @@ namespace PosTouch.Core.Fiscale
             string descr = "CARTA";
             string data = Op2 + descr + Amt9(0) + "2" + "01" + "1";
             //                                     TYPE=2 Credit Card
-            var resp = await SendAsync(1, 84, data);
+            var resp = await SendAsync(1, 84, data, TIMEOUT_PRINT);
             return EsitoChiusura(resp);
         }
 
@@ -93,7 +93,7 @@ namespace PosTouch.Core.Fiscale
             // ── PRIMO TENDER: contanti, L/R=0 (parziale) ──
             string data1 = Op2 + "CONTANTI" + Amt9(contantiCent) + "0" + "01" + "0";
             //                                                      TYPE  IND   L/R=parziale
-            var resp1 = await SendAsync(1, 84, data1);
+            var resp1 = await SendAsync(1, 84, data1, TIMEOUT_PRINT);
             if (!resp1.Success)
             {
                 UltimoErrore = resp1.IsError 
@@ -125,7 +125,7 @@ namespace PosTouch.Core.Fiscale
             // ── SECONDO TENDER: carta, L/R=1 (finale) ──
             string data2 = Op2 + "CARTA" + Amt9(cartaCent) + "2" + "01" + "1";
             //                                                TYPE  IND   L/R=finale
-            var resp2 = await SendAsync(1, 84, data2);
+            var resp2 = await SendAsync(1, 84, data2, TIMEOUT_PRINT);
             bool ok = EsitoChiusura(resp2);   // solo qui il formato completo con CHG+DATE+TIME+FRN
             if (!ok) LogManager.Error($"ChiudiMisto Epson: secondo tender carta fallito — {UltimoErrore}");
             return ok;

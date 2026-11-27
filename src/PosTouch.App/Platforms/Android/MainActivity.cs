@@ -29,8 +29,8 @@ namespace PosTouch.App
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
+            ProteggiDaErrori();   // prima di tutto: anche un errore nella creazione della prima schermata è coperto
             base.OnCreate(savedInstanceState);
-            ProteggiDaErrori();
             // Cassa: lo schermo non deve spegnersi durante il servizio
             Window?.AddFlags(WindowManagerFlags.KeepScreenOn);
             SchermoIntero();
@@ -83,12 +83,17 @@ namespace PosTouch.App
         }
 
         private bool _inAttesa;
+        private long _ultimoControllo;
 
         /// <summary>Se le barre sono visibili e la tastiera a schermo è chiusa, torna a schermo intero.</summary>
         private void ControllaBarre()
         {
             if (_inAttesa || Window?.DecorView == null) return;
-            var insets = ViewCompat.GetRootWindowInsets(Window.DecorView);
+            // scatta a ogni ridisegno (anche l'orologio ogni secondo): al massimo un controllo ogni 300 ms
+            long ora = Android.OS.SystemClock.UptimeMillis();
+            if (ora - _ultimoControllo < 300) return;
+            _ultimoControllo = ora;
+            using var insets = ViewCompat.GetRootWindowInsets(Window.DecorView);
             if (insets == null) return;
             bool tastiera = insets.IsVisible(WindowInsetsCompat.Type.Ime());
             bool barre = insets.IsVisible(WindowInsetsCompat.Type.SystemBars());

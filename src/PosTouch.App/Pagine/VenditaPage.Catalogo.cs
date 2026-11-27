@@ -25,6 +25,7 @@ namespace PosTouch.App.Pagine
             {
                 ListaCategorie.Children.Clear();
                 _tastiCategoria.Clear();
+                _tastoEvidenziato = null;
                 foreach (var c in categorie)
                     ListaCategorie.Children.Add(CreaTastoCategoria(c));
             }
@@ -36,15 +37,21 @@ namespace PosTouch.App.Pagine
         private int _categoriaMostrata = int.MinValue;
 
         /// <summary>Categoria attiva con bordo scuro; al cambio di categoria la griglia articoli riparte dall'alto.</summary>
+        private static readonly SolidColorBrush BordoAttivo = new SolidColorBrush(Colors.White);
+        private static readonly SolidColorBrush BordoSpento = new SolidColorBrush(Colors.Transparent);
+        private static readonly Shadow OmbraAttiva = new Shadow { Brush = new SolidColorBrush(Colors.Black), Offset = new Point(0, 0), Radius = 6, Opacity = 0.8f };
+        private Border _tastoEvidenziato;
+
         private void EvidenziaCategoria()
         {
-            foreach (var (id, b) in _tastiCategoria)
+            // si toccano solo il tasto attivo prima e quello attivo adesso (prima: tutti, con pennelli nuovi ogni volta)
+            _tastiCategoria.TryGetValue(_categoriaCorrente, out var nuovo);
+            if (!ReferenceEquals(nuovo, _tastoEvidenziato))
             {
-                bool attiva = id == _categoriaCorrente;
+                if (_tastoEvidenziato != null) { _tastoEvidenziato.Stroke = BordoSpento; _tastoEvidenziato.Shadow = null; }
                 // spessore fisso (il testo non si ridispone); bordo bianco con ombra scura: si vede su ogni colore
-                b.StrokeThickness = 4;
-                b.Stroke = new SolidColorBrush(attiva ? Colors.White : Colors.Transparent);
-                b.Shadow = attiva ? new Shadow { Brush = new SolidColorBrush(Colors.Black), Offset = new Point(0, 0), Radius = 6, Opacity = 0.8f } : null;
+                if (nuovo != null) { nuovo.StrokeThickness = 4; nuovo.Stroke = BordoAttivo; nuovo.Shadow = OmbraAttiva; }
+                _tastoEvidenziato = nuovo;
             }
             if (_categoriaMostrata != _categoriaCorrente)
             {
@@ -73,6 +80,8 @@ namespace PosTouch.App.Pagine
                     MaxLines = 3
                 }
             };
+            tasto.StrokeThickness = 4;   // spessore fisso: evidenziare cambia solo il colore, il testo non si sposta
+            tasto.Stroke = BordoSpento;
             _tastiCategoria[c.Id] = tasto;
             Tocco(tasto, () =>
             {
@@ -111,11 +120,12 @@ namespace PosTouch.App.Pagine
             // tasti già pronti per questa categoria (prestazioni): si ricreano solo se cambiano catalogo,
             // impostazioni o misura dei tasti; durante la combinazione i gusti si creano al momento
             List<View> tasti;
-            var chiave = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni, _latoTasto, Carrello.Listino);   // prezzi sui tasti del listino del conto
+            var chiave = (ContestoCassa.Catalogo.Versione, ContestoCassa.VersioneImpostazioni, _latoTasto);
             if (chiave != _chiaveCacheTasti) { _cacheTasti.Clear(); _chiaveCacheTasti = chiave; }
+            var chiaveCategoria = (_categoriaCorrente, Carrello.Listino);   // prezzi sui tasti del listino del conto: una cache per listino
             if (_combinazione != null) tasti = articoli.Select(CreaTastoArticolo).ToList();
-            else if (!_cacheTasti.TryGetValue(_categoriaCorrente, out tasti))
-                _cacheTasti[_categoriaCorrente] = tasti = articoli.Select(CreaTastoArticolo).ToList();
+            else if (!_cacheTasti.TryGetValue(chiaveCategoria, out tasti))
+                _cacheTasti[chiaveCategoria] = tasti = articoli.Select(CreaTastoArticolo).ToList();
 
             GrigliaArticoli.BatchBegin();   // un solo ricalcolo della griglia invece di uno per tasto
             try
@@ -132,8 +142,8 @@ namespace PosTouch.App.Pagine
                 : "Nessun articolo in questa categoria.";
         }
 
-        private readonly Dictionary<int, List<View>> _cacheTasti = new();
-        private (int, int, double, int) _chiaveCacheTasti = (-1, -1, -1, -1);
+        private readonly Dictionary<(int categoria, int listino), List<View>> _cacheTasti = new();
+        private (int, int, double) _chiaveCacheTasti = (-1, -1, -1);
 
         private View CreaTastoArticolo(Prodotto p)
         {

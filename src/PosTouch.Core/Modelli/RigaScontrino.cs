@@ -1,3 +1,4 @@
+using System.Linq;
 using System.ComponentModel;
 
 namespace PosTouch.Core.Modelli
@@ -58,14 +59,14 @@ namespace PosTouch.Core.Modelli
         public int PrezzoCentesimi
         {
             get => _prezzoCentesimi;
-            set { _prezzoCentesimi = value; Notifica(); }
+            set { if (_prezzoCentesimi != value) { _prezzoCentesimi = value; Notifica(); } }
         }
 
         private decimal _quantita = 1;
         public decimal Quantita
         {
             get => _quantita;
-            set { _quantita = value; Notifica(); }
+            set { if (_quantita != value) { _quantita = value; Notifica(); } }
         }
 
         // ── stato visivo della lista (impostato da Carrello / pagina) ──
@@ -73,14 +74,14 @@ namespace PosTouch.Core.Modelli
         public bool Alternata
         {
             get => _alternata;
-            set { if (_alternata != value) { _alternata = value; Notifica(); } }
+            set { if (_alternata != value) { _alternata = value; NotificaSfondo(nameof(Alternata)); } }
         }
 
         private bool _selezionata;
         public bool Selezionata
         {
             get => _selezionata;
-            set { if (_selezionata != value) { _selezionata = value; Notifica(); } }
+            set { if (_selezionata != value) { _selezionata = value; NotificaSfondo(nameof(Selezionata)); } }
         }
 
         /// <summary>Sfondo come sul PC: alternato bianco/#EEEEEE, selezionata #E0E0E0.</summary>
@@ -115,11 +116,26 @@ namespace PosTouch.Core.Modelli
         private static readonly System.Globalization.CultureInfo It = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
         public string ImportoDisplay => Tipo == TipoRiga.Separatore ? "" : $"€ {ImportoEuro:F2}".Replace('.', ',');
 
+        private static readonly PropertyChangedEventArgs[] _cambiValori = new[] { nameof(PrezzoCentesimi), nameof(Quantita), nameof(ImportoEuro), nameof(ImportoDisplay),
+                                      nameof(QuantitaDisplay), nameof(DettaglioPeso), nameof(IsAPeso), nameof(VarianteDisplay) }
+            .Select(n => new PropertyChangedEventArgs(n)).ToArray();
+        private static readonly PropertyChangedEventArgs _cambioSfondo = new PropertyChangedEventArgs(nameof(ColoreSfondo));
+
+        /// <summary>Prezzo, quantità, peso, varianti: tutto ciò che si vede della riga tranne lo sfondo.</summary>
         private void Notifica()
         {
-            foreach (var p in new[] { nameof(PrezzoCentesimi), nameof(Quantita), nameof(ImportoEuro), nameof(ImportoDisplay),
-                                      nameof(QuantitaDisplay), nameof(DettaglioPeso), nameof(IsAPeso), nameof(Alternata), nameof(Selezionata), nameof(ColoreSfondo), nameof(VarianteDisplay) })
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
+            var h = PropertyChanged;
+            if (h == null) return;
+            foreach (var e in _cambiValori) h(this, e);
+        }
+
+        /// <summary>Alternata/selezionata cambiano solo lo sfondo: non si ricalcolano prezzi e importi (prima 11 notifiche).</summary>
+        private void NotificaSfondo(string proprieta)
+        {
+            var h = PropertyChanged;
+            if (h == null) return;
+            h(this, new PropertyChangedEventArgs(proprieta));
+            h(this, _cambioSfondo);
         }
 
         public RigaScontrino Copia()

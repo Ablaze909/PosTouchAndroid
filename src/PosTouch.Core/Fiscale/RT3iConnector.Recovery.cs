@@ -127,10 +127,10 @@ namespace PosTouch.Core.Fiscale
                     bool voidOk = await AnnullaScontrinoCorrenteAsync();
                     await Task.Delay(500);
                     
-                    // Verifica se ha funzionato
-                    bool ancoraAperto = await HaScontrinoApertoAsync();
+                    // Verifica se ha funzionato: stato NON leggibile = non riuscito (mai dato per chiuso)
+                    bool? statoDopo = await StatoScontrinoDopoChiusuraAsync();
                     
-                    if (!ancoraAperto)
+                    if (statoDopo == false)
                     {
                         LogManager.Info($"✅ Recovery RIUSCITO al tentativo {tentativo}");
                         await SendCommandAsync(ComandiRT.ModoVendita);

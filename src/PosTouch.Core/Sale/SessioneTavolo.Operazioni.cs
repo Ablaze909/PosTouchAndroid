@@ -51,7 +51,14 @@ namespace PosTouch.Core.Sale
             _archivio.UnisciTavoli(Tavolo.Id, ids);
             // ogni articolo nella sua portata; la portata corrente resta quella di questo tavolo (come il PC):
             // meglio un VAI ripetuto per il tavolo unito che un VAI mai partito per questo
-            Carrello.Carica(unite);
+            try { Carrello.Carica(unite); }
+            catch
+            {
+                // l'archivio è già unito: a video si rimette quello che c'è nel database, così il prossimo salvataggio
+                // non cancella le righe dei tavoli uniti
+                Carrello.Carica(_archivio.Righe(Tavolo.Id));
+                throw;
+            }
             // anche gli storni in sospeso dei tavoli uniti (altrimenti il prossimo salvataggio li cancellerebbe)
             _storniPendenti.Clear();
             _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));

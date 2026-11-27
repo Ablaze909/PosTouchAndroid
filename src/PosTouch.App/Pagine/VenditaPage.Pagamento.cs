@@ -190,9 +190,10 @@ namespace PosTouch.App.Pagine
 
             // al tavolo si chiude SUBITO (comande e liberazione): se l'app viene chiusa sul messaggio del resto non si perde nulla
             var esitoTavolo = await ChiudiTavoloPagatoAsync(righe);
+            // comanda da banco accodata subito dopo lo scontrino (prima di svuotare): se l'app si chiude non si perde
+            await InviaComandaBancoAsync(righe, eliminacode);
             SvuotaScontrino();
             if (restoCent > 0) MostraRestoConTimer(restoCent);
-            await InviaComandaBancoAsync(righe, eliminacode);
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
             await DopoPagamentoAsync(esitoTavolo, restoCent);
@@ -202,7 +203,18 @@ namespace PosTouch.App.Pagine
         private static async Task InviaComandaBancoAsync(List<RigaScontrino> righe, int eliminacode)
         {
             if (eliminacode <= 0) return;
-            var avvisi = await Task.Run(() => ContestoCassa.ComandaBanco.Invia(righe, eliminacode));
+            List<string> avvisi;
+            try { avvisi = await Task.Run(() => ContestoCassa.ComandaBanco.Invia(righe, eliminacode)); }
+            catch (Exception ex)
+            {
+                // lo scontrino è già uscito: un errore qui non deve fermare la chiusura della vendita
+                PosTouch.Core.Diagnostica.LogManager.Error($"Comanda banco N. {eliminacode} non accodata: {ex}");
+                await MessaggioBox.Errore("⚠️ COMANDA BANCO", $"La comanda N. {eliminacode} non è stata mandata in produzione:
+{ex.Message}
+
+Avvisa la cucina/il bar.");
+                return;
+            }
             if (avvisi.Count > 0)
                 await MessaggioBox.Avviso("⚠️ COMANDA BANCO", string.Join("\n\n", avvisi) + "\n\nImposta le stampanti in IMPOSTAZIONI → 🖨️ STAMPE.");
         }

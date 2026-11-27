@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
@@ -109,11 +110,17 @@ namespace PosTouch.Core.Stampa
 
         // ── testo ──
 
+        private static readonly char[] Controllo = Enumerable.Range(0, 32).Where(i => i != '\n').Select(i => (char)i).Append((char)127).ToArray();
+
         private static string Sanitizza(string t)
         {
             if (string.IsNullOrEmpty(t)) return "";
-            return t.Replace("€", "euro").Replace("⅓", "1/3").Replace("═", "=").Replace("─", "-")
-                    .Replace("✅", "").Replace("⚠️", "").Replace("❌", "").Replace("🖨️", "");
+            t = t.Replace("€", "euro").Replace("⅓", "1/3").Replace("═", "=").Replace("─", "-")
+                 .Replace("✅", "").Replace("⚠️", "").Replace("❌", "").Replace("🖨️", "")
+                 // virgolette e trattini "tipografici" (da descrizioni importate): altrimenti escono come '?'
+                 .Replace('‘', '\'').Replace('’', '\'').Replace('“', '"').Replace('”', '"').Replace('–', '-').Replace('—', '-').Replace("…", "...");
+            // caratteri di controllo (TAB, ESC, \r…) mandavano comandi casuali alla stampante; l'a capo voluto resta
+            return t.IndexOfAny(Controllo) < 0 ? t : new string(t.Where(c => c == '\n' || !char.IsControl(c)).ToArray());
         }
 
         private static readonly Dictionary<char, byte> _cp858 = new Dictionary<char, byte>

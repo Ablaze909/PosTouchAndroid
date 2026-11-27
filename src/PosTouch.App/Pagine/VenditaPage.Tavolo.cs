@@ -125,6 +125,7 @@ namespace PosTouch.App.Pagine
                 try { esito = uscita(_sessione); }
                 catch (Exception ex)
                 {
+                    ProgrammaBozza();   // si resta nel tavolo: il salvataggio automatico deve ripartire
                     await MessaggioBox.Errore("ERRORE SALVATAGGIO TAVOLO", $"Il tavolo NON è stato salvato:\n{ex.Message}\n\nRiprova.");
                     return;
                 }

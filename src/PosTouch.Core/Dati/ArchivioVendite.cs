@@ -44,7 +44,7 @@ namespace PosTouch.Core.Dati
             var c = new SqliteConnection(_connString);
             c.Open();
             using var cmd = c.CreateCommand();
-            cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON;";
+            cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON;";   // vendite: mai perse con un calo di corrente
             cmd.ExecuteNonQuery();
             return c;
         }

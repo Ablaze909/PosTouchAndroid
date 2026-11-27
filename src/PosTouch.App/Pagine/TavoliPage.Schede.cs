@@ -11,8 +11,17 @@ namespace PosTouch.App.Pagine
     {
         // ══════════════ barra schede (CostruisciTabBar del PC) ══════════════
 
+        private string _firmaSchede;
+
         private void CostruisciSchede()
         {
+            // ogni 10 s: si ridisegna solo se è cambiato qualcosa (sala attiva, sale, stampe in errore, deviazioni)
+            int inErrore = Cfg.AbilitaComande ? ContestoCassa.Spooler.InErrore : 0;
+            bool deviata = Cfg.AbilitaComande && ContestoCassa.Spooler.Deviazioni().Count > 0;
+            string firma = string.Join("|", _salaCorrente, ContestoCassa.VersioneImpostazioni, Cfg.AbilitaComande, inErrore, deviata,
+                                       string.Join(",", Sale().Select(x => x.Id + ":" + x.Nome)));
+            if (firma == _firmaSchede) return;
+            _firmaSchede = firma;
             _schede.Children.Clear();
             _schede.ColumnDefinitions.Clear();
             var schede = new List<Button>();
@@ -29,8 +38,7 @@ namespace PosTouch.App.Pagine
             schede.Add(Scheda("Banco", "#E0E0E0", false, async () => await Navigazione.Chiudi(this)));
             if (Cfg.AbilitaComande)
             {
-                int n = ContestoCassa.Spooler.InErrore;
-                bool deviata = ContestoCassa.Spooler.Deviazioni().Count > 0;
+                int n = inErrore;
                 _coda = Scheda((n > 0 ? $"🖨️ CODA ({n})" : "🖨️ CODA") + (deviata ? " 🔀" : ""), n > 0 ? "#C62828" : "#37474F", true,
                                async () => { await CodaStampaBox.Mostra(); Aggiorna(); });
                 schede.Add(_coda);

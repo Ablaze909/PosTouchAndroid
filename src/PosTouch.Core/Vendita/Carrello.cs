@@ -171,18 +171,19 @@ namespace PosTouch.Core.Vendita
             var stornate = new List<RigaScontrino>();
             // combinazioni: toccare un gusto o il padre toglie tutta la combinazione (padre + gusti), come il PC
             var daTogliere = new List<RigaScontrino>();
+            var giaScelte = new HashSet<RigaScontrino>();   // ricerca veloce (con tante righe List.Contains rallentava)
             var varianti = righe.Where(r => r.Tipo == TipoRiga.Variante).ToList();
             foreach (var r in righe.ToList())
             {
                 if (r.Tipo == TipoRiga.Variante) continue;   // varianti: tolte una per una più sotto
                 var x = r.Tipo == TipoRiga.Gusto ? PadreDi(r) : r;
-                if (x == null || daTogliere.Contains(x)) continue;
+                if (x == null || !giaScelte.Add(x)) continue;
                 daTogliere.Add(x);
                 if (x.Tipo == TipoRiga.Prodotto)
-                    foreach (var f in FigliDi(x)) if (!daTogliere.Contains(f)) daTogliere.Add(f);
+                    foreach (var f in FigliDi(x)) if (giaScelte.Add(f)) daTogliere.Add(f);
             }
             string primoErrore = null;   // il primo rifiuto resta visibile anche se le varianti dopo passano
-            foreach (var v in varianti.Where(v => !daTogliere.Contains(v)))
+            foreach (var v in varianti.Where(v => !giaScelte.Contains(v)))
             {
                 UltimoErrore = null;
                 RimuoviVariante(v);

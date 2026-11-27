@@ -9,13 +9,13 @@ namespace PosTouch.App.Servizi
         private static bool _occupato;
 
         /// <summary>Restituisce false se la navigazione non è avvenuta (un'altra era in corso o errore).</summary>
-        public static Task<bool> Apri(Page da, Func<Page> crea) => Esegui(() => da.Navigation.PushAsync(crea()));
+        public static Task<bool> Apri(Page da, Func<Page> crea) => Esegui(() => da.Navigation.PushAsync(crea(), animated: false));
 
         /// <summary>Restituisce false se la pagina non è stata chiusa (un'altra navigazione era in corso o errore).</summary>
-        public static Task<bool> Chiudi(Page pagina) => Esegui(() => pagina.Navigation.PopAsync());
+        public static Task<bool> Chiudi(Page pagina) => Esegui(() => pagina.Navigation.PopAsync(animated: false));
 
         /// <summary>Torna alla schermata iniziale (launcher), chiudendo tutte le pagine aperte.</summary>
-        public static Task<bool> TornaAllInizio(Page pagina) => Esegui(() => pagina.Navigation.PopToRootAsync());
+        public static Task<bool> TornaAllInizio(Page pagina) => Esegui(() => pagina.Navigation.PopToRootAsync(animated: false));
 
         private static async Task<bool> Esegui(Func<Task> azione)
         {

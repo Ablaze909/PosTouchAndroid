@@ -276,35 +276,40 @@ namespace PosTouch.Core.Sale
                         int ordine = 0;
                         var tutte = (righe ?? new List<RigaScontrino>()).Select(r => (r, false))
                                     .Concat((storniPendenti ?? Enumerable.Empty<RigaScontrino>()).Select(r => (r, true)));
+                        // un solo comando preparato, riusato per ogni riga (prima: query rielaborata a ogni riga, lento sui tablet)
+                        using var cmd = c.CreateCommand();
+                        cmd.Transaction = tx;
+                        cmd.CommandText = @"INSERT INTO RigheTavolo (TavoloId, Ordine, Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi,
+                                                PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso,
+                                                ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno, SovrapprezzoCent)
+                                            VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins, $sovr)";
+                        var par = new Dictionary<string, SqliteParameter>();
+                        foreach (var nome in new[] { "$t", "$o", "$tipo", "$p", "$d", "$b", "$q", "$pr", "$orig", "$rep", "$cat", "$catN", "$iva", "$up", "$sc", "$centro", "$port", "$com", "$var", "$ins", "$sovr" })
+                            par[nome] = cmd.Parameters.Add(new SqliteParameter(nome, DBNull.Value));
+                        cmd.Prepare();
                         foreach (var (r, inStorno) in tutte)
                         {
-                            using var cmd = c.CreateCommand();
-                            cmd.Transaction = tx;
-                            cmd.CommandText = @"INSERT INTO RigheTavolo (TavoloId, Ordine, Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi,
-                                                    PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso,
-                                                    ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno, SovrapprezzoCent)
-                                                VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins, $sovr)";
-                            cmd.Parameters.AddWithValue("$sovr", r.SovrapprezzoCent);
-                            cmd.Parameters.AddWithValue("$t", t.Id);
-                            cmd.Parameters.AddWithValue("$o", ordine++);
-                            cmd.Parameters.AddWithValue("$tipo", (int)r.Tipo);
-                            cmd.Parameters.AddWithValue("$p", (object)r.ProdottoId ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("$d", r.Descrizione ?? "");
-                            cmd.Parameters.AddWithValue("$b", r.Barcode ?? "");
-                            cmd.Parameters.AddWithValue("$q", (double)r.Quantita);
-                            cmd.Parameters.AddWithValue("$pr", r.PrezzoCentesimi);
-                            cmd.Parameters.AddWithValue("$orig", r.PrezzoOriginaleCentesimi);
-                            cmd.Parameters.AddWithValue("$rep", r.RepartoFiscale);
-                            cmd.Parameters.AddWithValue("$cat", r.CategoriaId);
-                            cmd.Parameters.AddWithValue("$catN", r.CategoriaNome ?? "");
-                            cmd.Parameters.AddWithValue("$iva", r.AliquotaIVA);
-                            cmd.Parameters.AddWithValue("$up", (object)r.UnitaPeso ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("$sc", (object)r.ScontoPercentualeCent ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("$centro", r.CentroProduzioneId);
-                            cmd.Parameters.AddWithValue("$port", r.Portata);
-                            cmd.Parameters.AddWithValue("$com", r.Comandata ? 1 : 0);
-                            cmd.Parameters.AddWithValue("$var", (object)r.VariantiTesto ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("$ins", inStorno ? 1 : 0);
+                            par["$sovr"].Value = r.SovrapprezzoCent;
+                            par["$t"].Value = t.Id;
+                            par["$o"].Value = ordine++;
+                            par["$tipo"].Value = (int)r.Tipo;
+                            par["$p"].Value = (object)r.ProdottoId ?? DBNull.Value;
+                            par["$d"].Value = r.Descrizione ?? "";
+                            par["$b"].Value = r.Barcode ?? "";
+                            par["$q"].Value = (double)r.Quantita;
+                            par["$pr"].Value = r.PrezzoCentesimi;
+                            par["$orig"].Value = r.PrezzoOriginaleCentesimi;
+                            par["$rep"].Value = r.RepartoFiscale;
+                            par["$cat"].Value = r.CategoriaId;
+                            par["$catN"].Value = r.CategoriaNome ?? "";
+                            par["$iva"].Value = r.AliquotaIVA;
+                            par["$up"].Value = (object)r.UnitaPeso ?? DBNull.Value;
+                            par["$sc"].Value = (object)r.ScontoPercentualeCent ?? DBNull.Value;
+                            par["$centro"].Value = r.CentroProduzioneId;
+                            par["$port"].Value = r.Portata;
+                            par["$com"].Value = r.Comandata ? 1 : 0;
+                            par["$var"].Value = (object)r.VariantiTesto ?? DBNull.Value;
+                            par["$ins"].Value = inStorno ? 1 : 0;
                             cmd.ExecuteNonQuery();
                         }
                     }

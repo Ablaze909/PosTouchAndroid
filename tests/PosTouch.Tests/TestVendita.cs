@@ -53,7 +53,7 @@ namespace PosTouch.Tests
                 var ignoto = Emetti(dir, TipoCassaFiscale.RT3i, f => { f.FooterConfermato = false; f.StatoDopoChiusura = null; }, out _);
                 Ok(ignoto.Stato == StatoEsito.Incerto, "3i senza conferma e stato illeggibile: incerto");
 
-                var cadutaAnnullo = Emetti(dir, TipoCassaFiscale.RT3i, f => { f.FooterConfermato = false; f.StatoDopoChiusura = true; f.Lancia.Add("RecuperaScontrinoApertoAsync"); }, out _);
+                var cadutaAnnullo = Emetti(dir, TipoCassaFiscale.RT3i, f => { f.FooterConfermato = false; f.StatoDopoChiusura = true; f.Lancia.Add("RecuperaScontrinoApertoAsync"); f.LanciaDopo["RecuperaScontrinoApertoAsync"] = 1; }, out _);
                 Ok(cadutaAnnullo.Stato == StatoEsito.Incerto, "rete caduta mentre si annulla lo scontrino aperto: incerto, mai \"emesso\"");
 
                 var cadutaFooter = Emetti(dir, TipoCassaFiscale.RT3i, f => f.Lancia.Add("LeggiTxFooterAsync"), out _);

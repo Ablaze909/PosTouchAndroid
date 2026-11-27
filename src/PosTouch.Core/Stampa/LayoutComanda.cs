@@ -39,8 +39,10 @@ namespace PosTouch.Core.Stampa
         private static readonly string Trattini = new string('-', L);
         private static readonly CultureInfo It = new CultureInfo("it-IT");
 
-        private static string Qta(RigaScontrino r) => r.IsAPeso ? $"{r.Quantita.ToString("F3", It)} {r.UnitaPeso}" : $"{(int)r.Quantita}";
-        private static int Pezzi(IEnumerable<RigaScontrino> righe) => righe.Where(r => r.Tipo == TipoRiga.Prodotto).Sum(r => r.IsAPeso ? 1 : (int)r.Quantita);
+        // quantità con decimali (es. 1,5 mezze porzioni) stampate come sono: prima "1,5" diventava "1" in cucina
+        private static string Qta(RigaScontrino r) => r.IsAPeso ? $"{r.Quantita.ToString("F3", It)} {r.UnitaPeso}" : r.Quantita.ToString("0.###", It);
+        private static int Pezzi(IEnumerable<RigaScontrino> righe) => righe.Where(r => r.Tipo == TipoRiga.Prodotto)
+            .Sum(r => r.IsAPeso ? 1 : Math.Max(1, (int)Math.Ceiling(r.Quantita)));
         private static string Tavolo(DatiComanda d) => (d.NomeTavolo ?? "").ToUpperInvariant();
 
         // ══════════════ COMANDA / RIORDINO ══════════════

@@ -96,6 +96,12 @@ namespace PosTouch.Tests
                     var e = Vendi(Servizio(dir, f), righe: 2);
                     Ok(e.Stato != StatoEsito.Riuscito && f.ScontriniEmessi == 0, "rete caduta sulle righe: mai dato per emesso");
                 }
+                using (var f = new Finto3i())
+                {
+                    f.ScontrinoAperto = true;   // l'app si era chiusa a metà di una vendita
+                    var e = Vendi(Servizio(dir, f));
+                    Ok(e.Stato == StatoEsito.Riuscito && f.Annulli == 1 && f.ScontriniEmessi == 1, "riavvio con scontrino rimasto aperto: prima annullato, poi UNO solo nuovo");
+                }
                 using (var f = new Finto3i(Guasto3i.FooterNonSupportato))
                 {
                     var s = Servizio(dir, f);

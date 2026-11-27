@@ -52,7 +52,7 @@ namespace PosTouch.Tests
         public Guasto3i Guasto { get; set; }
         /// <summary>Comandi ricevuti, in ordine (es. "\"CAFFE\"120H1R", "1T").</summary>
         public List<string> Comandi { get; } = new List<string>();
-        public bool ScontrinoAperto { get; private set; }
+        public bool ScontrinoAperto { get; set; }
         public int ScontriniEmessi { get; private set; }
         public int Annulli { get; private set; }
         public int Connessioni { get; private set; }

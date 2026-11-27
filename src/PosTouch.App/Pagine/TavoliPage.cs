@@ -141,14 +141,29 @@ namespace PosTouch.App.Pagine
             {
                 LatoSlot = lato;
                 _firmaTavoli = null;   // ridisegna con la misura nuova
-                CostruisciTavoli();
+                Aggiorna();
             }
         }
 
+        private bool _erroreSegnalato;
+
+        /// <summary>
+        /// Rinfresco (timer ogni 10 s, spooler): un errore del database non deve aprire un messaggio ogni 10 secondi
+        /// né chiudere l'app. Si scrive nel log una volta e si riprova al giro dopo.
+        /// </summary>
         private void Aggiorna()
         {
-            CostruisciSchede();
-            CostruisciTavoli();
+            try
+            {
+                CostruisciSchede();
+                CostruisciTavoli();
+                _erroreSegnalato = false;
+            }
+            catch (Exception ex)
+            {
+                if (!_erroreSegnalato) PosTouch.Core.Diagnostica.LogManager.Error($"Mappa tavoli non aggiornata: {ex}");
+                _erroreSegnalato = true;
+            }
         }
 
     }

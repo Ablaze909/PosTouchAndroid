@@ -89,7 +89,9 @@ namespace PosTouch.Core.Fiscale
                 else
                 {
                     // Prova formato non-JSON (tipo RT): "AAMMGGHHMMF00001A00056"
-                    if (risposta.Length >= 16)
+                    // solo il formato RT vero (AAMMGGHHMM + tipo + 5 cifre): un'altra risposta rimasta in coda
+                    // non deve mai valere come "scontrino emesso"
+                    if (risposta.Length >= 16 && System.Text.RegularExpressions.Regex.IsMatch(risposta, @"^\d{10}[A-Z]\d{5}"))
                     {
                         risultato.DataEmissione = NormalizzaData3i(risposta.Substring(0, 6));
                         risultato.OraEmissione = risposta.Substring(6, 4);
@@ -184,21 +186,34 @@ namespace PosTouch.Core.Fiscale
 
         // ========== CHIUSURA SCONTRINO ==========
 
+        /// <summary>
+        /// Prima del pagamento si butta ogni risposta vecchia rimasta in attesa (es. un 89F arrivato in ritardo):
+        /// altrimenti la lettura della conferma (TX_FOOTER) potrebbe prenderla per la conferma dello scontrino.
+        /// </summary>
+        private async Task PrimaDellaChiusuraAsync()
+        {
+            if (_stream == null) return;
+            await SvuotaStreamAsync();
+        }
+
         public async Task<bool> ChiudiContantiAsync(int importoCent)
         {
             // Manuale pag 5-6: 1000H1T chiude con €10.00 contanti con resto
+            await PrimaDellaChiusuraAsync();
             return await SendCommandAsync($"{importoCent}H1T");
         }
         
         public async Task<bool> ChiudiContantiAutoAsync()
         {
             // 1T = chiusura contanti senza importo
+            await PrimaDellaChiusuraAsync();
             return await SendCommandAsync(ComandiRT.PagamentoContanti);
         }
 
         public async Task<bool> ChiudiCartaCreditoAsync()
         {
             // Manuale pag 5: 3T = carta credito
+            await PrimaDellaChiusuraAsync();
             return await SendCommandAsync(ComandiRT.PagamentoCarta);
         }
 
@@ -211,6 +226,7 @@ namespace PosTouch.Core.Fiscale
         public async Task<bool> ChiudiMistoAsync(int contantiCent, int cartaCent)
         {
             // Primo tender: contanti (parziale — importo < totale, scontrino resta aperto)
+            await PrimaDellaChiusuraAsync();
             bool ok1 = await SendCommandAsync($"{contantiCent}H1T");
             if (!ok1)
             {

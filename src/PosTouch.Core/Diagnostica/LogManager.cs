@@ -52,14 +52,8 @@ namespace PosTouch.Core.Diagnostica
         {
             if (_percorso == null || livelloNum < _livelloMinimo) return;
             string riga = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{livello}] {msg}{Environment.NewLine}";
-            if (livelloNum >= 3)
-            {
-                // ERROR (rari e i più importanti): scritti subito. Si aspetta la coda solo un attimo (max 100 ms):
-                // il thread dello schermo non resta fermo; la coda completa si scrive con Svuota() in background/errore fatale.
-                Svuota(100);
-                ScriviSubito(riga);
-                return;
-            }
+            // anche gli ERROR vanno in coda (prima: fino a 100 ms di schermo fermo per ogni errore);
+            // la coda si scrive comunque con Svuota() quando l'app va in background
             AvviaScrittore();
             System.Threading.Interlocked.Increment(ref _inSospeso);
             if (!_coda.TryAdd(riga)) { ScriviSubito(riga); System.Threading.Interlocked.Decrement(ref _inSospeso); }   // coda piena: scrive direttamente

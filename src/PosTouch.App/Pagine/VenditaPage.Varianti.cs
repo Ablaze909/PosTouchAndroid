@@ -65,7 +65,7 @@ namespace PosTouch.App.Pagine
             _timerBozza?.Stop();
             string esito;
             try { esito = _sessione.Sposta(sala, numero, nome); }
-            catch (Exception ex) { await MessaggioBox.Errore("SPOSTA TAVOLO", ex.Message); return; }
+            catch (Exception ex) { ProgrammaBozza(); await MessaggioBox.Errore("SPOSTA TAVOLO", ex.Message); return; }   // il tavolo resta aperto: torna a salvarsi
             CollegaCarrello(null);
             await MessaggioBox.Info("🔀 TAVOLO SPOSTATO", esito);
             await Navigazione.Apri(this, () => new TavoliPage());
