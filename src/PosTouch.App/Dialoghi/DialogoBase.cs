@@ -22,6 +22,8 @@ namespace PosTouch.App.Dialoghi
             VerticalOptions = LayoutOptions.Fill;
             // i tocchi sullo sfondo scuro non devono arrivare alla schermata sotto
             GestureRecognizers.Add(new TapGestureRecognizer());
+            // stile comune anche per le finestre costruite alla vecchia maniera (colori del tema)
+            DescendantAdded += (s, e) => { try { StileFinestre.Adatta(e.Element); } catch { } };
         }
 
         public Task<T> Risultato => _tcs.Task;
@@ -55,6 +57,7 @@ namespace PosTouch.App.Dialoghi
             _riquadro = riquadro;
             _larghezza = larghezza;
             _altezza = altezza;
+            if (riquadro is Border scheda) StileFinestre.StileScheda(scheda);   // scheda del tema (anche per le finestre vecchie)
             // misura giusta già al primo disegno (prima: grande come sul PC e poi ristretto → "si ingrandiva e si riduceva")
             var (w, h) = SpazioDisponibile();
             riquadro.WidthRequest = w > 0 ? Math.Min(larghezza, w - 24) : larghezza;

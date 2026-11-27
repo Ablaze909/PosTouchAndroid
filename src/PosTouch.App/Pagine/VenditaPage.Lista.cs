@@ -49,7 +49,7 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("FUNZIONE DISABILITATA", "Funzione disabilitata dall'amministratore.");
                 return;
             }
-            var q = await TastierinoPrezzo.ChiediQuantita("🔢 QUANTITÀ", riga.Quantita);
+            var q = await TastierinoPrezzo.ChiediQuantita($"🔢 QUANTITÀ\n{riga.Descrizione}", riga.Quantita);
             if (q == null) return;
             if (!Carrello.ImpostaQuantita(riga, q.Value))
                 await MessaggioBox.Avviso("QUANTITÀ NON VALIDA", Carrello.UltimoErrore);
@@ -64,7 +64,7 @@ namespace PosTouch.App.Pagine
                 return;
             }
             if (!await Accesso.VerificaAsync(Permesso.ModificaPrezzi, "CAMBIO PREZZO")) return;
-            var p = await TastierinoPrezzo.ChiediEuro("💶 PREZZO UNITARIO", riga.PrezzoEuro);
+            var p = await TastierinoPrezzo.ChiediEuro($"💶 PREZZO UNITARIO\n{riga.Descrizione}", riga.PrezzoEuro);
             if (p == null) return;
             if (!Carrello.CambiaPrezzo(riga, (int)Math.Round(p.Value * 100, MidpointRounding.AwayFromZero)))
                 await MessaggioBox.Avviso("PREZZO NON VALIDO", Carrello.UltimoErrore);

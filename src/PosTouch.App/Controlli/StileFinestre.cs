@@ -213,6 +213,63 @@ namespace PosTouch.App.Controlli
             return g;
         }
 
+        // ══════════════ ADATTAMENTO DELLE FINESTRE "VECCHIE" ══════════════
+        // Le finestre più specifiche (resto, varianti, tavoli, coda stampe, operatore, stampanti…) prendono
+        // lo stile comune senza riscriverle: scheda del tema e colori dei loro elementi rimappati qui.
+
+        private static readonly HashSet<string> SfondiChiari = new(StringComparer.OrdinalIgnoreCase) { "#FFFFFFFF", "#FFFAFAFA", "#FFF5F5F5", "#FFECEFF1", "#FFEEEEEE", "#FFF3F4F6" };
+        private static readonly HashSet<string> TestiScuri = new(StringComparer.OrdinalIgnoreCase) { "#FF37474F", "#FF263238", "#FF111111", "#FF000000", "#FF424242", "#FF455A64", "#FF212121" };
+        private static readonly HashSet<string> TestiGrigi = new(StringComparer.OrdinalIgnoreCase) { "#FF607D8B", "#FF78909C", "#FF90A4AE", "#FF999999", "#FF757575" };
+        private static readonly HashSet<string> TastiGrigi = new(StringComparer.OrdinalIgnoreCase) { "#FF9E9E9E", "#FF78909C" };
+        private static readonly HashSet<string> Verdi = new(StringComparer.OrdinalIgnoreCase) { "#FF4CAF50", "#FF43A047" };
+
+        private static string Hex(Color c) => c == null ? "" : c.ToArgbHex(true).ToUpperInvariant();
+
+        /// <summary>Scheda esterna di una finestra costruita alla vecchia maniera: colori, angoli e ombra del tema.</summary>
+        public static void StileScheda(Border b)
+        {
+            var t = T;
+            b.BackgroundColor = t.Scheda;
+            b.Stroke = null; b.StrokeThickness = 0;
+            b.StrokeShape = new RoundRectangle { CornerRadius = 18 };
+            b.Shadow = new Shadow { Brush = new SolidColorBrush(Colors.Black), Opacity = 0.35f, Radius = 20, Offset = new Point(0, 8) };
+        }
+
+        /// <summary>Un elemento appena entrato in una finestra: tasti grigi → secondari, verdi → verde OK; col tema Scuro sfondi chiari e testi scuri invertiti.</summary>
+        public static void Adatta(Element e)
+        {
+            var t = T;
+            bool scuro = ReferenceEquals(t, Scura);
+            switch (e)
+            {
+                case Button b:
+                    string bg = Hex(b.BackgroundColor);
+                    if (TastiGrigi.Contains(bg)) { b.BackgroundColor = t.Secondario; b.TextColor = t.SecondarioTesto; }
+                    else if (Verdi.Contains(bg)) b.BackgroundColor = Verde;
+                    else if (scuro && SfondiChiari.Contains(bg)) { b.BackgroundColor = t.Tasto; if (TestiScuri.Contains(Hex(b.TextColor))) b.TextColor = t.TastoTesto; }
+                    if (b.CornerRadius >= 0 && b.CornerRadius < 10 && (b.Text?.Length ?? 0) > 2) b.CornerRadius = 10;
+                    break;
+                case Entry en:
+                    if (scuro) { en.TextColor = t.Testo; en.PlaceholderColor = t.Muto; if (SfondiChiari.Contains(Hex(en.BackgroundColor))) en.BackgroundColor = Colors.Transparent; }
+                    break;
+                case Label l when scuro:
+                    string tc = Hex(l.TextColor);
+                    if (TestiScuri.Contains(tc)) l.TextColor = t.Testo;
+                    else if (TestiGrigi.Contains(tc)) l.TextColor = t.Muto;
+                    if (SfondiChiari.Contains(Hex(l.BackgroundColor))) l.BackgroundColor = t.Tasto;
+                    break;
+                case Border bo when scuro:
+                    if (SfondiChiari.Contains(Hex(bo.BackgroundColor))) bo.BackgroundColor = t.Tasto;
+                    if (bo.Stroke is SolidColorBrush sb && Hex(sb.Color) is "#FFB0BEC5" or "#FFE0E0E0" or "#FFCFD8DC") bo.Stroke = new SolidColorBrush(t.Bordo);
+                    break;
+                case Layout la when scuro:
+                    if (SfondiChiari.Contains(Hex(la.BackgroundColor))) la.BackgroundColor = Colors.Transparent;
+                    break;
+                case CheckBox cb when scuro:
+                    break;
+            }
+        }
+
         /// <summary>Riga di un elenco (funzioni, scelte): icona a sinistra, titolo, sotto la spiegazione.</summary>
         public static View RigaElenco(string icona, Color coloreIcona, string titolo, string spiegazione, Func<Task> azione)
         {
