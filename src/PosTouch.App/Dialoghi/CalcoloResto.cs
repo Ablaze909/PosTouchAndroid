@@ -36,7 +36,8 @@ namespace PosTouch.App.Dialoghi
         private decimal Resto => Math.Max(0, _contantiRicevuti - ParteContanti);
         private bool PagamentoCompleto => _totale > 0 && (
             _cartaImporto >= _totale ||
-            (_cartaImporto > 0 && _cartaImporto < _totale) ||
+            // misto: il resto in contanti si dà per esatto, ma se ne sono stati battuti di meno mancano ancora
+            (_cartaImporto > 0 && _cartaImporto < _totale && (_contantiRicevuti == 0 || _contantiRicevuti >= ParteContanti)) ||
             _contantiRicevuti >= _totale);
 
         public CalcoloResto(decimal totale)

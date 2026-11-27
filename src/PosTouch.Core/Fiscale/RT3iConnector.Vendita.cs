@@ -130,7 +130,7 @@ namespace PosTouch.Core.Fiscale
         public async Task<bool> SelezionaOperatoreAsync(int numero)
         {
             // Manuale pag 3: <numero>O
-            return await SendCommandAsync($"{numero}O");
+            return await NonCriticoAsync($"{numero}O");
         }
 
         public async Task<bool> VendiRepartoAsync(int reparto, string descrizione, int prezzoCent, decimal qta = 1)
@@ -299,7 +299,26 @@ namespace PosTouch.Core.Fiscale
             // un messaggio che inizia con una cifra ("1/2 CAPRICCIOSA") usciva senza la prima cifra ("/2 ..."):
             // uno spazio davanti la protegge
             if (msg.Length > 0 && char.IsDigit(msg[0])) msg = (" " + msg).Length > 38 ? " " + msg.Substring(0, 37) : " " + msg;
-            return await SendCommandAsync($"\"{msg}\"@");
+            return await NonCriticoAsync($"\"{msg}\"@");
+        }
+
+        /// <summary>
+        /// Comando che può essere rifiutato senza compromettere lo scontrino (operatore, messaggi, preannuncio appendice):
+        /// se il 3i risponde XOFF si sblocca subito con Clear (K). Prima l'XOFF restava "acceso" e il comando dopo
+        /// aspettava 10 s un XON che non arrivava, mandando la vendita in errore anche se la chiusura non era mai partita.
+        /// Un NAK (carta, coperchio) invece resta: serve l'intervento fisico.
+        /// </summary>
+        private async Task<bool> NonCriticoAsync(string comando)
+        {
+            bool ok = await SendCommandAsync(comando);
+            if (!ok && !_nakRicevuto)
+            {
+                LogManager.Warning($"RT3i: comando non essenziale rifiutato ({comando}): sblocco con Clear");
+                _xoffRicevuto = false;
+                await SendCommandAsync("K");
+                _xoffRicevuto = false;
+            }
+            return ok;
         }
 
         // ========== APPENDICE ELIMINACODE BANCO ==========
@@ -310,7 +329,7 @@ namespace PosTouch.Core.Fiscale
         public async Task<bool> PreannunciaAppendiceAsync(int eliminacode)
         {
             LogManager.Info($"RT3i: PreannunciaAppendice (40F) per eliminacode {eliminacode}");
-            return await SendCommandAsync("40F");
+            return await NonCriticoAsync("40F");
         }
 
         /// <summary>
@@ -342,7 +361,7 @@ namespace PosTouch.Core.Fiscale
         public async Task<bool> PreannunciaAppendiceTestoLiberoAsync(string[] righe)
         {
             LogManager.Info($"RT3i: PreannunciaAppendiceTestoLibero (40F) — {righe?.Length ?? 0} righe");
-            return await SendCommandAsync("40F");
+            return await NonCriticoAsync("40F");
         }
 
         /// <summary>

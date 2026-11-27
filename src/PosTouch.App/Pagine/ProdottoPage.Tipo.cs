@@ -74,8 +74,8 @@ namespace PosTouch.App.Pagine
             void Colora(Button b, TipoArticolo x, string colore)
             {
                 bool on = t == x;
-                b.BackgroundColor = Color.FromArgb(on ? colore : "#ECEFF1");
-                b.TextColor = Color.FromArgb(on ? "#FFFFFF" : "#546E7A");
+                b.BackgroundColor = on ? Color.FromArgb(colore) : StilePagine.Scuro ? Color.FromArgb("#37474F") : Color.FromArgb("#ECEFF1");
+                b.TextColor = on ? Colors.White : StilePagine.TestoGrigio;
             }
             Colora(BtnTipoStandard, TipoArticolo.Standard, "#546E7A");
             Colora(BtnTipoCoperto, TipoArticolo.Coperto, "#00897B");

@@ -47,7 +47,7 @@ namespace PosTouch.App.Pagine
 
             var centro = new VerticalStackLayout { VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
             if (!string.IsNullOrWhiteSpace(c.Icona)) centro.Add(new Label { Text = c.Icona, FontSize = 22, HorizontalOptions = LayoutOptions.Center });
-            centro.Add(new Label { Text = c.Nome, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = testo, HorizontalTextAlignment = TextAlignment.Center });
+            centro.Add(new Label { Text = c.Nome, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = testo, HorizontalTextAlignment = TextAlignment.Center, ClassId = StilePagine.ColoreUtente });
             griglia.Add(centro, 0, 1);
             Grid.SetColumnSpan(centro, 3);
 
@@ -62,6 +62,7 @@ namespace PosTouch.App.Pagine
                 WidthRequest = 190, HeightRequest = 140, Margin = new Thickness(6),
                 StrokeThickness = 0, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
                 BackgroundColor = Ui.ColoreSicuro(c.Colore, "#2196F3"),
+                ClassId = StilePagine.ColoreUtente,   // colore scelto dall'utente: il tema non lo cambia
                 Opacity = c.Attiva ? 1.0 : 0.55,
                 Content = griglia
             };

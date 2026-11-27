@@ -150,6 +150,16 @@ namespace PosTouch.App.Pagine
                 b.ContentLayout = new Button.ButtonContentLayout(cassa ? Button.ButtonContentLayout.ImagePosition.Left : Button.ButtonContentLayout.ImagePosition.Top, cassa ? 8 : 1);
                 b.Text = SenzaEmoji(o.testo);
             }
+            FontBarraInferiore();   // il limite del carattere dipende dal tema: ricalcolato anche qui
+        }
+
+        /// <summary>Testo dei tasti in basso che entra nella colonna (più grande col tema Classico, senza icone).</summary>
+        private void FontBarraInferiore()
+        {
+            if (_larghezzaBarra <= 0) return;
+            double colonna = _larghezzaBarra / 5;
+            foreach (var b in BarraInferiore.Children.OfType<Button>())
+                b.FontSize = Math.Clamp(colonna / 7.5, 12, Tema == Classico ? 20 : 14);
         }
 
         /// <summary>Icona e colore (tema chiaro) di ogni tasto in basso, riconosciuto dalla sua scritta.</summary>

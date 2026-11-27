@@ -123,6 +123,7 @@ namespace PosTouch.App.Pagine
             salva.WidthRequest = 52;
             salva.Clicked += async (s, e) =>
             {
+                await Ui.ChiudiTastieraAsync(this);   // consegna l'ultima parola scritta
                 var pa = Cent(piu.Text); var pr = Cent(meno.Text);
                 if (string.IsNullOrWhiteSpace(nome.Text) || pa == null || pr == null)
                 { await MessaggioBox.Avviso("VARIANTE", "Nome obbligatorio; prezzi da 0 a 999,99."); return; }

@@ -47,8 +47,8 @@ namespace PosTouch.App.Pagine
             for (int i = 0; i < pannelli.Length; i++)
             {
                 pannelli[i].IsVisible = i == n;
-                schede[i].BackgroundColor = Ui.C(i == n ? "#FF9800" : "#FFFFFF");
-                schede[i].TextColor = Ui.C(i == n ? "#FFFFFF" : "#333333");
+                schede[i].BackgroundColor = i == n ? Ui.C("#FF9800") : StilePagine.FondoSpento;
+                schede[i].TextColor = i == n ? Colors.White : StilePagine.TestoNormale;
             }
         }
 

@@ -97,7 +97,12 @@ namespace PosTouch.App.Dialoghi
         private void Premi(string c)
         {
             if (c == ",") { if (!_input.Contains(",")) _input += _input.Length == 0 ? "0," : ","; }
-            else if (_input.Length < 8) _input = _input == "0" ? c : _input + c;
+            else
+            {
+                int virgola = _input.IndexOf(',');
+                if (virgola >= 0 && _input.Length - virgola > 2) return;   // al massimo 2 decimali (centesimi)
+                if (_input.Length < 8) _input = _input == "0" ? c : _input + c;
+            }
             Aggiorna();
         }
 

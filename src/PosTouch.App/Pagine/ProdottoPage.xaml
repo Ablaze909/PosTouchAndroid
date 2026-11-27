@@ -161,7 +161,7 @@
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColore" /></Border.GestureRecognizers>
                                 <Label x:Name="TestoColore" FontSize="16" VerticalOptions="Center" />
                             </Border>
-                            <Border x:Name="AnteprimaColore" Grid.Column="2" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 4">
+                            <Border x:Name="AnteprimaColore" ClassId="colore" Grid.Column="2" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 4">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColore" /></Border.GestureRecognizers>
                             </Border>
                         </Grid>
@@ -191,12 +191,12 @@
                     <!-- ═══ COLONNA 3: anteprima ═══ -->
                     <VerticalStackLayout Grid.Column="4">
                         <Label Text="Anteprima Tasto POS" FontSize="12" TextColor="#757575" Margin="0,0,0,4" />
-                        <Border x:Name="Anteprima" WidthRequest="100" HeightRequest="100" StrokeThickness="0" HorizontalOptions="Start">
+                        <Border x:Name="Anteprima" ClassId="colore" WidthRequest="100" HeightRequest="100" StrokeThickness="0" HorizontalOptions="Start">
                             <Grid RowDefinitions="*,Auto">
-                                <Label x:Name="AnteprimaNome" Text="PRODOTTO" FontSize="12" FontAttributes="Bold" LineBreakMode="WordWrap"
+                                <Label x:Name="AnteprimaNome" ClassId="colore" Text="PRODOTTO" FontSize="12" FontAttributes="Bold" LineBreakMode="WordWrap"
                                        HorizontalTextAlignment="Center" VerticalTextAlignment="Center" Margin="4" />
                                 <Grid Grid.Row="1" BackgroundColor="#40000000" Padding="4,2">
-                                    <Label x:Name="AnteprimaPrezzo" Text="€ 0,00" FontSize="14" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                    <Label x:Name="AnteprimaPrezzo" ClassId="colore" Text="€ 0,00" FontSize="14" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                                 </Grid>
                             </Grid>
                         </Border>

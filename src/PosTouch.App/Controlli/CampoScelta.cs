@@ -60,7 +60,7 @@ namespace PosTouch.App.Controlli
         private void Aggiorna()
         {
             _testo.Text = _indice >= 0 ? _voci[_indice] : "Tocca per scegliere";
-            _testo.TextColor = Ui.C(_indice >= 0 ? "#111111" : "#BDBDBD");
+            _testo.TextColor = StilePagine.TestoValore(_indice >= 0);   // leggibile anche col tema Scuro
         }
     }
 }

@@ -153,26 +153,10 @@ namespace PosTouch.App.Pagine
             }
             else SvuotaScontrino();
             if (_combinazione != null) EsciDaCombinazione();
+            if (_sessione != null) TornaAllaHome();   // al tavolo: si riparte da preferiti/prima categoria
         }
 
         private RigaScontrino PrimaSelezionata() => Carrello.Righe.FirstOrDefault(r => r.Selezionata);
 
-        private async void OnPiu(object sender, EventArgs e)
-        {
-            if (Occupata) return;
-            var riga = PrimaSelezionata();
-            if (riga?.IsAPeso == true) return;   // il peso non si cambia a pezzi: si riprende sulla bilancia
-            if (riga?.Tipo == TipoRiga.Prodotto && !Carrello.ImpostaQuantita(riga, riga.Quantita + 1))
-                await MessaggioBox.Avviso("QUANTITÀ", Carrello.UltimoErrore);
-        }
-
-        private async void OnMeno(object sender, EventArgs e)
-        {
-            if (Occupata) return;
-            var riga = PrimaSelezionata();
-            if (riga?.IsAPeso == true) return;
-            if (riga?.Tipo == TipoRiga.Prodotto && riga.Quantita > 1 && !Carrello.ImpostaQuantita(riga, riga.Quantita - 1))
-                await MessaggioBox.Avviso("QUANTITÀ", Carrello.UltimoErrore);
-        }
     }
 }

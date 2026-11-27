@@ -261,7 +261,8 @@ namespace PosTouch.Core.Sale
                 try
                 {
                     Esegui(c, tx, "DELETE FROM RigheTavolo WHERE TavoloId=$t", ("$t", t.Id));
-                    bool vuoto = righe == null || righe.Count == 0;
+                    // vuoto = nessun articolo (un tavolo con sole intestazioni portata o righe di sconto si libera: niente tavoli "fantasma")
+                    bool vuoto = righe == null || !righe.Any(r => r.Tipo == TipoRiga.Prodotto);
                     if (vuoto && liberaSeVuoto)
                     {
                         Esegui(c, tx, "DELETE FROM TavoliAperti WHERE Id=$t", ("$t", t.Id));

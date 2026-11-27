@@ -60,6 +60,9 @@ namespace PosTouch.App.Servizi
                     .Build();
                 _ascolto = new Ascolto();
                 _cm.RegisterNetworkCallback(richiesta, _ascolto);
+                // le reti già presenti arrivano subito con OnAvailable; se dopo un attimo non ne è arrivata nessuna
+                // il tablet è davvero scollegato: l'avviso deve comparire anche all'avvio (prima restava "collegata")
+                _ = Task.Delay(2500).ContinueWith(_ => { try { Aggiorna(); } catch { } });
             }
             catch (Exception ex) { LogManager.Warning($"Controllo rete non disponibile: {ex.Message}"); }
         }
@@ -75,8 +78,13 @@ namespace PosTouch.App.Servizi
             bool collegata;
             lock (_blocco)
             {
-                // il cavo ha la precedenza sul Wi-Fi
-                var scelta = _reti.Values.OrderByDescending(x => x.cavo).Select(x => x.rete).FirstOrDefault();
+                // prima la rete in cui si trova il registratore (cavo e Wi-Fi insieme possono essere reti diverse),
+                // poi il cavo, poi il Wi-Fi
+                string ipRt = ContestoCassa.Impostazioni?.IP_RT;
+                var scelta = _reti.Values
+                    .OrderByDescending(x => StessaRete(x.rete, ipRt))
+                    .ThenByDescending(x => x.cavo)
+                    .Select(x => x.rete).FirstOrDefault();
                 string chiave = scelta?.ToString();
                 if (chiave != _legata)
                 {
@@ -102,6 +110,31 @@ namespace PosTouch.App.Servizi
             if (tornata) { try { ContestoCassa.Spooler?.ReteTornata(); } catch { } }
         }
 
+        /// <summary>true se l'indirizzo IPv4 indicato sta nella sottorete di questa rete (es. 192.168.1.x/24).</summary>
+        private static bool StessaRete(Network rete, string ip)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(ip) || !System.Net.IPAddress.TryParse(ip.Trim(), out var dest)) return false;
+                var b = dest.GetAddressBytes();
+                if (b.Length != 4) return false;
+                var lp = _cm?.GetLinkProperties(rete);
+                if (lp == null) return false;
+                foreach (var la in lp.LinkAddresses)
+                {
+                    var mio = la.Address?.GetAddress();
+                    int pref = la.PrefixLength;
+                    if (mio == null || mio.Length != 4 || pref <= 0 || pref > 32) continue;
+                    uint m = pref == 32 ? 0xFFFFFFFFu : ~(0xFFFFFFFFu >> pref);
+                    uint a1 = (uint)((mio[0] & 0xFF) << 24 | (mio[1] & 0xFF) << 16 | (mio[2] & 0xFF) << 8 | (mio[3] & 0xFF));
+                    uint a2 = (uint)(b[0] << 24 | b[1] << 16 | b[2] << 8 | b[3]);
+                    if ((a1 & m) == (a2 & m)) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private sealed class Ascolto : ConnectivityManager.NetworkCallback
         {
             public override void OnAvailable(Network network)
@@ -110,6 +143,13 @@ namespace PosTouch.App.Servizi
                 bool cavo = false;
                 try { cavo = _cm?.GetNetworkCapabilities(network)?.HasTransport(TransportType.Ethernet) == true; } catch { }
                 lock (_blocco) _reti[network.ToString()] = (network, cavo);
+                Aggiorna();
+            }
+
+            /// <summary>Indirizzi della rete arrivati dopo OnAvailable: si rivaluta quale rete raggiunge il registratore.</summary>
+            public override void OnLinkPropertiesChanged(Network network, LinkProperties linkProperties)
+            {
+                base.OnLinkPropertiesChanged(network, linkProperties);
                 Aggiorna();
             }
 

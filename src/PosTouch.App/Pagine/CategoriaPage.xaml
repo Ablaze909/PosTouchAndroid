@@ -85,7 +85,7 @@
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColore" /></Border.GestureRecognizers>
                             <Label x:Name="TestoColore" FontSize="15" VerticalOptions="Center" />
                         </Border>
-                        <Border x:Name="AnteprimaColore" Grid.Column="1" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 6">
+                        <Border x:Name="AnteprimaColore" ClassId="colore" Grid.Column="1" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 6">
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColore" /></Border.GestureRecognizers>
                         </Border>
                     </Grid>
@@ -96,14 +96,14 @@
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColoreTesto" /></Border.GestureRecognizers>
                             <Label x:Name="TestoColoreTesto" FontSize="15" VerticalOptions="Center" />
                         </Border>
-                        <Border x:Name="AnteprimaColoreTesto" Grid.Column="1" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 6">
+                        <Border x:Name="AnteprimaColoreTesto" ClassId="colore" Grid.Column="1" StrokeThickness="1" Stroke="#E0E0E0" StrokeShape="RoundRectangle 6">
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnColoreTesto" /></Border.GestureRecognizers>
                         </Border>
                     </Grid>
 
                     <Label Text="Anteprima Tasto POS" Style="{StaticResource Etichetta}" />
-                    <Border x:Name="AnteprimaTasto" HeightRequest="55" StrokeThickness="0" StrokeShape="RoundRectangle 14" Margin="0,0,0,10">
-                        <Label x:Name="AnteprimaNome" Text="CATEGORIA" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                    <Border x:Name="AnteprimaTasto" ClassId="colore" HeightRequest="55" StrokeThickness="0" StrokeShape="RoundRectangle 14" Margin="0,0,0,10">
+                        <Label x:Name="AnteprimaNome" ClassId="colore" Text="CATEGORIA" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="Center"
                                VerticalTextAlignment="Center" Margin="6" />
                     </Border>
 

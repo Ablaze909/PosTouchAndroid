@@ -128,12 +128,16 @@ namespace PosTouch.App.Pagine
                     col++;
                     stacco = false;
                 }
-                RigaSconti.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(largo ? 1.7 : 1, GridUnitType.Star)));
+                // 🔀 🔗 hanno solo l'icona: larghezza fissa da dito, il resto della barra ai tasti con scritta
+                bool icona = b == BtnSposta || b == BtnUnisci;
+                RigaSconti.ColumnDefinitions.Add(new ColumnDefinition(icona ? new GridLength(44) : new GridLength(largo ? 1.7 : 1, GridUnitType.Star)));
                 Grid.SetColumn(b, col++);
             }
             RigaSconti.IsVisible = col > 0;
             // tasti stretti: icona sopra, scritta sotto
-            double unita = _larghezzaTasti > 0 && col > 0 ? _larghezzaTasti / (col + 0.7 * tasti.Count(x => x.IsVisible && x != BtnSposta && x != BtnUnisci)) : 100;
+            int fissi = tasti.Count(x => x.IsVisible && (x == BtnSposta || x == BtnUnisci));
+            int conScritta = tasti.Count(x => x.IsVisible && x != BtnSposta && x != BtnUnisci);
+            double unita = _larghezzaTasti > 0 && conScritta > 0 ? (_larghezzaTasti - 44 * fissi) / (1.7 * conScritta) : 100;
             bool dueRighe = unita * 1.7 < 110;
             BtnSconto.Text = dueRighe ? "% €\nSCONTO" : "% € SCONTO";
             string cestino = Tema == Classico ? "🗑️" : "";
@@ -186,10 +190,8 @@ namespace PosTouch.App.Pagine
             RigaSconti.HeightRequest = Math.Clamp(riga * 0.75, 44, 54);   // mai sotto i 44 dp (dito)
 
             // barra inferiore: testo che entra nei tasti
-            double colonna = (width - destra - 12) / 5;
-            foreach (var b in BarraInferiore.Children.OfType<Button>())
-                b.FontSize = Math.Clamp(colonna / 7.5, 12, Tema == Classico ? 20 : 14);
             _larghezzaBarra = width - destra - 12;
+            FontBarraInferiore();
             SistemaBarraTavolo();
             _larghezzaTasti = destra - 8;
             SistemaRigaTasti();
@@ -240,7 +242,8 @@ namespace PosTouch.App.Pagine
         private void ImpostaModalitaModifica(bool attiva)
         {
             _modalitaModifica = attiva;
-            BtnModifica.BackgroundColor = Ui.C(attiva ? "#FF9800" : "#40000000");
+            if (attiva) BtnModifica.BackgroundColor = Ui.C("#FF9800");
+            else TastoBanda(BtnModifica, "✏️", IcoModifica, Tema);   // spento: torna come il tema (prima grigio fisso)
             OverlayModifica.IsVisible = attiva;
             VeloScontrino.IsVisible = VeloBarra.IsVisible = attiva;
             BtnEsci.IsEnabled = BtnStrumenti.IsEnabled = BtnFunzioniCassa.IsEnabled = !attiva;

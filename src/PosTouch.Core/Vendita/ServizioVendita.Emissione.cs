@@ -106,13 +106,16 @@ namespace PosTouch.Core.Vendita
             if (_ultimaVenditaFallita)
             {
                 LogManager.Info("HEALTH CHECK: recovery preventivo...");
+                bool avvio = _controlloAvvio;   // primo controllo dopo l'avvio dell'app: non c'è per forza una "vendita precedente"
+                _controlloAvvio = false;
                 if (!await rt.RecuperaScontrinoApertoAsync())
                 {
                     string err = rt.UltimoErrore;
                     rt.Disconnect();
-                    return EsitoVendita.Errore("RT BLOCCATO",
+                    return EsitoVendita.Errore(avvio ? "RT NON RISPONDE" : "RT BLOCCATO",
                         (string.IsNullOrEmpty(err) ? "" : $"⚠️ {err}\n\n") +
-                        "Il registratore ha uno scontrino bloccato dalla vendita precedente.\n\n" +
+                        (avvio ? "Il registratore non risponde al controllo iniziale (si fa una volta, dopo l'avvio dell'app).\n\n"
+                               : "Il registratore ha uno scontrino bloccato dalla vendita precedente.\n\n") +
                         "1. Verificare coperchio e carta\n2. Usare 'FUNZIONI CASSA → RESET RT'\n3. Se persiste, spegnere e riaccendere il registratore");
                 }
                 _ultimaVenditaFallita = false;
@@ -180,11 +183,9 @@ namespace PosTouch.Core.Vendita
                     LogManager.Error($"RT ha RIFIUTATO le varianti di: {riga.Descrizione}");
                     return await AnnullaEdEsci(rt, "ERRORE REGISTRATORE", "Il registratore ha rifiutato le varianti di un articolo a peso.");
                 }
-                // Varianti su scontrino fiscale (se configurato), come il PC: righe di messaggio sotto l'articolo
-                if (cfg.VariantiSuScontrino && !string.IsNullOrEmpty(riga.VariantiTesto))
-                    foreach (var vt in riga.VariantiTesto.Split('|'))
-                        if (!string.IsNullOrWhiteSpace(vt))
-                            await rt.StampaMessaggioAsync(TestoRT.SenzaAccenti(vt.Trim()));
+                // sotto l'articolo, righe di messaggio: i gusti delle combinazioni SEMPRE, le varianti se configurato (come il PC)
+                foreach (var vt in Combinazioni.RigheSotto(riga.VariantiTesto, cfg.VariantiSuScontrino))
+                    await rt.StampaMessaggioAsync(TestoRT.SenzaAccenti(vt));
             }
             return null;
         }
@@ -267,7 +268,7 @@ namespace PosTouch.Core.Vendita
                 try
                 {
                     return (await AnnullaEdEsci(rt, "SCONTRINO NON CHIUSO",
-                        "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato).\n\nLo scontrino è stato annullato: la vendita resta a video, riprova."), footer);
+                        "Il registratore non ha chiuso lo scontrino (carta, coperchio o pagamento rifiutato)."), footer);
                 }
                 catch (Exception ex)
                 {

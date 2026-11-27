@@ -15,8 +15,10 @@ namespace PosTouch.Core.Vendita
             var risultato = new List<RigaScontrino>();
             foreach (var r in righe)
             {
-                // come il PC: righe a peso mai accorpate (i centesimi arrotondati per riga non tornerebbero)
-                var esistente = r.IsAPeso ? null : risultato.FirstOrDefault(x => !x.IsAPeso &&
+                // come il PC: righe a peso mai accorpate (i centesimi arrotondati per riga non tornerebbero);
+                // lo stesso per le quantità con decimali (2 × 0,5 a € 7,99 = 8,00 in cassa ma 7,99 accorpate sull'RT)
+                bool intera = r.Quantita == decimal.Truncate(r.Quantita);
+                var esistente = r.IsAPeso || !intera ? null : risultato.FirstOrDefault(x => !x.IsAPeso && x.Quantita == decimal.Truncate(x.Quantita) &&
                     x.RepartoFiscale == r.RepartoFiscale &&
                     x.Descrizione == r.Descrizione &&
                     x.PrezzoCentesimi == r.PrezzoCentesimi &&

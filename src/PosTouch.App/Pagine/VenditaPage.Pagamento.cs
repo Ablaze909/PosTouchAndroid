@@ -42,7 +42,7 @@ namespace PosTouch.App.Pagine
             {
                 var righe = Carrello.Fotografia();
                 int salaId = _sessione?.Tavolo.SalaId ?? ConfigStampe.SalaBanco;
-                int eliminacode = _sessione == null ? ContestoCassa.ComandaBanco.Prepara(righe) : 0;   // comanda da banco
+                int eliminacode = _sessione == null ? NumeroEliminacode(righe) : 0;   // comanda da banco
                 MostraAttesa(true, "⏳ Stampa conto in corso...");
                 PosTouch.Core.Conti.EsitoConto esito;
                 // con il ticket eliminacode attivo il numero esce SOLO sul ticket (come con lo scontrino), non anche sul conto
@@ -68,8 +68,8 @@ namespace PosTouch.App.Pagine
 
                 // Conto stampato: al tavolo si chiude SUBITO (comande e liberazione) prima di qualsiasi messaggio
                 var esitoTavolo = await ChiudiTavoloPagatoAsync(righe);
+                await InviaComandaBancoAsync(righe, eliminacode);   // prima di svuotare, come per lo scontrino
                 SvuotaScontrino();
-                await InviaComandaBancoAsync(righe, eliminacode);
                 if (esito.Stato == PosTouch.Core.Conti.StatoConto.StampatoSenzaArchivio)
                     await MessaggioBox.Errore(esito.Titolo, esito.Messaggio);
                 await DopoPagamentoAsync(esitoTavolo);
@@ -159,7 +159,7 @@ namespace PosTouch.App.Pagine
         {
             var righe = Carrello.Fotografia();
             // comanda da banco: numero eliminacode in appendice allo scontrino (o su ticket della termica)
-            int eliminacode = _sessione == null ? ContestoCassa.ComandaBanco.Prepara(righe) : 0;
+            int eliminacode = _sessione == null ? NumeroEliminacode(righe) : 0;
             int appendice = ContestoCassa.ComandaBanco.InAppendice ? eliminacode : 0;
             MostraAttesa(true, "⏳ Vendita in corso...");
             EsitoVendita esito;
@@ -200,6 +200,18 @@ namespace PosTouch.App.Pagine
             if (esito.Stato == StatoEsito.RiuscitoSenzaArchivio)
                 await MessaggioBox.Avviso("ATTENZIONE", esito.Messaggio);
             await DopoPagamentoAsync(esitoTavolo, restoCent);
+        }
+
+        /// <summary>
+        /// Numero eliminacode della vendita a video: se il documento non esce e si riprova si riusa lo stesso
+        /// (prima ogni tentativo consumava un numero e il cliente si ritrovava saltato in coda).
+        /// </summary>
+        private int _eliminacodeInSospeso;
+
+        private int NumeroEliminacode(List<RigaScontrino> righe)
+        {
+            if (_eliminacodeInSospeso > 0) return _eliminacodeInSospeso;
+            return _eliminacodeInSospeso = ContestoCassa.ComandaBanco.Prepara(righe);
         }
 
         /// <summary>Documento al banco uscito: accoda la comanda con l'eliminacode (avvisa se un'uscita non ha stampante).</summary>

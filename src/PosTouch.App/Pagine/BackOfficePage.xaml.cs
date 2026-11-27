@@ -23,7 +23,8 @@ namespace PosTouch.App.Pagine
             }
         }
         public string Spunta => Selezionato ? "☑" : "☐";
-        public string Sfondo => Selezionato ? "#E3F2FD" : "#FFFFFF";
+        // colori del tema: col tema Scuro la riga resta scura (e la selezionata blu scuro), le scritte leggibili
+        public string Sfondo => StilePagine.Scuro ? (Selezionato ? "#1E3A5F" : "#263238") : (Selezionato ? "#E3F2FD" : "#FFFFFF");
         public double Opacita => P.Attivo ? 1.0 : 0.5;
         public string Titolo => (P.IsPreferito ? "⭐ " : "") + P.Descrizione + (P.Attivo ? "" : "  (nascosto)");
         public string Iva => $"{P.AliquotaIVA}%";
@@ -116,10 +117,10 @@ namespace PosTouch.App.Pagine
             _schedaProdotti = prodotti;
             PannelloProdotti.IsVisible = prodotti;
             PannelloCategorie.IsVisible = !prodotti;
-            SchedaProdotti.BackgroundColor = Ui.C(prodotti ? "#2196F3" : "#FFFFFF");
-            TestoSchedaProdotti.TextColor = Ui.C(prodotti ? "#FFFFFF" : "#333333");
-            SchedaCategorie.BackgroundColor = Ui.C(prodotti ? "#FFFFFF" : "#2196F3");
-            TestoSchedaCategorie.TextColor = Ui.C(prodotti ? "#333333" : "#FFFFFF");
+            SchedaProdotti.BackgroundColor = prodotti ? Ui.C("#2196F3") : StilePagine.FondoSpento;
+            TestoSchedaProdotti.TextColor = prodotti ? Colors.White : StilePagine.TestoNormale;
+            SchedaCategorie.BackgroundColor = prodotti ? StilePagine.FondoSpento : Ui.C("#2196F3");
+            TestoSchedaCategorie.TextColor = prodotti ? StilePagine.TestoNormale : Colors.White;
         }
 
         private async void OnChiudi(object sender, EventArgs e) => await Navigazione.Chiudi(this);

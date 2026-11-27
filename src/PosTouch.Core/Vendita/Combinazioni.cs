@@ -13,6 +13,27 @@ namespace PosTouch.Core.Vendita
     /// </summary>
     public static class Combinazioni
     {
+        /// <summary>
+        /// Parte di VariantiTesto che è un GUSTO della combinazione ("½ DIAVOLA", "⅓ VEGETARIANA", "1/5 …"):
+        /// i gusti si stampano sempre (il nome non ha più "(1/3+…)"), le varianti solo se l'opzione è attiva.
+        /// </summary>
+        public static bool IsGusto(string parte)
+        {
+            var t = (parte ?? "").Trim();
+            if (t.Length == 0) return false;
+            if (t[0] is '½' or '⅓' or '¼' or '⅕' or '⅙') return true;
+            int barra = t.IndexOf('/');
+            return barra > 0 && barra < 3 && char.IsDigit(t[0]) && barra + 1 < t.Length && char.IsDigit(t[barra + 1]);
+        }
+
+        /// <summary>Righe da stampare sotto un articolo: i gusti sempre, le varianti solo se richieste.</summary>
+        public static IEnumerable<string> RigheSotto(string variantiTesto, bool ancheVarianti)
+        {
+            if (string.IsNullOrEmpty(variantiTesto)) yield break;
+            foreach (var p in variantiTesto.Split('|'))
+                if (!string.IsNullOrWhiteSpace(p) && (ancheVarianti || IsGusto(p))) yield return p.Trim();
+        }
+
         /// <summary>Combinazione già chiusa (prezzo calcolato), non quella in corso.</summary>
         public static bool Chiusa(RigaScontrino padre) => !string.IsNullOrEmpty(padre.VariantiTesto) || padre.PrezzoCentesimi > 0;
 

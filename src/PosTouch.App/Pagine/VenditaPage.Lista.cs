@@ -157,6 +157,7 @@ namespace PosTouch.App.Pagine
 
         private void SvuotaScontrino()
         {
+            _eliminacodeInSospeso = 0;   // vendita chiusa o annullata: il prossimo documento prende un numero nuovo
             TornaAllaHome();   // scontrino/conto chiuso o annullato: si riparte dai preferiti
             if (_scontrinoEspanso) ApplicaModalitaEspansa(false);
             Carrello.Svuota();

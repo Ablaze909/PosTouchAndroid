@@ -33,16 +33,15 @@ namespace PosTouch.Core.Stampa
             p.Sinistra();
             foreach (var r in daStampare)
             {
-                string qta = r.IsAPeso ? r.Quantita.ToString("F3", It) : r.Quantita.ToString("F0", It);
+                string qta = r.IsAPeso ? r.Quantita.ToString("F3", It) : r.Quantita.ToString("0.###", It);   // 1,5 resta 1,5 (prima "2x")
                 string unita = r.IsAPeso ? $" {r.UnitaPeso}" : "x";
                 string prezzo = E(r.ImportoEuro);
                 string desc = r.Descrizione ?? "";
                 int maxDesc = L - qta.Length - unita.Length - 1 - prezzo.Length - 1;
                 if (desc.Length > maxDesc) desc = desc.Substring(0, Math.Max(maxDesc - 3, 1)) + "...";
                 p.Testo(EscPos.DueColonne($"{qta}{unita} {desc}", prezzo));
-                if (varianti && !string.IsNullOrEmpty(r.VariantiTesto))
-                    foreach (var vt in r.VariantiTesto.Split('|'))
-                        if (!string.IsNullOrWhiteSpace(vt)) p.Testo($"    {vt.Trim()}");
+                foreach (var vt in Vendita.Combinazioni.RigheSotto(r.VariantiTesto, varianti))   // gusti sempre, varianti se richieste
+                    p.Testo($"    {vt}");
             }
 
             var sconti = righe.Where(r => r.Tipo == TipoRiga.Sconto).ToList();

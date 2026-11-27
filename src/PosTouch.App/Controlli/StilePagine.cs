@@ -16,11 +16,38 @@ namespace PosTouch.App.Controlli
 
         private static readonly HashSet<string> SfondiChiari = new(StringComparer.OrdinalIgnoreCase) { "#FFFFFFFF", "#FFFAFAFA", "#FFF5F5F5", "#FFECEFF1", "#FFEEEEEE", "#FFF3F4F6", "#FFF5F7F8", "#FFE5E5E5", "#FFF0F0F0" };
         private static readonly HashSet<string> TestiScuri = new(StringComparer.OrdinalIgnoreCase) { "#FF37474F", "#FF263238", "#FF111111", "#FF000000", "#FF424242", "#FF455A64", "#FF212121", "#FF333333", "#FF555555" };
-        private static readonly HashSet<string> TestiGrigi = new(StringComparer.OrdinalIgnoreCase) { "#FF607D8B", "#FF78909C", "#FF90A4AE", "#FF999999", "#FF757575", "#FF666666", "#FF9E9E9E", "#FFB0BEC5" };
+        private static readonly HashSet<string> TestiGrigi = new(StringComparer.OrdinalIgnoreCase) { "#FF607D8B", "#FF78909C", "#FF90A4AE", "#FF999999", "#FF757575", "#FF666666", "#FF9E9E9E", "#FFB0BEC5", "#FF546E7A", "#FFBDBDBD" };
         private static readonly HashSet<string> TastiGrigi = new(StringComparer.OrdinalIgnoreCase) { "#FF9E9E9E", "#FF78909C", "#FF757575" };
         private static readonly HashSet<string> Verdi = new(StringComparer.OrdinalIgnoreCase) { "#FF4CAF50", "#FF43A047" };
 
         public static bool Scuro => (ContestoCassa.Impostazioni?.TemaInterfaccia ?? 0) == 1;
+
+        /// <summary>ClassId degli elementi che mostrano colori scelti dall'utente (anteprime, campioni): il tema non li tocca mai.</summary>
+        public const string ColoreUtente = "colore";
+
+        // ── colori da usare quando una pagina ricolora qualcosa DOPO l'apertura (il tema si applica una volta sola) ──
+        /// <summary>Valore presente (scuro/chiaro secondo il tema) o "da scegliere" (grigio).</summary>
+        public static Color TestoValore(bool presente) => Scuro ? (presente ? Testo : Color.FromArgb("#78909C")) : Color.FromArgb(presente ? "#111111" : "#BDBDBD");
+        public static Color TestoNormale => Scuro ? Testo : Color.FromArgb("#333333");
+        /// <summary>Fondo di una scheda/linguetta non attiva.</summary>
+        public static Color FondoSpento => Scuro ? Tasto : Colors.White;
+        public static Color TestoGrigio => Scuro ? Muto : Color.FromArgb("#546E7A");
+
+        /// <summary>Tasto opzione acceso/spento (colore testo, dimensione…).</summary>
+        public static void Evidenzia(Button b, bool attivo)
+        {
+            if (Scuro)
+            {
+                b.BackgroundColor = Color.FromArgb(attivo ? "#1E3A5F" : "#37474F");
+                b.BorderColor = Color.FromArgb(attivo ? "#64B5F6" : "#455A64");
+                b.TextColor = Testo;
+            }
+            else
+            {
+                b.BackgroundColor = Color.FromArgb(attivo ? "#E3F2FD" : "#F5F5F5");
+                b.BorderColor = Color.FromArgb(attivo ? "#1976D2" : "#E0E0E0");
+            }
+        }
 
         private static string Hex(Color c) => c == null ? "" : c.ToArgbHex(true).ToUpperInvariant();
 
@@ -52,6 +79,7 @@ namespace PosTouch.App.Controlli
         /// <summary>Un elemento (anche aggiunto dopo, es. tavoli ridisegnati): vedi la descrizione della classe.</summary>
         public static void Adatta(Element e)
         {
+            if (e is VisualElement ve && ve.ClassId == ColoreUtente) return;   // colori dell'utente: mai cambiati
             bool scuro = Scuro;
             switch (e)
             {

@@ -87,9 +87,9 @@ namespace PosTouch.App.Pagine
             AggiornaListini();
             bool haPrezzo = _p.PrezzoCentesimi > 0 || _p.Id > 0;
             TestoPrezzo.Text = haPrezzo ? $"{_p.PrezzoEuro:N2}" : "Tocca per digitare";
-            TestoPrezzo.TextColor = Ui.C(haPrezzo ? "#111111" : "#BDBDBD");
+            TestoPrezzo.TextColor = StilePagine.TestoValore(haPrezzo);
             TestoCosto.Text = _p.CostoCentesimi > 0 ? $"{_p.CostoEuro:N2}" : "Per margini";
-            TestoCosto.TextColor = Ui.C(_p.CostoCentesimi > 0 ? "#111111" : "#BDBDBD");
+            TestoCosto.TextColor = StilePagine.TestoValore(_p.CostoCentesimi > 0);
             TestoMargine.Text = _p.CostoCentesimi > 0
                 ? $"💎 Margine: € {_p.MargineEuro:N2}  ({(_p.PrezzoCentesimi > 0 ? _p.MargineEuro / _p.PrezzoEuro * 100 : 0):0}%)"
                 : "💎 Margine: -- €";
@@ -114,11 +114,7 @@ namespace PosTouch.App.Pagine
             AnteprimaPrezzo.Text = $"€ {_p.PrezzoEuro:F2}".Replace('.', ',');
         }
 
-        private static void Evidenzia(Button b, bool attivo)
-        {
-            b.BackgroundColor = Ui.C(attivo ? "#E3F2FD" : "#F5F5F5");
-            b.BorderColor = Ui.C(attivo ? "#1976D2" : "#E0E0E0");
-        }
+        private static void Evidenzia(Button b, bool attivo) => StilePagine.Evidenzia(b, attivo);   // colori del tema
 
         private void OnAttivoCambiato(object sender, ToggledEventArgs e)
         {

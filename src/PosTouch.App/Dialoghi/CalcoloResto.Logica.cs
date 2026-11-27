@@ -21,6 +21,7 @@ namespace PosTouch.App.Dialoghi
             if (_cartaImporto > 0 || _contantiRicevuti + valore > MaxContanti) return;
             _contantiRicevuti += valore;
             _modoCarta = false;
+            _input = "";   // la cifra lasciata a metà non deve sommarsi dopo al taglio
             Aggiorna();
         }
 

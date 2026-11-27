@@ -19,8 +19,13 @@ namespace PosTouch.App.Pagine
         private Carrello _carrelloCollegato;
         private IDispatcherTimer _timerBozza;
 
+        /// <summary>Tavolo già pagato (anche se la chiusura in archivio non è riuscita): niente più bozze, altrimenti
+        /// lo svuotamento della lista verrebbe salvato e il tavolo pagato risulterebbe vuoto/aperto.</summary>
+        private bool _tavoloPagato;
+
         private void CollegaCarrello(SessioneTavolo sessione)
         {
+            _tavoloPagato = false;
             _combinazione = null;
             OverlayPagamento.IsVisible = false;   // il popup CASSA non deve restare aperto sull'altro conto
             NascondiResto();
@@ -138,6 +143,7 @@ namespace PosTouch.App.Pagine
         {
             if (_sessione == null) return null;
             _timerBozza?.Stop();
+            _tavoloPagato = true;
             try { return _sessione.ChiudiPagato(venduti); }
             catch (Exception ex)
             {
@@ -190,7 +196,7 @@ namespace PosTouch.App.Pagine
         /// <summary>Ogni modifica al tavolo viene salvata dopo un attimo (nessuna stampa).</summary>
         private void ProgrammaBozza()
         {
-            if (_sessione == null) return;
+            if (_sessione == null || _tavoloPagato) return;
             if (_timerBozza == null)
             {
                 _timerBozza = Dispatcher.CreateTimer();
@@ -198,6 +204,7 @@ namespace PosTouch.App.Pagine
                 _timerBozza.IsRepeating = false;
                 _timerBozza.Tick += (s, e) =>
                 {
+                    if (_tavoloPagato) return;
                     try { _sessione?.SalvaBozza(); AvvisoSalvataggio.IsVisible = false; }
                     catch (Exception ex)
                     {
@@ -213,7 +220,7 @@ namespace PosTouch.App.Pagine
         /// <summary>App in background (o chiusa da Android): il salvataggio in attesa (700 ms) si fa subito.</summary>
         public void SalvaBozzaSubito()
         {
-            if (_sessione == null || _timerBozza == null || !_timerBozza.IsRunning) return;
+            if (_sessione == null || _tavoloPagato || _timerBozza == null || !_timerBozza.IsRunning) return;
             _timerBozza.Stop();
             try { _sessione.SalvaBozza(); AvvisoSalvataggio.IsVisible = false; }
             catch (Exception ex)

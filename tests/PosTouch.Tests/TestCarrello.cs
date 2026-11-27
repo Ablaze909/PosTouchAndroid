@@ -165,6 +165,25 @@ namespace PosTouch.Tests
             }
             finally { Portate.CategoriaSubito = null; }
 
+            // ── revisione: VAI per portate già avanzate, intestazioni con articoli, casella accesa a lista vuota ──
+            var cv = new Carrello { SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2" } };
+            var carbo = new Prodotto { Id = 50, Descrizione = "CARBONARA", PrezzoCentesimi = 1000, RepartoFiscale = 1, CategoriaId = 4, CentroStampa = 1 };
+            cv.ScegliPortata("SEGUE");
+            var c1 = cv.Aggiungi(carbo, 1, null, true);
+            c1.Comandata = true;
+            cv.Aggiungi(carbo, 1, null, false);   // altra carbonara in SEGUE, dopo il VAI SEGUE
+            var fv = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(cv.Righe.ToList(), portataCorrente: 1);
+            Ok(fv.Any(x => x.Tipo == TipoRiga.Portata && Portate.Nome(x) == "VAI SEGUE"), "portata già avanzata: in comanda esce VAI SEGUE");
+            var intest = cv.Righe.First(Portate.IsSeparatoreReale);
+            cv.Rimuovi(new[] { intest });
+            Ok(cv.Righe.Contains(intest) && cv.UltimoErrore != null, "intestazione con articoli: non si toglie");
+            cv.Rimuovi(cv.Righe.Where(x => x.Tipo == TipoRiga.Prodotto).ToList());
+            Ok(!cv.Righe.Any(), "tolti tutti gli articoli: lista vuota");
+            var dopo2 = cv.Aggiungi(carbo, 1, null, true);
+            Uguale(1, dopo2.Portata, "casella SEGUE ancora accesa: l'articolo va in SEGUE anche a lista vuota");
+            Ok(cv.Righe.Any(x => Portate.Nome(x) == "SEGUE"), "intestazione SEGUE rimessa");
+            Ok(PosTouch.Core.Vendita.Combinazioni.IsGusto("½ DIAVOLA") && PosTouch.Core.Vendita.Combinazioni.IsGusto("1/5 TONNO") && !PosTouch.Core.Vendita.Combinazioni.IsGusto("+ MOZZARELLA"), "gusti riconosciuti, varianti no");
+
             // ── listini 1-4 (come il PC) ──
             var vino = new Prodotto { Id = 20, Descrizione = "VINO", PrezzoCentesimi = 1000, Prezzo2Centesimi = 1200, Prezzo4Centesimi = 0, RepartoFiscale = 1, CategoriaId = 3 };
             Uguale(1200, vino.PrezzoListino(2), "listino 2");

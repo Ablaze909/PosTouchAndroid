@@ -84,9 +84,14 @@ namespace PosTouch.App.Pagine
             if (nuove == null) return;
             try
             {
+                bool temaCambiato = nuove.TemaInterfaccia != ContestoCassa.Impostazioni.TemaInterfaccia;
                 ContestoCassa.SalvaImpostazioni(nuove);
                 _statoIniziale = Firma();
                 TestoStato.Text = $"✅ Impostazioni salvate alle {DateTime.Now:HH:mm:ss}";
+                if (temaCambiato)
+                    await MessaggioBox.Info("ASPETTO CAMBIATO",
+                        "Il nuovo aspetto vale subito per la vendita, le finestre e le pagine che apri da adesso.\n\n" +
+                        "La schermata iniziale e Strumenti, già aperte, si aggiornano al prossimo avvio: chiudi e riapri l'app quando puoi.");
                 LogManager.Info($"Impostazioni salvate: {nuove.TipoCassa} {nuove.IP_RT}:{nuove.Porta_RT}");
             }
             catch (Exception ex)
@@ -106,6 +111,7 @@ namespace PosTouch.App.Pagine
             _chiusura = true;
             try
             {
+                await Ui.ChiudiTastieraAsync(this);   // la parola in scrittura conta per "modifiche non salvate"
                 if (Firma() != _statoIniziale &&
                     await MessaggioBox.Domanda("MODIFICHE NON SALVATE", "Salvare le impostazioni prima di chiudere?"))
                 {

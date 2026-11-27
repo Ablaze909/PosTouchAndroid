@@ -64,8 +64,9 @@ namespace PosTouch.App.Dialoghi
             return Ui.Riquadro(riga, "#F5F5F5", 8);
         }
 
-        private void Conferma()
+        private async void Conferma()
         {
+            await Ui.ChiudiTastieraAsync(this);   // consegna l'ultima parola scritta
             string nome = (_nome.Text ?? "").Trim().ToUpperInvariant();
             if (nome.Length == 0) { _nome.Focus(); return; }   // il nome serve: compare in testa alla comanda
             _nome.Unfocus();

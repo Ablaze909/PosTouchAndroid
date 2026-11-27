@@ -109,9 +109,10 @@ namespace PosTouch.App.Dialoghi
             {
                 bool on = _scelte.Contains(v);
                 string acceso = _aggiunta ? "#2E7D32" : "#C62828";
-                b.BackgroundColor = Ui.C(on ? acceso : "#FFFFFF");
-                b.Stroke = new SolidColorBrush(Ui.C(on ? acceso : "#E0E0E0"));
-                nome.TextColor = Ui.C(on ? "#FFFFFF" : "#263238");
+                var t = StileFinestre.T;   // spenta: colori del tema (prima tornava bianca anche col tema Scuro)
+                b.BackgroundColor = on ? Ui.C(acceso) : t.Tasto;
+                b.Stroke = new SolidColorBrush(on ? Ui.C(acceso) : t.Bordo);
+                nome.TextColor = on ? Colors.White : t.TastoTesto;
                 prezzo.TextColor = Ui.C(on ? "#FFFFFF" : p > 0 ? acceso : "#90A4AE");
             }
             Colora();

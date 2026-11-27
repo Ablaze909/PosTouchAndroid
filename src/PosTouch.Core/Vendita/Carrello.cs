@@ -196,7 +196,17 @@ namespace PosTouch.Core.Vendita
                 {
                     if (Righe.Remove(r) && r.Comandata) stornate.Add(r);
                 }
-                else if (r.Tipo == TipoRiga.Portata) Righe.Remove(r);
+                else if (r.Tipo == TipoRiga.Portata)
+                {
+                    // un'intestazione con articoli sotto non si toglie: i suoi articoli passerebbero alla portata prima
+                    // (e partirebbero subito con gli antipasti, o uscirebbero dal VAI della loro portata)
+                    if (ArticoliSotto(r, daTogliere).Count > 0)
+                    {
+                        primoErrore ??= $"La portata {Portate.Nome(r)} ha ancora articoli: toglili prima (o spostali), poi togli l'intestazione.";
+                        continue;
+                    }
+                    Righe.Remove(r);
+                }
                 else togliSconto = true;
             }
             if (togliSconto || !HaArticoli) RimuoviBloccoSconto();
@@ -204,6 +214,21 @@ namespace PosTouch.Core.Vendita
             if (!HaArticoli) foreach (var sep in Righe.Where(x => x.Tipo == TipoRiga.Portata).ToList()) Righe.Remove(sep);
             Aggiornato();
             if (stornate.Count > 0) ComandateRimosse?.Invoke(stornate);
+        }
+
+        /// <summary>Articoli della sezione di un'intestazione portata (fino alla prossima), esclusi quelli che si stanno togliendo.</summary>
+        private List<RigaScontrino> ArticoliSotto(RigaScontrino intestazione, ICollection<RigaScontrino> esclusi)
+        {
+            var ris = new List<RigaScontrino>();
+            int i = Righe.IndexOf(intestazione);
+            if (i < 0) return ris;
+            for (int j = i + 1; j < Righe.Count; j++)
+            {
+                var r = Righe[j];
+                if (r.Tipo is TipoRiga.Portata or TipoRiga.Separatore or TipoRiga.Subtotale or TipoRiga.Sconto) break;
+                if (r.Tipo == TipoRiga.Prodotto && !esclusi.Contains(r)) ris.Add(r);
+            }
+            return ris;
         }
 
         /// <summary>Sconto percentuale sul totale (come ScontoDialog percentuale del PC).</summary>
@@ -302,7 +327,8 @@ namespace PosTouch.Core.Vendita
             var inizioBlocco = InizioBloccoSconto();
             int fine = inizioBlocco == null ? Righe.Count : Righe.IndexOf(inizioBlocco);
             int pos = fine;
-            if (PortataTarget.HasValue && Righe.Any(x => x.Tipo == TipoRiga.Portata))
+            // portata scelta (casella accesa): vale anche a lista vuota, la sua intestazione si rimette (prima l'articolo finiva in INIZIO)
+            if (PortataTarget.HasValue && (PortataTarget.Value > 0 || Righe.Any(x => x.Tipo == TipoRiga.Portata)))
             {
                 int target = PortataTarget.Value;
                 if (target == 0)

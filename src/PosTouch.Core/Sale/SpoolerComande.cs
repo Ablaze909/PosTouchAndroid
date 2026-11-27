@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PosTouch.Core.Diagnostica;
@@ -96,35 +97,56 @@ namespace PosTouch.Core.Sale
         /// <summary>Stampe in errore da più di tanto (es. dal giorno prima): solo con RIPROVA a mano, mai da sole.</summary>
         private static readonly TimeSpan ScadenzaRiprovaAutomatica = TimeSpan.FromHours(6);
 
-        /// <summary>true se la coda era vuota.</summary>
+        /// <summary>
+        /// true se la coda era vuota. Ogni giro manda, IN PARALLELO, la prima stampa in attesa di ogni stampante
+        /// (prima una stampante spenta faceva aspettare 6 s anche le altre); con una stampa riuscita si riparte subito.
+        /// </summary>
         private async Task<bool> GiroAsync(bool ancheInErrore)
         {
             var coda = _archivio.CodaDaStampare(true);   // sempre anche quelle in errore: servono a tenere l'ordine
             if (coda.Count == 0) { _giaStampate.Clear(); return true; }
             var bloccate = new HashSet<string>();
+            var daInviare = new List<JobStampa>();
             bool cambiato = false;
             foreach (var job in coda)
             {
                 string chiave = $"{job.IP}:{job.Porta}";
-                if (bloccate.Contains(chiave)) continue;   // stampante giù: le successive aspettano, in ordine
+                if (bloccate.Contains(chiave)) continue;   // una stampa per stampante a giro, in ordine
                 if (_giaStampate.Contains(job.Id)) { TogliDallaCoda(job); continue; }
-                if (job.Stato == StatoJob.Errore && (!ancheInErrore || DateTime.Now - job.Creato > ScadenzaRiprovaAutomatica))
+                bool vecchia = DateTime.Now - job.Creato > ScadenzaRiprovaAutomatica;
+                if (job.Stato != StatoJob.Errore && vecchia)
+                {
+                    // rimasta in coda da ore (es. app chiusa la sera con la stampante spenta): mai stampata da sola il giorno dopo
+                    _archivio.EsitoJob(job.Id, false, "Stampa di oltre 6 ore fa: non ristampata da sola. Se serve, RIPROVA dalla coda.", true);
+                    LogManager.Warning($"SPOOLER ⌛ {job.Descrizione} → {job.Stampante}: troppo vecchia, messa in errore");
+                    bloccate.Add(chiave);
+                    cambiato = true;
+                    continue;
+                }
+                if (job.Stato == StatoJob.Errore && (!ancheInErrore || vecchia))
                 {
                     bloccate.Add(chiave);                   // una stampa in errore più vecchia blocca le successive della stessa stampante
                     continue;
                 }
+                bloccate.Add(chiave);
+                daInviare.Add(job);
+            }
 
-                string errore = await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15), job.ControlloStato);
+            var esiti = await Task.WhenAll(daInviare.Select(async job =>
+                (job, errore: await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15), job.ControlloStato))));
+
+            bool stampato = false;
+            foreach (var (job, errore) in esiti)
+            {
                 if (errore == null)
                 {
                     _giaStampate.Add(job.Id);
                     TogliDallaCoda(job);
                     LogManager.Info($"SPOOLER ✅ {job.Descrizione} → {job.Stampante}");
                     cambiato |= job.Stato == StatoJob.Errore;
+                    stampato = true;
                     continue;
                 }
-
-                bloccate.Add(chiave);
                 bool giaInErrore = job.Stato == StatoJob.Errore;
                 bool inErrore = giaInErrore || job.Tentativi + 1 >= MaxTentativi;
                 _archivio.EsitoJob(job.Id, false, errore, inErrore);
@@ -142,6 +164,7 @@ namespace PosTouch.Core.Sale
                     _ = Task.Delay(attesa).ContinueWith(_ => Sveglia());
                 }
             }
+            if (stampato) Sveglia();   // le stampe successive delle stesse stampanti partono subito
             if (cambiato) Cambiato?.Invoke(_archivio.ContaInErrore());
             return false;
         }

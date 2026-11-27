@@ -24,6 +24,7 @@ namespace PosTouch.App.Dialoghi
                 {
                     b = Ui.Tasto(voci[i], colori[i], "#FFFFFF", fontSize, 10, (s, e) => Chiudi(indice));
                     b.BorderColor = t.Bordo; b.BorderWidth = 1;
+                    b.ClassId = StilePagine.ColoreUtente;   // campione: deve restare esattamente il colore che si salva
                 }
                 else
                 {

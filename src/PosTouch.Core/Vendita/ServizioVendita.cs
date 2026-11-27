@@ -26,7 +26,9 @@ namespace PosTouch.Core.Vendita
         private string _txFooterTentativo;   // chiave dell'RT che ha già rifiutato TX_FOOTER una volta
         // true anche all'avvio: se l'app si era chiusa a metà vendita, la prima vendita controlla e sblocca l'RT
         // (prima si partiva "pulito" e le righe nuove potevano finire nello scontrino rimasto aperto)
-        private bool _ultimaVenditaFallita = true;   // FIX #16 originale: recovery preventivo alla vendita successiva
+        private bool _ultimaVenditaFallita = true;
+        /// <summary>Il primo controllo dell'RT dopo l'avvio (per un messaggio d'errore giusto).</summary>
+        private bool _controlloAvvio = true;   // FIX #16 originale: recovery preventivo alla vendita successiva
         private string _txFooterConfiguratoPer;  // tipo|ip|porta del registratore già configurato
         private int _fase;                       // 0 = prima delle righe, 1 = righe inviate, 2 = chiusura inviata, 3 = chiuso
 

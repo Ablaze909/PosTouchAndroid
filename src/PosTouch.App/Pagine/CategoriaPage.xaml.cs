@@ -74,9 +74,9 @@ namespace PosTouch.App.Pagine
         private void AggiornaTutto()
         {
             TestoIcona.Text = string.IsNullOrWhiteSpace(_cat.Icona) ? "—" : _cat.Icona;
-            TestoIcona.TextColor = Ui.C(string.IsNullOrWhiteSpace(_cat.Icona) ? "#BDBDBD" : "#111111");
+            TestoIcona.TextColor = StilePagine.TestoValore(!string.IsNullOrWhiteSpace(_cat.Icona));
             TestoReparto.Text = _reparto > 0 ? _reparto.ToString() : "Tocca per scegliere";
-            TestoReparto.TextColor = Ui.C(_reparto > 0 ? "#111111" : "#BDBDBD");
+            TestoReparto.TextColor = StilePagine.TestoValore(_reparto > 0);
             TestoColore.Text = _cat.Colore;
             TestoColoreTesto.Text = _cat.ColoreTesto;
             AnteprimaColore.BackgroundColor = Ui.ColoreSicuro(_cat.Colore, "#4CAF50");

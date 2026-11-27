@@ -238,6 +238,7 @@ namespace PosTouch.App.Controlli
         /// <summary>Un elemento appena entrato in una finestra: tasti grigi → secondari, verdi → verde OK; col tema Scuro sfondi chiari e testi scuri invertiti.</summary>
         public static void Adatta(Element e)
         {
+            if (e is VisualElement ve && ve.ClassId == StilePagine.ColoreUtente) return;   // campioni di colore: mai cambiati
             var t = T;
             bool scuro = ReferenceEquals(t, Scura);
             switch (e)
