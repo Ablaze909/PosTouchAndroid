@@ -101,7 +101,16 @@ namespace PosTouch.Core.Sale
         /// <param name="sempreSubito">Comande vere: l'intestazione SUBITO si mette sempre e la decide poi ogni reparto (FlussoCentro).</param>
         public static List<RigaScontrino> FlussoPortate(IList<RigaScontrino> righe, int portataCorrente = 0, bool sempreSubito = false)
         {
-            var grezzo = righe.Where(r => (r.Tipo == TipoRiga.Prodotto && !r.Comandata && r.CentroProduzioneId > 0) || r.Tipo == TipoRiga.Portata).ToList();
+            // articoli aggiunti in una portata già avanzata (VAI fatto): vanno fatti adesso, quindi escono sotto
+            // "!! SUBITO !!" come la prima uscita (copie solo per la stampa: la riga resta nella sua portata)
+            bool giaPartiti = false;
+            var grezzo = righe.Where(r => (r.Tipo == TipoRiga.Prodotto && !r.Comandata && r.CentroProduzioneId > 0) || r.Tipo == TipoRiga.Portata)
+                .Select(r =>
+                {
+                    if (r.Tipo != TipoRiga.Prodotto || r.Portata <= 0 || r.Portata > portataCorrente) return r;
+                    giaPartiti = true;
+                    var c = r.Copia(); c.Portata = 0; return c;
+                }).ToList();
             var ris = new List<RigaScontrino>();
             for (int i = 0; i < grezzo.Count; i++)
             {
@@ -121,7 +130,7 @@ namespace PosTouch.Core.Sale
             {
                 // solo ai tavoli che usano i separatori (SEGUE…): senza, le comande restano come sempre, senza intestazioni
                 bool conSeparatori = righe.Any(Portate.IsSeparatoreReale);
-                bool riordino = conSeparatori && righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata && r.Portata == 0);
+                bool riordino = conSeparatori && (giaPartiti || righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata && r.Portata == 0));
                 bool urgenti = conSeparatori && Portate.CategoriaSubito != null && subitoArt.Any(r => Portate.CategoriaSubito(r.CategoriaId));
                 var testa = new List<RigaScontrino>();
                 if (riordino || urgenti || (sempreSubito && conSeparatori))
@@ -129,30 +138,21 @@ namespace PosTouch.Core.Sale
                               ?? new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.NomeSubito, Quantita = 0, Portata = 0 });
                 ris = testa.Concat(subitoArt).Concat(ris.Where(r => r.Portata != 0)).ToList();
             }
-            // portate già avanzate (VAI fatto): "VAI SEGUE" invece di "SEGUE", altrimenti la cucina aspetta un VAI che non arriva più
-            if (portataCorrente > 0)
-                for (int i = 0; i < ris.Count; i++)
-                    if (Portate.IsSeparatoreReale(ris[i]) && ris[i].Portata > 0 && ris[i].Portata <= portataCorrente)
-                    {
-                        var vai = ris[i].Copia();
-                        vai.Descrizione = Portate.Descrizione("VAI " + Portate.Nome(ris[i]));
-                        vai.Portata = ris[i].Portata;
-                        ris[i] = vai;
-                    }
             return ris;
         }
 
         /// <summary>
         /// Flusso per un reparto: "!! SUBITO !!" solo se QUESTO reparto ha già ricevuto qualcosa da questo tavolo
-        /// (riordino: magari ha un SEGUE in attesa e deve capire che questi si fanno ora) o ha articoli di categorie
-        /// ⚡ SUBITO. Una bibita del bar non lo fa più uscire anche in cucina.
+        /// (riordino: magari ha un SEGUE in attesa e deve capire che questi si fanno ora), ha articoli aggiunti in una
+        /// portata già avanzata o di categorie ⚡ SUBITO. Una bibita del bar non lo fa più uscire anche in cucina.
         /// </summary>
         private List<RigaScontrino> FlussoCentro(int centro, List<RigaScontrino> flusso, IList<RigaScontrino> righe)
         {
             var f = Stampe.FlussoPer(centro, flusso);
             var subito = f?.FirstOrDefault(Portate.IsSubito);
             if (subito == null) return f;
-            bool riordino = righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.Comandata && r.CentroProduzioneId == centro);
+            bool riordino = righe.Any(r => r.Tipo == TipoRiga.Prodotto && r.CentroProduzioneId == centro
+                                           && (r.Comandata || (r.Portata > 0 && r.Portata <= Tavolo.PortataCorrente)));   // anche aggiunte in una portata già avanzata
             bool urgenti = Portate.CategoriaSubito != null
                            && f.Any(r => r.Tipo == TipoRiga.Prodotto && r.Portata == 0 && r.CentroProduzioneId == centro && Portate.CategoriaSubito(r.CategoriaId));
             if (!riordino && !urgenti) f.Remove(subito);

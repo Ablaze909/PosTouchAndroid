@@ -173,7 +173,9 @@ namespace PosTouch.Tests
             c1.Comandata = true;
             cv.Aggiungi(carbo, 1, null, false);   // altra carbonara in SEGUE, dopo il VAI SEGUE
             var fv = PosTouch.Core.Sale.SessioneTavolo.FlussoPortate(cv.Righe.ToList(), portataCorrente: 1);
-            Ok(fv.Any(x => x.Tipo == TipoRiga.Portata && Portate.Nome(x) == "VAI SEGUE"), "portata già avanzata: in comanda esce VAI SEGUE");
+            Ok(fv.Count > 0 && Portate.IsSubito(fv[0]) && !fv.Any(Portate.IsSeparatoreReale), "portata già avanzata: in comanda esce sotto SUBITO, senza SEGUE");
+            Ok(fv.Any(x => x.Tipo == TipoRiga.Prodotto && x.Descrizione == "CARBONARA" && x.Portata == 0), "l'articolo esce nella prima uscita");
+            Ok(cv.Righe.Where(x => x.Tipo == TipoRiga.Prodotto).All(x => x.Portata == 1), "nella lista l'articolo resta nella sua portata");
             var intest = cv.Righe.First(Portate.IsSeparatoreReale);
             cv.Rimuovi(new[] { intest });
             Ok(cv.Righe.Contains(intest) && cv.UltimoErrore != null, "intestazione con articoli: non si toglie");
