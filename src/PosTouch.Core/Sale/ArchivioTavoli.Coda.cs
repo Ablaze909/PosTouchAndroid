@@ -59,7 +59,8 @@ namespace PosTouch.Core.Sale
                 Esegui(c, tx, @"INSERT OR REPLACE INTO DeviazioniStampa VALUES ($ip, $p, $n, $ipd, $pd, $nd, $data)",
                        ("$ip", d.IPOrigine), ("$p", d.PortaOrigine), ("$n", d.NomeOrigine),
                        ("$ipd", d.IPDestinazione), ("$pd", d.PortaDestinazione), ("$nd", d.NomeDestinazione), ("$data", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
-                Esegui(c, tx, "UPDATE CodaStampa SET IP=$ipd, Porta=$pd, Stampante=$nd, Stato=0 WHERE IP=$ip AND Porta=$p AND Stato IN (0, 1)",
+                // tentativi da capo: sulla stampante nuova ha diritto ai suoi 4 tentativi (prima: errore al primo intoppo)
+                Esegui(c, tx, "UPDATE CodaStampa SET IP=$ipd, Porta=$pd, Stampante=$nd, Stato=0, Tentativi=0 WHERE IP=$ip AND Porta=$p AND Stato IN (0, 1)",
                        ("$ipd", d.IPDestinazione), ("$pd", d.PortaDestinazione), ("$nd", $"{d.NomeDestinazione} (deviata da {d.NomeOrigine})"),
                        ("$ip", d.IPOrigine), ("$p", d.PortaOrigine));
                 tx.Commit();
@@ -79,7 +80,7 @@ namespace PosTouch.Core.Sale
             lock (_lock)
             {
                 using var c = Apri();
-                Esegui(c, null, "UPDATE CodaStampa SET IP=$ip, Porta=$p, Stampante=$n, Stato=0 WHERE Id=$id",
+                Esegui(c, null, "UPDATE CodaStampa SET IP=$ip, Porta=$p, Stampante=$n, Stato=0, Tentativi=0 WHERE Id=$id",
                        ("$ip", ip), ("$p", porta), ("$n", nome), ("$id", id));
             }
         }
@@ -128,13 +129,24 @@ namespace PosTouch.Core.Sale
         /// <summary>Rimette in attesa le stampe in errore (tasto RIPROVA).</summary>
         public void RiprovaTutto()
         {
-            lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE CodaStampa SET Stato = 0 WHERE Stato = 1"); }
+            // tentativi da capo: dopo RIPROVA ogni stampa ha di nuovo i suoi 4 tentativi prima dell'avviso
+            lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE CodaStampa SET Stato = 0, Tentativi = 0 WHERE Stato = 1"); }
         }
 
-        /// <summary>Rimette in attesa una sola stampa (RIPROVA del singolo lavoro, come il PC).</summary>
+        /// <summary>
+        /// Rimette in attesa una stampa (RIPROVA del singolo lavoro). Se prima di lei, sulla stessa stampante, c'è una
+        /// stampa in errore, riparte anche quella: l'ordine resta e la RIPROVA non resta senza effetto.
+        /// </summary>
         public void RiprovaJob(long id)
         {
-            lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE CodaStampa SET Stato = 0 WHERE Id=$id", ("$id", id)); }
+            lock (_lock)
+            {
+                using var c = Apri();
+                Esegui(c, null, @"UPDATE CodaStampa SET Stato = 0, Tentativi = 0
+                                  WHERE Id = $id
+                                     OR (Stato = 1 AND Id < $id AND EXISTS (SELECT 1 FROM CodaStampa j WHERE j.Id = $id AND j.IP = CodaStampa.IP AND j.Porta = CodaStampa.Porta))",
+                       ("$id", id));
+            }
         }
 
         public void EliminaJob(long id)
@@ -142,7 +154,15 @@ namespace PosTouch.Core.Sale
             lock (_lock) { using var c = Apri(); Esegui(c, null, "DELETE FROM CodaStampa WHERE Id=$id", ("$id", id)); }
         }
 
-        /// <summary>Tavoli con almeno una stampa in errore: chiave "sala:numero".</summary>
+        /// <summary>
+        /// Stampa ferma: in errore, oppure in attesa dietro una stampa in errore della stessa stampante (non partirà
+        /// finché quella non esce). Prima contavano solo quelle in errore: con 3 comande per la cucina spenta la coda
+        /// diceva 1 e la mappa segnava un solo tavolo.
+        /// </summary>
+        private const string CondizioneFerma = @"(Stato = 1 OR (Stato = 0 AND EXISTS (SELECT 1 FROM CodaStampa e
+                                                  WHERE e.Stato = 1 AND e.IP = CodaStampa.IP AND e.Porta = CodaStampa.Porta AND e.Id < CodaStampa.Id)))";
+
+        /// <summary>Tavoli con almeno una stampa ferma (in errore o in attesa dietro una in errore): chiave "sala:numero".</summary>
         public HashSet<string> TavoliConErroreStampa()
         {
             lock (_lock)
@@ -150,7 +170,7 @@ namespace PosTouch.Core.Sale
                 var r = new HashSet<string>();
                 using var c = Apri();
                 using var cmd = c.CreateCommand();
-                cmd.CommandText = "SELECT DISTINCT SalaId, NumeroTavolo FROM CodaStampa WHERE Stato = 1 AND NumeroTavolo <> 0";
+                cmd.CommandText = $"SELECT DISTINCT SalaId, NumeroTavolo FROM CodaStampa WHERE NumeroTavolo <> 0 AND {CondizioneFerma}";
                 using var l = cmd.ExecuteReader();
                 while (l.Read()) r.Add($"{l.GetInt32(0)}:{l.GetInt32(1)}");
                 return r;
@@ -163,7 +183,7 @@ namespace PosTouch.Core.Sale
             {
                 using var c = Apri();
                 using var cmd = c.CreateCommand();
-                cmd.CommandText = "SELECT COUNT(*) FROM CodaStampa WHERE Stato = 1";
+                cmd.CommandText = $"SELECT COUNT(*) FROM CodaStampa WHERE {CondizioneFerma}";
                 return Convert.ToInt32(cmd.ExecuteScalar());
             }
         }

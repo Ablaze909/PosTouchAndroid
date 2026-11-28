@@ -11,7 +11,7 @@ namespace PosTouch.Core.Sale
     /// <summary>
     /// Coda di stampa delle comande (come SpoolerStampa del PC): lavora in sottofondo sulla coda salvata in tavoli.db.
     /// Una stampa che non esce viene ritentata; dopo <see cref="MaxTentativi"/> va "in errore" e l'operatore
-    /// viene avvisato; le stampe in errore vengono comunque ritentate ogni 30 secondi.
+    /// viene avvisato; le stampe in errore vengono comunque ritentate ogni 20 secondi.
     /// L'ordine per stampante è rispettato: se la cucina non risponde, le sue comande successive aspettano.
     /// </summary>
     public class SpoolerComande
@@ -62,6 +62,7 @@ namespace PosTouch.Core.Sale
             Sveglia();
         }
 
+        /// <summary>Stampe ferme: in errore o in attesa dietro una in errore della stessa stampante.</summary>
         public int InErrore => _archivio.ContaInErrore();
 
         public List<DeviazioneStampa> Deviazioni() => _archivio.Deviazioni();

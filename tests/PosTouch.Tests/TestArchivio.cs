@@ -89,6 +89,19 @@ namespace PosTouch.Tests
                 Ok(l8.UltimoOrdine == t8.UltimoOrdine && l8.UltimoVai == t8.UltimoVai && l8.FinePasto, "tempi e fine pasto salvati");
                 Uguale("VAI", l8.UltimoEvento?.tipo, "ultimo evento = il più recente (VAI)");
                 Ok(a.ApriTavolo(1, 8).FinePasto, "riaprendo il tavolo il fine pasto resta");
+
+                // 🖨️ più comande per la stessa stampante spenta: tutte "ferme", RIPROVA di una riparte dalla prima
+                foreach (var vecchia in a.CodaDaStampare(true)) a.EliminaJob(vecchia.Id);
+                JobStampa J(string d, string ip) => new JobStampa { Tipo = TipoJob.Comanda, Descrizione = d, Stampante = "CUCINA", IP = ip, Porta = 9100, Dati = new byte[] { 1 } };
+                a.AccodaStampe(new[] { J("C1", "10.0.0.5"), J("C2", "10.0.0.5"), J("C3", "10.0.0.5"), J("B1", "10.0.0.6") });
+                var cq = a.CodaDaStampare(true);
+                a.EsitoJob(cq[0].Id, false, "spenta", true);   // C1 in errore
+                Uguale(3, a.ContaInErrore(), "C1 in errore + C2 e C3 ferme dietro (B1 di un'altra stampante no)");
+                a.RiprovaJob(cq[2].Id);   // RIPROVA su C3
+                var dopoR = a.CodaDaStampare(true);
+                Ok(dopoR.All(j => j.Stato == StatoJob.InAttesa) && dopoR.First(j => j.Descrizione == "C1").Tentativi == 0, "RIPROVA su C3 fa ripartire anche C1 (prima di lei) con i tentativi da capo");
+                Uguale(0, a.ContaInErrore(), "dopo RIPROVA nessuna stampa ferma");
+                foreach (var j in dopoR) a.EliminaJob(j.Id);
             }
             finally
             {

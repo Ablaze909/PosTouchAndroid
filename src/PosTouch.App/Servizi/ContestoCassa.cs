@@ -77,12 +77,28 @@ namespace PosTouch.App.Servizi
 
             Tavoli = new ArchivioTavoli(cartellaDati);
             Spooler = new SpoolerComande(Tavoli);
-            Spooler.StampaInErrore += job => MainThread.BeginInvokeOnMainThread(async () =>
-                await PosTouch.App.Dialoghi.MessaggioBox.Avviso("🖨️ STAMPA NON RIUSCITA",
-                    $"{job.Descrizione}\n\nStampante {job.Stampante} ({job.IP}:{job.Porta}) non raggiungibile:\n{job.UltimoErrore}\n\n" +
-                    "La stampa resta in CODA e viene ritentata ogni 20 secondi.\nControlla la stampante o apri 🖨️ CODA."));
+            Spooler.StampaInErrore += job => MainThread.BeginInvokeOnMainThread(() => _ = AvvisoStampaAsync(job));
             Spooler.Avvia();
             ComandaBanco = new ComandaBanco(Tavoli, Spooler, () => Impostazioni, () => Catalogo);
+        }
+
+        /// <summary>Stampanti con l'avviso "stampa non riuscita" già a video: un avviso per stampante, non uno per comanda.</summary>
+        private static readonly HashSet<string> _avvisiStampa = new HashSet<string>();
+
+        private static async Task AvvisoStampaAsync(JobStampa job)
+        {
+            string chiave = $"{job.IP}:{job.Porta}";
+            if (!_avvisiStampa.Add(chiave)) return;   // c'è già l'avviso per questa stampante: non se ne impilano altri
+            try
+            {
+                int ferme = 0;
+                try { ferme = Tavoli.CodaDaStampare(true).Count(j => j.IP == job.IP && j.Porta == job.Porta); } catch { }
+                string altre = ferme > 1 ? $"\nIn coda per questa stampante: {ferme} stampe (escono in ordine appena torna).\n" : "\n";
+                await PosTouch.App.Dialoghi.MessaggioBox.Avviso("🖨️ STAMPA NON RIUSCITA",
+                    $"{job.Descrizione}\n\nStampante {job.Stampante} ({job.IP}:{job.Porta}) non raggiungibile:\n{PosTouch.Core.Diagnostica.ErroriRete.Traduci(job.UltimoErrore)}\n" + altre +
+                    "\nLe stampe restano in CODA e vengono ritentate ogni 20 secondi.\nControlla la stampante o apri 🖨️ CODA (RIPROVA o DEVIA).");
+            }
+            finally { _avvisiStampa.Remove(chiave); }
         }
 
         public static void SalvaImpostazioni(Impostazioni nuove)

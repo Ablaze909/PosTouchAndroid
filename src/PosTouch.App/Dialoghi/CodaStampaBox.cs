@@ -61,13 +61,18 @@ namespace PosTouch.App.Dialoghi
                 _lista.Add(new Label { Text = "✅ Nessuna stampa in coda.", FontSize = 17, TextColor = Ui.C("#2E7D32"), HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 40) });
                 return;
             }
+            var stampantiFerme = new HashSet<string>();   // stampanti con una stampa in errore già vista (più vecchia)
             foreach (var j in coda)
             {
                 bool errore = j.Stato == StatoJob.Errore;
+                string chiaveSt = $"{j.IP}:{j.Porta}";
+                bool dietro = !errore && stampantiFerme.Contains(chiaveSt);   // aspetta che esca quella in errore prima di lei
+                if (errore) stampantiFerme.Add(chiaveSt);
                 var testo = new VerticalStackLayout { Spacing = 2 };
                 testo.Add(Ui.Testo(j.Descrizione, 15, "#111111", true));
                 testo.Add(Ui.Testo($"{j.Creato:HH:mm}  •  {j.Stampante} ({j.IP}:{j.Porta})  •  tentativi {j.Tentativi}", 12, "#607D8B"));
                 if (!string.IsNullOrEmpty(j.UltimoErrore)) testo.Add(Ui.Testo($"⚠️ {PosTouch.Core.Diagnostica.ErroriRete.Traduci(j.UltimoErrore)}", 12, "#C62828"));   // anche le stampe in coda da versioni vecchie
+                if (dietro) testo.Add(Ui.Testo("⏸ In attesa: prima deve uscire la stampa in errore di questa stampante (🔁 le riprova insieme)", 12, "#E65100"));
                 var elimina = Ui.Tasto("🗑️", "#F44336", fontSize: 18, altezza: 48);
                 elimina.WidthRequest = 56;
                 long id = j.Id;
@@ -95,7 +100,7 @@ namespace PosTouch.App.Dialoghi
                 riga.Add(riprova, 1, 0);
                 riga.Add(devia, 2, 0);
                 riga.Add(elimina, 3, 0);
-                _lista.Add(Ui.Riquadro(riga, errore ? "#FFEBEE" : "#FFFFFF", 8, new Thickness(12, 8)));
+                _lista.Add(Ui.Riquadro(riga, errore ? "#FFEBEE" : dietro ? "#FFF3E0" : "#FFFFFF", 8, new Thickness(12, 8)));
             }
         }
 
