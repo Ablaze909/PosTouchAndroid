@@ -123,6 +123,22 @@ namespace PosTouch.App.Pagine
         // ══════════════ SALVA ══════════════
 
         /// <summary>Tavoli aperti (con articoli) che non rientrerebbero più in nessuna sala/slot della nuova configurazione.</summary>
+        /// <summary>Tavoli aperti con intestazioni di portata, se i separatori sono cambiati (nomi o ordine).</summary>
+        private List<string> TavoliConPortateDaRivedere()
+        {
+            var r = new List<string>();
+            var prima = ContestoCassa.Impostazioni.Sale?.SeparatoriPortate ?? new List<string>();
+            if (prima.SequenceEqual(_c.SeparatoriPortate)) return r;
+            foreach (var t in ContestoCassa.Tavoli.Aperti().Where(t => t.Occupato))
+            {
+                bool haPortate;
+                try { haPortate = ContestoCassa.Tavoli.Righe(t.Id).Any(PosTouch.Core.Sale.Portate.IsSeparatoreReale); }
+                catch { haPortate = true; }   // nel dubbio meglio chiedere
+                if (haPortate) r.Add(t.SalaId == ConfigSale.SalaConti ? $"Conto cliente {t.Numero}" : $"Sala {t.SalaId} - tavolo {t.Numero}");
+            }
+            return r;
+        }
+
         private List<string> TavoliFuoriConfigurazione()
         {
             var r = new List<string>();
@@ -160,6 +176,17 @@ namespace PosTouch.App.Pagine
                 await MessaggioBox.Avviso("TAVOLI APERTI", "Questi tavoli aperti non sarebbero più visibili con le nuove impostazioni:\n\n"
                     + string.Join("\n", fuori.Take(10)) + (fuori.Count > 10 ? "\n…" : "")
                     + "\n\nIncassali o spostali prima di salvare.");
+                return;
+            }
+
+            // nomi/ordine delle portate cambiati con tavoli aperti divisi in portate: lì le intestazioni col vecchio
+            // nome finirebbero tutte nella prima portata (o nell'ordine sbagliato)
+            var conPortate = TavoliConPortateDaRivedere();
+            if (conPortate.Count > 0)
+            {
+                await MessaggioBox.Avviso("TAVOLI APERTI CON PORTATE", "Hai cambiato i nomi o l'ordine delle portate, ma questi tavoli aperti sono già divisi in portate:\n\n"
+                    + string.Join("\n", conPortate.Take(10)) + (conPortate.Count > 10 ? "\n…" : "")
+                    + "\n\nIncassali (o chiudili) prima di cambiare le portate, poi salva.");
                 return;
             }
 

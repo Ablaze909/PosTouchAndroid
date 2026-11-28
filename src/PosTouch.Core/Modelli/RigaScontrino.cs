@@ -45,6 +45,12 @@ namespace PosTouch.Core.Modelli
         /// <summary>Numero logico della portata (0 = SUBITO / prima uscita). Per le righe Portata è il numero del separatore.</summary>
         public int Portata { get; set; }
 
+        /// <summary>
+        /// Il VAI della sua portata è già partito per questo piatto (o è uscito direttamente con "VAI …").
+        /// Serve dopo un UNISCI tra tavoli a punti diversi: il VAI stampa solo i piatti non ancora partiti.
+        /// </summary>
+        public bool VaiPartito { get; set; }
+
         private bool _comandata;
         /// <summary>Già inviata in produzione: toglierla genera uno STORNO.</summary>
         public bool Comandata

@@ -11,7 +11,13 @@ namespace PosTouch.Core.Sale
     /// <summary>tavoli.db — numeratori: progressivo comande ed eliminacode del banco.</summary>
     public partial class ArchivioTavoli
     {
-        /// <summary>Progressivo comande, ricomincia da 1 ogni giorno (come il PC).</summary>
+        /// <summary>
+        /// Giornata lavorativa: cambia alle 5 del mattino, non a mezzanotte. Un locale aperto fino a tardi non si
+        /// ritrova il numero 1 a mezzanotte con il 57 ancora in attesa al banco.
+        /// </summary>
+        public static string GiornataLavorativa(DateTime? quando = null) => (quando ?? DateTime.Now).AddHours(-5).ToString("yyyy-MM-dd");
+
+        /// <summary>Progressivo comande, ricomincia da 1 a ogni giornata lavorativa o dopo la chiusura fiscale.</summary>
         public int ProssimoProgressivoComanda()
         {
             lock (_lock)
@@ -20,7 +26,7 @@ namespace PosTouch.Core.Sale
                 using var cmd = c.CreateCommand();
                 cmd.CommandText = @"UPDATE ProgressivoComanda SET Numero = CASE WHEN Data = $oggi THEN Numero + 1 ELSE 1 END, Data = $oggi WHERE Id = 1;
                                     SELECT Numero FROM ProgressivoComanda WHERE Id = 1;";
-                cmd.Parameters.AddWithValue("$oggi", DateTime.Now.ToString("yyyy-MM-dd"));
+                cmd.Parameters.AddWithValue("$oggi", GiornataLavorativa());
                 return Convert.ToInt32(cmd.ExecuteScalar());
             }
         }
@@ -34,15 +40,20 @@ namespace PosTouch.Core.Sale
                 using var cmd = c.CreateCommand();
                 cmd.CommandText = @"UPDATE EliminacodeProgressivo SET Numero = CASE WHEN Data = $oggi THEN Numero + 1 ELSE 1 END, Data = $oggi WHERE Id = 1;
                                     SELECT Numero FROM EliminacodeProgressivo WHERE Id = 1;";
-                cmd.Parameters.AddWithValue("$oggi", DateTime.Now.ToString("yyyy-MM-dd"));
+                cmd.Parameters.AddWithValue("$oggi", GiornataLavorativa());
                 return Convert.ToInt32(cmd.ExecuteScalar());
             }
         }
 
-        /// <summary>Chiusura fiscale: l'eliminacode riparte da 1 (ResetEliminacode del PC).</summary>
+        /// <summary>Chiusura fiscale: eliminacode e progressivo comande ripartono da 1 (ResetEliminacode del PC).</summary>
         public void AzzeraEliminacode()
         {
-            lock (_lock) { using var c = Apri(); Esegui(c, null, "UPDATE EliminacodeProgressivo SET Numero = 0 WHERE Id = 1"); }
+            lock (_lock)
+            {
+                using var c = Apri();
+                Esegui(c, null, "UPDATE EliminacodeProgressivo SET Numero = 0 WHERE Id = 1");
+                Esegui(c, null, "UPDATE ProgressivoComanda SET Numero = 0 WHERE Id = 1");
+            }
         }
     }
 }

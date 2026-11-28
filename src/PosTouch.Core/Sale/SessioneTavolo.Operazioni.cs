@@ -39,18 +39,26 @@ namespace PosTouch.Core.Sale
             SalvaBozza();
             var ids = tavoliId.Where(id => id != Tavolo.Id).Distinct().ToList();
             // righe di ogni tavolo con la SUA portata (calcolata sul tavolo da solo), prima di spostarle
-            var perTavolo = new List<IList<RigaScontrino>> { Carrello.Righe.ToList() };
+            var mie = Carrello.Righe.ToList();
+            SegnaVaiGiaPartiti(mie, Tavolo.PortataCorrente);
+            var perTavolo = new List<IList<RigaScontrino>> { mie };
+            var aperti = _archivio.Aperti();
+            int portataMinima = Tavolo.PortataCorrente;
             foreach (long id in ids)
             {
                 var r = _archivio.Righe(id);
                 Portate.Assegna(r, Carrello.SeparatoriPortate);
+                int sua = aperti.FirstOrDefault(t => t.Id == id)?.PortataCorrente ?? 0;
+                SegnaVaiGiaPartiti(r, sua);
+                portataMinima = Math.Min(portataMinima, sua);
                 perTavolo.Add(r);
             }
             // lista unita calcolata PRIMA di toccare l'archivio: se qualcosa va storto non si perde niente
             var unite = UnioneTavoli.Unisci(perTavolo, Carrello.SeparatoriPortate);
             _archivio.UnisciTavoli(Tavolo.Id, ids);
-            // ogni articolo nella sua portata; la portata corrente resta quella di questo tavolo (come il PC):
-            // meglio un VAI ripetuto per il tavolo unito che un VAI mai partito per questo
+            // portata corrente = quella del tavolo più indietro: così nessun VAI resta da fare, e i piatti
+            // dell'altro tavolo già partiti (VaiPartito) non vengono rimandati in cucina
+            Tavolo.PortataCorrente = portataMinima;
             try { Carrello.Carica(unite); }
             catch
             {
@@ -64,6 +72,13 @@ namespace PosTouch.Core.Sale
             _storniPendenti.AddRange(_archivio.StorniPendenti(Tavolo.Id));
             SalvaBozza();   // ordine per portata e portata corrente salvati subito
             LogManager.Info($"UNISCI in {Titolo}: {Carrello.Righe.Count(r => r.Tipo == TipoRiga.Prodotto)} articoli");
+        }
+
+        /// <summary>Piatti comandati di portate già avanzate su quel tavolo: il loro VAI è partito (anche per tavoli di versioni precedenti).</summary>
+        private static void SegnaVaiGiaPartiti(IEnumerable<RigaScontrino> righe, int portataCorrente)
+        {
+            foreach (var r in righe)
+                if (r.Tipo == TipoRiga.Prodotto && r.Comandata && r.Portata > 0 && r.Portata <= portataCorrente) r.VaiPartito = true;
         }
 
         // ══════════════ 📋 PRECONTO ══════════════

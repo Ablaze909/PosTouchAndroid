@@ -141,6 +141,15 @@ namespace PosTouch.Core.Fiscale
                 // Se ci sono byte di dati, salvali per LeggiRispostaAsync
                 if (datiCount > 0)
                 {
+                    // risposta arrivata a pezzi: si accoda a quella non ancora letta (prima la sovrascriveva e se ne perdeva un pezzo)
+                    if (_pendingBytes != null && _pendingCount > 0)
+                    {
+                        var unito = new byte[_pendingCount + datiCount];
+                        Array.Copy(_pendingBytes, _pendingOffset, unito, 0, _pendingCount);
+                        Array.Copy(datiByte, 0, unito, _pendingCount, datiCount);
+                        datiByte = unito;
+                        datiCount = unito.Length;
+                    }
                     _pendingBytes = datiByte;
                     _pendingOffset = 0;
                     _pendingCount = datiCount;

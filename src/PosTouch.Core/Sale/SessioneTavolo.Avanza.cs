@@ -30,13 +30,16 @@ namespace PosTouch.Core.Sale
 
             var sep = righe.FirstOrDefault(r => Portate.IsSeparatoreReale(r) && r.Portata == prossima);
             string nomeSep = sep != null ? Portate.Nome(sep) : $"SEGUE {prossima}";
-            var conCentro = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == prossima && r.CentroProduzioneId > 0).ToList();
-            var senzaCentro = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == prossima && r.CentroProduzioneId <= 0).ToList();
+            var tutti = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == prossima).ToList();
+            // piatti il cui VAI è già partito (tavolo unito a un altro più avanti): non si rimandano
+            var conCentro = tutti.Where(r => r.CentroProduzioneId > 0 && !r.VaiPartito).ToList();
+            var senzaCentro = tutti.Where(r => r.CentroProduzioneId <= 0).ToList();
 
             if (conCentro.Count == 0)
             {
-                if (senzaCentro.Count == 0)
+                if (tutti.Count == 0)
                     return new AnteprimaAvanza { Titolo = "NESSUN ARTICOLO", Messaggio = $"Nessun articolo in portata '{nomeSep}'." };
+                // solo articoli senza reparto o già partiti: si avanza senza stampare
                 return new AnteprimaAvanza { Possibile = true, SenzaStampa = true, Portata = prossima, NomeSeparatore = nomeSep };
             }
             string lista = string.Join("\n", conCentro.Select(r => r.IsAPeso ? $"  {r.Quantita:0.000} {r.UnitaPeso} {r.Descrizione}" : $"  {(int)r.Quantita}x {r.Descrizione}"));
@@ -56,7 +59,7 @@ namespace PosTouch.Core.Sale
             var stampe = new List<JobStampa>();
             if (!a.SenzaStampa)
             {
-                var gruppi = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == a.Portata && r.CentroProduzioneId > 0)
+                var gruppi = righe.Where(r => r.Tipo == TipoRiga.Prodotto && r.Portata == a.Portata && r.CentroProduzioneId > 0 && !r.VaiPartito)
                                   .GroupBy(r => r.CentroProduzioneId).ToList();
                 foreach (var g in gruppi)
                 {
@@ -64,7 +67,7 @@ namespace PosTouch.Core.Sale
                     var st = InstradamentoStampa.Risolvi(Stampe, Tavolo.SalaId, g.Key);
                     if (st == null) { esito.Avvisi.Add($"{nomeCentro}: nessuna stampante impostata, VAI NON stampato."); continue; }
                     // articoli della portata non ancora trasmessi: partono con il VAI (come il PC), solo se la stampante c'è (regola 12)
-                    foreach (var r in g.Where(r => !r.Comandata)) r.Comandata = true;
+                    foreach (var r in g) { r.Comandata = true; r.VaiPartito = true; }
                     Dictionary<string, List<RigaScontrino>> altri = Cfg.StampaRiepilogoAltriCentri ? Stampe.AltriPer(g.Key, gruppi) : null;
                     var dati = new DatiComanda
                     {

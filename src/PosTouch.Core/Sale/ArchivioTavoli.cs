@@ -118,6 +118,7 @@ namespace PosTouch.Core.Sale
                 cmd.ExecuteNonQuery();
                 // colonne aggiunte nelle versioni successive (archivi già esistenti)
                 AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
+                AggiungiColonna(c, "RigheTavolo", "VaiPartito", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
                 AggiungiColonna(c, "RigheTavolo", "InStorno", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "RigheTavolo", "SovrapprezzoCent", "INTEGER NOT NULL DEFAULT 0");
@@ -211,7 +212,7 @@ namespace PosTouch.Core.Sale
                 using var cmd = c.CreateCommand();
                 cmd.CommandText = @"SELECT Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi, PrezzoOriginaleCentesimi,
                                            RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso, ScontoPercentualeCent,
-                                           CentroProduzioneId, Portata, Comandata, VariantiTesto, SovrapprezzoCent
+                                           CentroProduzioneId, Portata, Comandata, VariantiTesto, SovrapprezzoCent, VaiPartito
                                     FROM RigheTavolo WHERE TavoloId=$t AND InStorno=$s ORDER BY Ordine";
                 cmd.Parameters.AddWithValue("$t", tavoloId);
                 cmd.Parameters.AddWithValue("$s", inStorno ? 1 : 0);
@@ -237,7 +238,8 @@ namespace PosTouch.Core.Sale
                         Portata = r.GetInt32(14),
                         Comandata = r.GetInt32(15) == 1,
                         VariantiTesto = r.IsDBNull(16) ? null : r.GetString(16),
-                        SovrapprezzoCent = r.IsDBNull(17) ? 0 : r.GetInt32(17)
+                        SovrapprezzoCent = r.IsDBNull(17) ? 0 : r.GetInt32(17),
+                        VaiPartito = !r.IsDBNull(18) && r.GetInt32(18) == 1
                     });
                 return lista;
             }
@@ -282,15 +284,16 @@ namespace PosTouch.Core.Sale
                         cmd.Transaction = tx;
                         cmd.CommandText = @"INSERT INTO RigheTavolo (TavoloId, Ordine, Tipo, ProdottoId, Descrizione, Barcode, Quantita, PrezzoCentesimi,
                                                 PrezzoOriginaleCentesimi, RepartoFiscale, CategoriaId, CategoriaNome, AliquotaIVA, UnitaPeso,
-                                                ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno, SovrapprezzoCent)
-                                            VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins, $sovr)";
+                                                ScontoPercentualeCent, CentroProduzioneId, Portata, Comandata, VariantiTesto, InStorno, SovrapprezzoCent, VaiPartito)
+                                            VALUES ($t, $o, $tipo, $p, $d, $b, $q, $pr, $orig, $rep, $cat, $catN, $iva, $up, $sc, $centro, $port, $com, $var, $ins, $sovr, $vai)";
                         var par = new Dictionary<string, SqliteParameter>();
-                        foreach (var nome in new[] { "$t", "$o", "$tipo", "$p", "$d", "$b", "$q", "$pr", "$orig", "$rep", "$cat", "$catN", "$iva", "$up", "$sc", "$centro", "$port", "$com", "$var", "$ins", "$sovr" })
+                        foreach (var nome in new[] { "$t", "$o", "$tipo", "$p", "$d", "$b", "$q", "$pr", "$orig", "$rep", "$cat", "$catN", "$iva", "$up", "$sc", "$centro", "$port", "$com", "$var", "$ins", "$sovr", "$vai" })
                             par[nome] = cmd.Parameters.Add(new SqliteParameter(nome, DBNull.Value));
                         cmd.Prepare();
                         foreach (var (r, inStorno) in tutte)
                         {
                             par["$sovr"].Value = r.SovrapprezzoCent;
+                            par["$vai"].Value = r.VaiPartito ? 1 : 0;
                             par["$t"].Value = t.Id;
                             par["$o"].Value = ordine++;
                             par["$tipo"].Value = (int)r.Tipo;

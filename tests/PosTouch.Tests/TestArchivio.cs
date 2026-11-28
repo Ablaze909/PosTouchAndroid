@@ -52,6 +52,32 @@ namespace PosTouch.Tests
 
                 a.Salva(t, new List<RigaScontrino>(), liberaSeVuoto: true);
                 Ok(!a.Aperti().Any(x => x.Id == t.Id), "uscendo vuoto il tavolo si libera");
+
+                // numeri: la giornata cambia alle 5, non a mezzanotte; la chiusura azzera anche il progressivo comande
+                Uguale("2026-11-27", ArchivioTavoli.GiornataLavorativa(new DateTime(2026, 11, 28, 1, 30, 0)), "all'1:30 è ancora la giornata di ieri");
+                Uguale("2026-11-28", ArchivioTavoli.GiornataLavorativa(new DateTime(2026, 11, 28, 5, 1, 0)), "dalle 5 è la giornata nuova");
+                a.ProssimoProgressivoComanda(); a.ProssimoProgressivoComanda();
+                a.AzzeraEliminacode();
+                Uguale(1, a.ProssimoProgressivoComanda(), "chiusura fiscale: anche il progressivo comande riparte da 1");
+
+                // UNISCI tra tavoli a punti diversi: il VAI stampa solo i piatti non ancora partiti
+                var imp = new PosTouch.Core.Configurazione.Impostazioni();
+                imp.Sale.AbilitaPortate = true;
+                imp.Sale.SeparatoriPortate = new List<string> { "SEGUE", "SEGUE 2" };
+                RigaScontrino Sep() => new RigaScontrino { Tipo = TipoRiga.Portata, Descrizione = Portate.Descrizione("SEGUE"), Quantita = 0, Portata = 1 };
+                RigaScontrino Piatto(string d) => new RigaScontrino { Tipo = TipoRiga.Prodotto, ProdottoId = 7, Descrizione = d, Quantita = 1, PrezzoCentesimi = 1000, CentroProduzioneId = 2, Portata = 1, Comandata = true };
+                var t3 = a.ApriTavolo(1, 3);
+                a.Salva(t3, new List<RigaScontrino> { Sep(), Piatto("CARBONARA") });
+                var t6 = a.ApriTavolo(1, 6);
+                t6.PortataCorrente = 1;   // il 6 ha già fatto VAI SEGUE
+                a.Salva(t6, new List<RigaScontrino> { Sep(), Piatto("TAGLIATA") });
+                Uguale(1, a.Aperti().Single(x => x.Id == t6.Id).PortataCorrente, "portata corrente del 6 salvata");
+                var s3 = new SessioneTavolo(a, new SpoolerComande(a), () => imp, 1, 3);
+                s3.Unisci(new[] { t6.Id });
+                Uguale(0, s3.Tavolo.PortataCorrente, "unito: portata corrente del tavolo più indietro");
+                var av = s3.PreparaAvanza();
+                Ok(av.Possibile && av.Messaggio.Contains("CARBONARA") && !av.Messaggio.Contains("TAGLIATA"), "VAI dopo UNISCI: solo i piatti non ancora partiti");
+                Ok(a.Righe(t3.Id).Any(r => r.Descrizione == "TAGLIATA" && r.VaiPartito), "piatto già partito ricordato nell'archivio");
             }
             finally
             {

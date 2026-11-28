@@ -26,7 +26,7 @@ namespace PosTouch.Core.Sale
 
             if (nuove.Count == 0 || !stampa)
             {
-                foreach (var r in nuove.Concat(senzaCentro)) r.Comandata = true;
+                foreach (var r in nuove.Concat(senzaCentro)) SegnaComandata(r);
                 if (nuove.Count > 0) LogManager.Info($"NO STAMPA {Titolo}: {nuove.Count} righe segnate come comandate");
                 return stampe;
             }
@@ -75,10 +75,20 @@ namespace PosTouch.Core.Sale
                 });
             }
 
-            foreach (var r in nuove.Concat(senzaCentro).Except(nonInviate)) r.Comandata = true;
+            foreach (var r in nuove.Concat(senzaCentro).Except(nonInviate)) SegnaComandata(r);
             esito.ComandeAccodate = stampe.Count;
             LogManager.Info($"COMANDA {Titolo}: {nuove.Count - nonInviate.Count} righe, {stampe.Count} stampe in coda (Com.{progressivo})");
             return stampe;
+        }
+
+        /// <summary>
+        /// Riga partita in cucina. Se la sua portata ha già avuto il VAI, è uscita con "VAI …" in testa:
+        /// è già "da fare" e un VAI successivo (es. dopo un UNISCI) non deve rimandarla.
+        /// </summary>
+        private void SegnaComandata(RigaScontrino r)
+        {
+            r.Comandata = true;
+            if (Cfg.AbilitaPortate && r.Portata > 0 && r.Portata <= Tavolo.PortataCorrente) r.VaiPartito = true;
         }
 
         /// <summary>
