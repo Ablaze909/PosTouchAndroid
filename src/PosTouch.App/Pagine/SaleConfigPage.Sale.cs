@@ -33,6 +33,16 @@ namespace PosTouch.App.Pagine
                             InBox(Scelta("Listino conti clienti", Listini, _c.ListinoContiClienti - 1, i => _c.ListinoContiClienti = i + 1, 4))
                         }
                     },
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 10, Margin = new Thickness(0, 6, 0, 0),
+                        Children =
+                        {
+                            new Label { Text = "⏱ Avviso tavolo fermo dopo (minuti):", FontSize = 15, VerticalOptions = LayoutOptions.Center },
+                            Campo(_c.MinutiAvvisoTavolo.ToString(), t => _c.MinutiAvvisoTavolo = int.TryParse(t, out var n) ? n : 0, Keyboard.Numeric, 90)
+                        }
+                    },
+                    Ui.Testo("Sulla mappa i tempi del tavolo diventano arancioni se dall'ultimo ordine o VAI è passato più di così (0 = mai).", 13, "#999999"),
                     Ui.Testo("Il coperto (se scelto) viene chiesto all'apertura di un tavolo nuovo. Qui compaiono solo gli articoli di tipo 🍽️ COPERTO (scheda articolo → Tipo articolo).", 13, "#999999")
                 }
             }));

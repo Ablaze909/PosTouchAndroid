@@ -48,7 +48,7 @@ namespace PosTouch.App.Pagine
                     Id = esistente.Id, Nome = esistente.Nome, RepartoFiscale = esistente.RepartoFiscale, AliquotaIVA = esistente.AliquotaIVA,
                     Colore = esistente.Colore, ColoreTesto = esistente.ColoreTesto, Icona = esistente.Icona, Ordine = esistente.Ordine,
                     Attiva = esistente.Attiva, CentroProduzioneId = esistente.CentroProduzioneId, EscludiComandaBanco = esistente.EscludiComandaBanco,
-                    Subito = esistente.Subito
+                    Subito = esistente.Subito, FinePasto = esistente.FinePasto
                 };
 
             Titolo.Text = esistente == null ? "➕ NUOVA CATEGORIA" : "✏️ MODIFICA CATEGORIA";
@@ -64,6 +64,8 @@ namespace PosTouch.App.Pagine
             ChkEscludiBanco.IsChecked = _cat.EscludiComandaBanco;
             RigaEscludiBanco.IsVisible = ContestoCassa.Impostazioni.Stampe?.ComandeDaBanco == true;
             ChkSubito.IsChecked = _cat.Subito;
+            ChkFinePasto.IsChecked = _cat.FinePasto;
+            RigaFinePasto.IsVisible = ContestoCassa.Impostazioni.Sale.AbilitaSale || _cat.FinePasto;
             RigaSubito.IsVisible = ContestoCassa.Impostazioni.Sale.AbilitaPortate || _cat.Subito;   // se già attivo resta visibile per poterlo togliere
             SceltaIva.Voci = Aliquote.Select(a => $"{a}%").ToList();
             int iva = Array.IndexOf(Aliquote, _cat.AliquotaIVA);
@@ -175,6 +177,7 @@ namespace PosTouch.App.Pagine
             _cat.CentroProduzioneId = SceltaCentro.Indice > 0 ? _centri[SceltaCentro.Indice - 1].Numero : 0;
             _cat.EscludiComandaBanco = ChkEscludiBanco.IsChecked;
             _cat.Subito = ChkSubito.IsChecked;
+            _cat.FinePasto = ChkFinePasto.IsChecked;
             _cat.Attiva = SwAttiva.IsToggled || _cat.Id == 0;
             try
             {

@@ -73,11 +73,13 @@ namespace PosTouch.Core.Sale
         {
             var comandate = Carrello.Righe.Where(r => r.Tipo == TipoRiga.Prodotto).ToDictionary(r => r, r => r.Comandata);
             int portata = Tavolo.PortataCorrente;
+            var (ordine, vai, finePasto) = (Tavolo.UltimoOrdine, Tavolo.UltimoVai, Tavolo.FinePasto);
             try { return azione(); }
             catch
             {
                 foreach (var kv in comandate) kv.Key.Comandata = kv.Value;
                 Tavolo.PortataCorrente = portata;
+                (Tavolo.UltimoOrdine, Tavolo.UltimoVai, Tavolo.FinePasto) = (ordine, vai, finePasto);
                 throw;
             }
         }

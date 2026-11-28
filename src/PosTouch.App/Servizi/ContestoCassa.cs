@@ -59,6 +59,7 @@ namespace PosTouch.App.Servizi
             Catalogo = new Catalogo(cartellaDati);
             // comanda: gli articoli delle categorie ⚡ SUBITO escono sempre con "!! SUBITO !!"
             PosTouch.Core.Sale.Portate.CategoriaSubito = id => Catalogo.TutteCategorie.Any(c => c.Id == id && c.Subito);
+            PosTouch.Core.Sale.Portate.CategoriaFinePasto = id => Catalogo.TutteCategorie.Any(c => c.Id == id && c.FinePasto);
             try { Catalogo.Carica(); }
             catch (Exception ex) { LogManager.Error($"Catalogo non caricato: {ex.Message}"); }
 

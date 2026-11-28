@@ -88,6 +88,9 @@ namespace PosTouch.Core.Sale
         private void SegnaComandata(RigaScontrino r)
         {
             r.Comandata = true;
+            if (r.Tipo == TipoRiga.Prodotto && r.CentroProduzioneId > 0) Tavolo.UltimoOrdine = DateTime.Now;   // tempo "ORD" sulla mappa
+            if (r.Tipo == TipoRiga.Prodotto && Portate.CategoriaFinePasto != null && Portate.CategoriaFinePasto(r.CategoriaId))
+                Tavolo.FinePasto = true;   // ☕ sulla mappa
             if (Cfg.AbilitaPortate && r.Portata > 0 && r.Portata <= Tavolo.PortataCorrente) r.VaiPartito = true;
         }
 

@@ -17,6 +17,8 @@ namespace PosTouch.Core.Modelli
         public bool EscludiComandaBanco { get; set; }
         /// <summary>⚡ SUBITO automatico (colonna Subito del PC): al tavolo con le portate gli articoli vanno sempre nella portata SUBITO.</summary>
         public bool Subito { get; set; }
+        /// <summary>☕ Fine pasto (caffè, dolci, amari…): partita la comanda, sulla mappa il tavolo mostra la tazzina.</summary>
+        public bool FinePasto { get; set; }
         /// <summary>Visibile nel POS (false = nascosta, come sul PC).</summary>
         public bool Attiva { get; set; } = true;
         /// <summary>Numero articoli attivi (calcolato dal catalogo).</summary>

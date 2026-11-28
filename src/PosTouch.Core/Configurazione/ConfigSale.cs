@@ -52,6 +52,8 @@ namespace PosTouch.Core.Configurazione
         public int NumeroSlotContiClienti { get; set; } = 10;
         /// <summary>Listino dei conti clienti (1-4), come ListinoContiClienti del PC.</summary>
         public int ListinoContiClienti { get; set; } = 1;
+        /// <summary>Mappa tavoli: la striscia dei tempi diventa arancione se l'ultimo ordine/VAI è più vecchio di questi minuti (0 = mai).</summary>
+        public int MinutiAvvisoTavolo { get; set; } = 25;
         public const int SalaConti = 0;
         public List<Sala> Sale { get; set; } = new List<Sala> { new Sala { Id = 1, Nome = "Sala 1" } };
         // ── SOLO PER IL PASSAGGIO ALLE "OPZIONI DI STAMPA" (ConfigStampe): lette dai file vecchi, poi svuotate ──
@@ -96,6 +98,7 @@ namespace PosTouch.Core.Configurazione
             SeparatoriPortate ??= new List<string>();
             foreach (var s in Sale) s.Listino = Math.Clamp(s.Listino, 1, 4);   // listini 1-4 come il PC
             ListinoContiClienti = Math.Clamp(ListinoContiClienti, 1, 4);
+            MinutiAvvisoTavolo = Math.Clamp(MinutiAvvisoTavolo, 0, 240);
         }
 
         /// <summary>Impronta del contenuto: la pagina confronta apertura e chiusura per chiedere se salvare.</summary>

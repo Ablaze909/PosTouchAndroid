@@ -48,7 +48,15 @@ namespace PosTouch.Core.Sale
             {
                 var r = _archivio.Righe(id);
                 Portate.Assegna(r, Carrello.SeparatoriPortate);
-                int sua = aperti.FirstOrDefault(t => t.Id == id)?.PortataCorrente ?? 0;
+                var altro = aperti.FirstOrDefault(t => t.Id == id);
+                int sua = altro?.PortataCorrente ?? 0;
+                if (altro != null)
+                {
+                    // tempi e tazzina: valgono i più recenti / basta che uno dei tavoli abbia il fine pasto
+                    if (altro.UltimoOrdine > (Tavolo.UltimoOrdine ?? DateTime.MinValue)) Tavolo.UltimoOrdine = altro.UltimoOrdine;
+                    if (altro.UltimoVai > (Tavolo.UltimoVai ?? DateTime.MinValue)) Tavolo.UltimoVai = altro.UltimoVai;
+                    Tavolo.FinePasto |= altro.FinePasto;
+                }
                 SegnaVaiGiaPartiti(r, sua);
                 portataMinima = Math.Min(portataMinima, sua);
                 perTavolo.Add(r);

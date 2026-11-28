@@ -96,6 +96,33 @@ namespace PosTouch.App.Controlli
             vista.GestureRecognizers.Add(tap);
         }
 
+        /// <summary>
+        /// Dito tenuto premuto (~½ s) sulla vista: azione separata dal tocco normale. Solo Android (pressione lunga di sistema).
+        /// Restituisce l'ora dell'ultima pressione lunga, così il tocco che arriva subito dopo si può ignorare.
+        /// </summary>
+        public static void TenutoPremuto(View vista, Action azione)
+        {
+#if ANDROID
+            vista.HandlerChanged += (s, e) =>
+            {
+                if (vista.Handler?.PlatformView is Android.Views.View v)
+                {
+                    v.LongClickable = true;
+                    v.LongClick += (o, a) =>
+                    {
+                        a.Handled = true;
+                        UltimaPressioneLunga = DateTime.Now;
+                        try { v.PerformHapticFeedback(Android.Views.FeedbackConstants.LongPress); } catch { }
+                        azione();
+                    };
+                }
+            };
+#endif
+        }
+
+        /// <summary>Ora dell'ultima pressione lunga: un tocco entro un secondo è la fine di quella, non un tocco nuovo.</summary>
+        public static DateTime UltimaPressioneLunga { get; private set; } = DateTime.MinValue;
+
         private static readonly HashSet<View> _inLampeggio = new HashSet<View>();
 
         /// <summary>Riscontro del tocco: la vista si scurisce un attimo (come i tasti), così si capisce che il tocco è arrivato.</summary>

@@ -174,7 +174,8 @@ namespace PosTouch.Core.Dati
                         Attiva = l.Bool("Attiva", true),
                         CentroProduzioneId = l.Int("CentroProduzioneId"),
                         EscludiComandaBanco = l.Bool("EscludiComandaBanco"),
-                        Subito = l.Bool("Subito")
+                        Subito = l.Bool("Subito"),
+                        FinePasto = l.Bool("FinePasto")
                     });
                 }
             }

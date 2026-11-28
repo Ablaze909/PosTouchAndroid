@@ -78,6 +78,17 @@ namespace PosTouch.Tests
                 var av = s3.PreparaAvanza();
                 Ok(av.Possibile && av.Messaggio.Contains("CARBONARA") && !av.Messaggio.Contains("TAGLIATA"), "VAI dopo UNISCI: solo i piatti non ancora partiti");
                 Ok(a.Righe(t3.Id).Any(r => r.Descrizione == "TAGLIATA" && r.VaiPartito), "piatto già partito ricordato nell'archivio");
+
+                // ⏱ tempi e ☕ fine pasto salvati col tavolo
+                var t8 = a.ApriTavolo(1, 8);
+                t8.UltimoOrdine = new DateTime(2026, 11, 28, 20, 10, 0);
+                t8.UltimoVai = new DateTime(2026, 11, 28, 20, 40, 0);
+                t8.FinePasto = true;
+                a.Salva(t8, new List<RigaScontrino> { Piatto("TIRAMISU") });
+                var l8 = a.Aperti().Single(x => x.Id == t8.Id);
+                Ok(l8.UltimoOrdine == t8.UltimoOrdine && l8.UltimoVai == t8.UltimoVai && l8.FinePasto, "tempi e fine pasto salvati");
+                Uguale("VAI", l8.UltimoEvento?.tipo, "ultimo evento = il più recente (VAI)");
+                Ok(a.ApriTavolo(1, 8).FinePasto, "riaprendo il tavolo il fine pasto resta");
             }
             finally
             {

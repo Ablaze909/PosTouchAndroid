@@ -73,6 +73,11 @@
                                 <CheckBox x:Name="ChkSubito" Color="#FF6F00" />
                                 <Label Text="⚡ SUBITO automatico (al tavolo esce sempre per primo, es. bibite)" FontSize="14" VerticalOptions="Center" />
                             </HorizontalStackLayout>
+                            <!-- solo con le sale: sulla mappa il tavolo mostra ☕ quando parte un articolo di questa categoria -->
+                            <HorizontalStackLayout x:Name="RigaFinePasto" Margin="0,6,0,0">
+                                <CheckBox x:Name="ChkFinePasto" Color="#6D4C41" />
+                                <Label Text="☕ Fine pasto (caffè, dolci: sulla mappa il tavolo sta per liberarsi)" FontSize="14" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>

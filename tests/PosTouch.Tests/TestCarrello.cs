@@ -199,6 +199,9 @@ namespace PosTouch.Tests
             co.ScegliPortata("SUBITO"); co.Aggiungi(bru, 1, null, false);
             var sub = co.Righe.FirstOrDefault(Portate.IsSubito);
             if (sub != null) { co.Rimuovi(new[] { sub }); Ok(!co.Righe.Contains(sub), "intestazione SUBITO si può togliere anche con articoli"); }
+            var ta = new PosTouch.Core.Sale.TavoloAperto { UltimoOrdine = new System.DateTime(2026, 1, 1, 21, 0, 0), UltimoVai = new System.DateTime(2026, 1, 1, 20, 30, 0) };
+            Uguale("ORD", ta.UltimoEvento?.tipo, "ordine dopo il VAI: l'ultimo evento è l'ordine");
+            Ok(new PosTouch.Core.Sale.TavoloAperto().UltimoEvento == null, "tavolo senza comande: nessun evento");
             Ok(PosTouch.Core.Vendita.Combinazioni.IsGusto("½ DIAVOLA") && PosTouch.Core.Vendita.Combinazioni.IsGusto("1/5 TONNO") && !PosTouch.Core.Vendita.Combinazioni.IsGusto("+ MOZZARELLA"), "gusti riconosciuti, varianti no");
 
             // ── listini 1-4 (come il PC) ──

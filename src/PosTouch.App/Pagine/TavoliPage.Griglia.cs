@@ -23,7 +23,7 @@ namespace PosTouch.App.Pagine
             // aggiornamento ogni 10 s: si ridisegna solo se qualcosa è cambiato davvero (prestazioni)
             string firma = $"{sala.Id}|{sala.NumeroIniziale}|{sala.NumeroTavoli}|{string.Join(",", errori)}|" +
                            string.Join(";", aperti.Values.OrderBy(t => t.Numero).Select(t =>
-                               $"{t.Numero}:{t.TotaleCent}:{t.Preconto}:{t.PortataCorrente}:{t.PortataMassima}:{t.DaComandare}:{t.StorniDaInviare}:{t.NomeCliente}"));
+                               $"{t.Numero}:{t.TotaleCent}:{t.Preconto}:{t.PortataCorrente}:{t.PortataMassima}:{t.DaComandare}:{t.StorniDaInviare}:{t.NomeCliente}:{t.FinePasto}:{StrisciaTempi(t)}"));
             if (firma == _firmaTavoli && _griglia.Children.Count > 0) return;
             _firmaTavoli = firma;
 
@@ -88,7 +88,76 @@ namespace PosTouch.App.Pagine
                 stack.Add(Testo(stato, 12, t.Preconto ? "#BF360C" : "#FFFFFF", t.Preconto || t.PortataMassima > 0));
             }
             else stack.Add(Testo("libero", 12, "#607D8B", false, 2));
-            return Slot(stack, sfondo, t, () => ApriAsync(sala, numero));
+            if (!occupato) return Slot(stack, sfondo, t, () => ApriAsync(sala, numero));
+
+            // ⏱ striscia dei tempi: da quanto è aperto · ultimo ordine o VAI (arancione se fermo da troppo)
+            string tempi = StrisciaTempi(t);
+            if (tempi != null)
+                stack.Add(new Border
+                {
+                    StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 4 }, Margin = new Thickness(0, 3, 0, 0),
+                    Padding = new Thickness(6, 0), HorizontalOptions = LayoutOptions.Center,
+                    BackgroundColor = Fermo(t) ? Ui.C("#FFB300") : Color.FromRgba(0, 0, 0, 0.22),
+                    Content = new Label { Text = tempi, FontSize = 12, FontAttributes = FontAttributes.Bold,
+                                          TextColor = Fermo(t) ? Ui.C("#3E2723") : t.Preconto ? Ui.C("#333333") : Colors.White }
+                });
+            View contenuto = stack;
+            if (t.FinePasto)
+            {
+                // ☕ fine pasto ordinato: il tavolo sta per liberarsi
+                var g = new Grid();
+                g.Add(stack);
+                g.Add(new Border
+                {
+                    WidthRequest = 28, HeightRequest = 28, StrokeThickness = 0, BackgroundColor = Colors.White,
+                    StrokeShape = new Ellipse(), HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.Start,
+                    Margin = new Thickness(0, 6, 6, 0),
+                    Content = new Label { Text = "☕", FontSize = 15, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
+                });
+                contenuto = g;
+            }
+            var slot = Slot(contenuto, sfondo, t, () => ApriAsync(sala, numero));
+            Ui.TenutoPremuto(slot, () => _ = DettaglioTempiAsync(numero, t));
+            return slot;
+        }
+
+        // ══════════════ ⏱ tempi del tavolo ══════════════
+
+        private static string Durata(TimeSpan d)
+        {
+            if (d < TimeSpan.Zero) d = TimeSpan.Zero;
+            return d.TotalMinutes < 60 ? $"{(int)d.TotalMinutes}'" : $"{(int)d.TotalHours}h {d.Minutes:00}";
+        }
+
+        /// <summary>"1h 20 · VAI 8'": da quanto è aperto e l'ultimo evento (ordine o VAI). Cambia una volta al minuto.</summary>
+        private static string StrisciaTempi(TavoloAperto t)
+        {
+            if (t == null) return null;
+            string aperto = Durata(DateTime.Now - t.Apertura);
+            var ev = t.UltimoEvento;
+            return ev == null ? aperto : $"{aperto} · {ev.Value.tipo} {Durata(DateTime.Now - ev.Value.quando)}";
+        }
+
+        /// <summary>Ultimo ordine/VAI più vecchio della soglia (Impostazioni → Sale): tavolo da controllare.</summary>
+        private static bool Fermo(TavoloAperto t)
+        {
+            int soglia = ContestoCassa.Impostazioni?.Sale?.MinutiAvvisoTavolo ?? 0;
+            var ev = t?.UltimoEvento;
+            return soglia > 0 && ev != null && !t.Preconto && (DateTime.Now - ev.Value.quando).TotalMinutes >= soglia;
+        }
+
+        /// <summary>Dito tenuto sul tavolo: tutti i tempi in chiaro.</summary>
+        private static Task DettaglioTempiAsync(int numero, TavoloAperto t)
+        {
+            string Riga(string nome, DateTime? quando) => quando.HasValue
+                ? $"{nome}: {Durata(DateTime.Now - quando.Value)} fa (alle {quando.Value:HH:mm})"
+                : $"{nome}: —";
+            string testo = $"Aperto da {Durata(DateTime.Now - t.Apertura)} (alle {t.Apertura:HH:mm})\n"
+                         + Riga("Ultimo ordine", t.UltimoOrdine) + "\n"
+                         + Riga("Ultimo VAI", t.UltimoVai)
+                         + (t.PortataMassima > 0 ? $"\nPortate avanzate: {t.PortataCorrente} di {t.PortataMassima}" : "")
+                         + (t.FinePasto ? "\n☕ Fine pasto ordinato" : "");
+            return MessaggioBox.Info($"⏱ TAVOLO {numero}", testo);
         }
 
         /// <summary>Conto cliente sospeso: 🧑/👤, nome, totale.</summary>
@@ -129,7 +198,11 @@ namespace PosTouch.App.Pagine
                 StrokeThickness = t?.DaComandare == true || t?.StorniDaInviare == true ? 4 : 0,
                 Content = contenuto
             };
-            Ui.Tocco(b, async () => { b.Opacity = 0.8; try { await apri(); } finally { b.Opacity = 1; } });
+            Ui.Tocco(b, async () =>
+            {
+                if ((DateTime.Now - Ui.UltimaPressioneLunga).TotalSeconds < 1) return;   // era la fine di un dito tenuto premuto
+                b.Opacity = 0.8; try { await apri(); } finally { b.Opacity = 1; }
+            });
             return b;
         }
 

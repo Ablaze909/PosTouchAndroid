@@ -119,6 +119,9 @@ namespace PosTouch.Core.Sale
                 // colonne aggiunte nelle versioni successive (archivi già esistenti)
                 AggiungiColonna(c, "TavoliAperti", "NomeCliente", "TEXT DEFAULT ''");
                 AggiungiColonna(c, "RigheTavolo", "VaiPartito", "INTEGER NOT NULL DEFAULT 0");
+                AggiungiColonna(c, "TavoliAperti", "UltimoOrdine", "TEXT DEFAULT ''");
+                AggiungiColonna(c, "TavoliAperti", "UltimoVai", "TEXT DEFAULT ''");
+                AggiungiColonna(c, "TavoliAperti", "FinePasto", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "RigheTavolo", "VariantiTesto", "TEXT");
                 AggiungiColonna(c, "RigheTavolo", "InStorno", "INTEGER NOT NULL DEFAULT 0");
                 AggiungiColonna(c, "RigheTavolo", "SovrapprezzoCent", "INTEGER NOT NULL DEFAULT 0");
@@ -148,7 +151,8 @@ namespace PosTouch.Core.Sale
                            EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 0 AND r.Comandata = 0 AND r.CentroProduzioneId > 0 AND r.InStorno = 0),
                            IFNULL((SELECT MAX(r.Portata) FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.Tipo = 4), 0),
                            IFNULL(t.NomeCliente, ''),
-                           EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.InStorno = 1)
+                           EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = t.Id AND r.InStorno = 1),
+                           IFNULL(t.UltimoOrdine, ''), IFNULL(t.UltimoVai, ''), IFNULL(t.FinePasto, 0)
                     FROM TavoliAperti t";
                 var lista = new List<TavoloAperto>();
                 using var r = cmd.ExecuteReader();
@@ -160,7 +164,9 @@ namespace PosTouch.Core.Sale
                         Preconto = r.GetInt32(4) == 1, PortataCorrente = r.GetInt32(5),
                         TotaleCent = Convert.ToInt32(r.GetInt64(6)), Articoli = r.GetInt32(7), DaComandare = r.GetInt32(8) == 1,
                         PortataMassima = r.GetInt32(9), NomeCliente = r.GetString(10),
-                        StorniDaInviare = r.GetInt32(11) == 1
+                        StorniDaInviare = r.GetInt32(11) == 1,
+                        UltimoOrdine = TavoloAperto.LeggiData(r.GetString(12)), UltimoVai = TavoloAperto.LeggiData(r.GetString(13)),
+                        FinePasto = r.GetInt32(14) == 1
                     });
                 return lista;
             }
@@ -185,7 +191,9 @@ namespace PosTouch.Core.Sale
                     Esegui(c, null, "UPDATE TavoliAperti SET NomeCliente=$nome WHERE SalaId=$s AND Numero=$n AND NOT EXISTS (SELECT 1 FROM RigheTavolo r WHERE r.TavoloId = TavoliAperti.Id)",
                            ("$nome", nomeCliente), ("$s", salaId), ("$n", numero));
                 using var cmd = c.CreateCommand();
-                cmd.CommandText = "SELECT Id, DataApertura, Preconto, PortataCorrente, IFNULL(NomeCliente,'') FROM TavoliAperti WHERE SalaId=$s AND Numero=$n";
+                cmd.CommandText = @"SELECT Id, DataApertura, Preconto, PortataCorrente, IFNULL(NomeCliente,''),
+                                           IFNULL(UltimoOrdine,''), IFNULL(UltimoVai,''), IFNULL(FinePasto,0)
+                                    FROM TavoliAperti WHERE SalaId=$s AND Numero=$n";
                 cmd.Parameters.AddWithValue("$s", salaId);
                 cmd.Parameters.AddWithValue("$n", numero);
                 using var r = cmd.ExecuteReader();
@@ -194,7 +202,9 @@ namespace PosTouch.Core.Sale
                 {
                     Id = r.GetInt64(0), SalaId = salaId, Numero = numero,
                     Apertura = DateTime.TryParse(r.GetString(1), out var d) ? d : DateTime.Now,
-                    Preconto = r.GetInt32(2) == 1, PortataCorrente = r.GetInt32(3), NomeCliente = r.GetString(4)
+                    Preconto = r.GetInt32(2) == 1, PortataCorrente = r.GetInt32(3), NomeCliente = r.GetString(4),
+                    UltimoOrdine = TavoloAperto.LeggiData(r.GetString(5)), UltimoVai = TavoloAperto.LeggiData(r.GetString(6)),
+                    FinePasto = r.GetInt32(7) == 1
                 };
             }
         }
@@ -274,8 +284,9 @@ namespace PosTouch.Core.Sale
                         // il tavolo esiste sempre finché è aperto (lo ricrea se qualcosa lo avesse tolto)
                         Esegui(c, tx, "INSERT OR IGNORE INTO TavoliAperti (Id, SalaId, Numero, DataApertura, NomeCliente) VALUES ($t, $s, $n, $d, $nome)",
                                ("$t", t.Id), ("$s", t.SalaId), ("$n", t.Numero), ("$d", t.Apertura.ToString("yyyy-MM-dd HH:mm:ss")), ("$nome", t.NomeCliente ?? ""));
-                        Esegui(c, tx, "UPDATE TavoliAperti SET Preconto=$p, PortataCorrente=$pc WHERE Id=$t",
-                               ("$p", t.Preconto ? 1 : 0), ("$pc", t.PortataCorrente), ("$t", t.Id));
+                        Esegui(c, tx, "UPDATE TavoliAperti SET Preconto=$p, PortataCorrente=$pc, UltimoOrdine=$uo, UltimoVai=$uv, FinePasto=$fp WHERE Id=$t",
+                               ("$p", t.Preconto ? 1 : 0), ("$pc", t.PortataCorrente), ("$uo", TavoloAperto.ScriviData(t.UltimoOrdine)),
+                               ("$uv", TavoloAperto.ScriviData(t.UltimoVai)), ("$fp", t.FinePasto ? 1 : 0), ("$t", t.Id));
                         int ordine = 0;
                         var tutte = (righe ?? new List<RigaScontrino>()).Select(r => (r, false))
                                     .Concat((storniPendenti ?? Enumerable.Empty<RigaScontrino>()).Select(r => (r, true)));

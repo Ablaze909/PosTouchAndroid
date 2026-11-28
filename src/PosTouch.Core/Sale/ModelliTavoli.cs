@@ -29,6 +29,20 @@ namespace PosTouch.Core.Sale
         public bool Occupato => Articoli > 0 || StorniDaInviare;
         /// <summary>Portata più alta presente (0 = senza portate).</summary>
         public int PortataMassima { get; set; }
+        /// <summary>Ultima comanda partita (prima o riordino): per il tempo "ORD" sulla mappa.</summary>
+        public DateTime? UltimoOrdine { get; set; }
+        /// <summary>Ultimo AVANZA (VAI) partito: per il tempo "VAI" sulla mappa.</summary>
+        public DateTime? UltimoVai { get; set; }
+        /// <summary>È partito un articolo di una categoria "fine pasto" (caffè, dolci…): tazzina sulla mappa.</summary>
+        public bool FinePasto { get; set; }
+
+        /// <summary>Ultimo evento tra ordine e VAI (il più recente), per la striscia della mappa.</summary>
+        public (string tipo, DateTime quando)? UltimoEvento =>
+            UltimoVai.HasValue && (!UltimoOrdine.HasValue || UltimoVai >= UltimoOrdine) ? ("VAI", UltimoVai.Value)
+            : UltimoOrdine.HasValue ? ("ORD", UltimoOrdine.Value) : null;
+
+        internal static DateTime? LeggiData(string s) => !string.IsNullOrEmpty(s) && DateTime.TryParse(s, out var d) ? d : null;
+        internal static string ScriviData(DateTime? d) => d?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
     }
 
     public enum TipoJob { Comanda = 0, Storno = 1, Vai = 2, Riepilogo = 3 }

@@ -83,6 +83,7 @@ namespace PosTouch.Core.Sale
                 }
             }
             Tavolo.PortataCorrente = a.Portata;
+            Tavolo.UltimoVai = DateTime.Now;   // tempo "VAI" sulla mappa
             _archivio.Salva(Tavolo, righe.ToList(), stampe, storniPendenti: _storniPendenti);
             Sveglia(stampe);
             esito.ComandeAccodate = stampe.Count;

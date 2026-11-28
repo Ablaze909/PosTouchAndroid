@@ -20,6 +20,8 @@ namespace PosTouch.Core.Sale
         /// Serve alla comanda: quegli articoli escono sempre con "!! SUBITO !!".
         /// </summary>
         public static Func<int, bool> CategoriaSubito { get; set; }
+        /// <summary>Categoria ☕ fine pasto (impostata dall'app sul catalogo): tazzina sulla mappa quando parte la comanda.</summary>
+        public static Func<int, bool> CategoriaFinePasto { get; set; }
 
         public static bool IsSubito(RigaScontrino r) => r.Tipo == TipoRiga.Portata && r.Descrizione.Contains("SUBITO");
         public static bool IsSeparatoreReale(RigaScontrino r) => r.Tipo == TipoRiga.Portata && !r.Descrizione.Contains("SUBITO");
