@@ -98,9 +98,14 @@ namespace PosTouch.App.Pagine
             string o = ora.ToString("HH:mm"), d = ora.ToString("dd/MM/yyyy");
             if (Orologio.Text != o) Orologio.Text = o;
             if (Data.Text != d) Data.Text = d;
+            if (AvvisoRete.IsVisible) AvvisoRete.Opacity = AvvisoRete.Opacity > 0.5 ? 0.25 : 1;   // lampeggio (1 s acceso, 1 s spento)
         }
 
-        private void AggiornaAvvisoRete() => AvvisoRete.IsVisible = !ReteLocale.Collegata;
+        private void AggiornaAvvisoRete()
+        {
+            AvvisoRete.IsVisible = !ReteLocale.Collegata;
+            AvvisoRete.Opacity = 1;
+        }
 
         private double _larghezzaTasti;
 

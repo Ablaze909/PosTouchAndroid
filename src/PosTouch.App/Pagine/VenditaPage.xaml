@@ -152,10 +152,6 @@
         <Label x:Name="AvvisoSalvataggio" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="⚠️ TAVOLO NON SALVATO" FontSize="14" FontAttributes="Bold"
                TextColor="White" BackgroundColor="#C62828" Padding="10,0" HorizontalOptions="Start" Margin="260,4,0,4" VerticalOptions="Fill" VerticalTextAlignment="Center"
                IsVisible="False" InputTransparent="True" />
-        <!-- rete del locale scollegata: le comande e lo scontrino non partirebbero -->
-        <Label x:Name="AvvisoRete" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="📶 RETE SCOLLEGATA" FontSize="14" FontAttributes="Bold"
-               TextColor="White" BackgroundColor="#E65100" Padding="10,0" HorizontalOptions="Center" Margin="0,4,0,4" VerticalOptions="Fill" VerticalTextAlignment="Center"
-               IsVisible="False" InputTransparent="True" />
 
         <!-- ═════════ COLONNA SINISTRA: 🚪 → categorie (scorrono col dito) → VAR＋ VAR﹣ → 🏠 ═════════ -->
         <Grid x:Name="ColonnaSinistra" Grid.Row="1" Grid.Column="0" BackgroundColor="#FAFAFA" Padding="3" RowDefinitions="0,*,0,50">
@@ -202,6 +198,9 @@
                 <Label x:Name="TitoloScontrino" Text="📋 SCONTRINO" FontSize="14" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"
                        LineBreakMode="TailTruncation" />
                 <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
+                    <!-- rete del locale scollegata (comande e scontrino non partirebbero): lampeggia finché non torna -->
+                    <Label x:Name="AvvisoRete" Text="📶 NO RETE" FontSize="12" FontAttributes="Bold" TextColor="White" BackgroundColor="#D32F2F"
+                           Padding="6,1" VerticalOptions="Center" IsVisible="False" InputTransparent="True" />
                     <Label x:Name="Orologio" Text="00:00:00" FontSize="14" FontAttributes="Bold" FontFamily="monospace" TextColor="White" />
                     <Label x:Name="Data" Text="01/01/2026" FontSize="11" TextColor="White" VerticalOptions="Center" />
                 </HorizontalStackLayout>
