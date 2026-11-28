@@ -106,8 +106,24 @@ namespace PosTouch.App.Pagine
 
         private async void OnEsci(object sender, TappedEventArgs e)
         {
-            if (await MessaggioBox.Domanda("ESCI", "Chiudere POS Touch?"))
-                Application.Current?.Quit();
+            if (!await MessaggioBox.Domanda("ESCI", "Chiudere POS Touch?")) return;
+            // uscita dalla porta: si riordinano gli archivi (niente viene cancellato), al massimo qualche secondo.
+            // Se l'app si chiude in un altro modo questa volta si salta, e si rifà alla prossima uscita.
+            try
+            {
+                await AttesaBox.Durante("OTTIMIZZAZIONE ARCHIVI", "Un momento, l'app si chiude da sola…", async () =>
+                {
+                    var lavoro = Task.Run(() =>
+                    {
+                        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();   // rilascia i collegamenti rimasti aperti
+                        PosTouch.Core.Dati.Compattazione.Esegui(ContestoCassa.CartellaDati);
+                    });
+                    await Task.WhenAny(lavoro, Task.Delay(TimeSpan.FromSeconds(60)));   // mai bloccati sull'uscita
+                });
+            }
+            catch (Exception ex) { PosTouch.Core.Diagnostica.LogManager.Error($"Ottimizzazione all'uscita: {ex.Message}"); }
+            PosTouch.Core.Diagnostica.LogManager.Svuota();
+            Application.Current?.Quit();
         }
     }
 }

@@ -5,10 +5,28 @@ namespace PosTouch.App.Controlli
     /// <summary>Piccoli costruttori per tasti e testi nello stile POS Touch (usati da popup e pagine create da codice).</summary>
     public static class Ui
     {
-        public static Color C(string hex) => Color.FromArgb(hex);
+        // colori già convertiti: ogni "#RRGGBB" si legge una volta sola (prima a ogni tasto, riga e cambio categoria).
+        // Color è immutabile, quindi lo stesso oggetto si può riusare ovunque (anche da altri thread).
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Color> _colori = new(StringComparer.OrdinalIgnoreCase);
+
+        public static Color C(string hex)
+        {
+            if (hex == null) return Color.FromArgb(hex);   // stesso errore di prima
+            if (_colori.TryGetValue(hex, out var c)) return c;
+            c = Color.FromArgb(hex);
+            if (_colori.Count < 2000) _colori[hex] = c;
+            return c;
+        }
 
         public static Color ColoreSicuro(string hex, string predefinito)
-            => !string.IsNullOrWhiteSpace(hex) && Color.TryParse(hex.Trim(), out var c) ? c : Color.FromArgb(predefinito);
+        {
+            if (string.IsNullOrWhiteSpace(hex)) return C(predefinito);
+            string h = hex.Trim();
+            if (_colori.TryGetValue(h, out var c)) return c;
+            if (!Color.TryParse(h, out c)) return C(predefinito);
+            if (_colori.Count < 2000) _colori[h] = c;
+            return c;
+        }
 
         public static Button Tasto(string testo, string sfondo, string colTesto = "#FFFFFF", double fontSize = 16,
                                    int raggio = 8, EventHandler clic = null, double altezza = -1)

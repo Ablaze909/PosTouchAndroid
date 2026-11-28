@@ -12,7 +12,7 @@
     <!-- Identità app -->
     <ApplicationTitle>POS Touch</ApplicationTitle>
     <ApplicationId>it.alfacash.postouch</ApplicationId>
-    <ApplicationDisplayVersion>0.16.2</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>0.16.3</ApplicationDisplayVersion>
     <!-- La build su GitHub lo sostituisce col numero di build, così ogni APK si installa sopra il precedente -->
     <ApplicationVersion>1</ApplicationVersion>
 
@@ -28,6 +28,13 @@
     <AndroidSigningKeyAlias>postouch</AndroidSigningKeyAlias>
     <AndroidSigningKeyPass>env:POSTOUCH_KEY_PASS</AndroidSigningKeyPass>
     <AndroidSigningStorePass>env:POSTOUCH_KEY_PASS</AndroidSigningStorePass>
+
+    <!-- velocità: tutto il codice compilato in anticipo (non solo l'avvio), così ogni schermata risponde subito.
+         Solo tablet ARM (64 e 32 bit: alcuni tablet economici hanno Android a 32 bit); tolti gli emulatori x86/x64
+         che non servono e appesantivano l'APK -->
+    <RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
   </PropertyGroup>
 
   <ItemGroup>
