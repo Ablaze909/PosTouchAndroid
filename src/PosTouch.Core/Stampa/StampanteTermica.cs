@@ -84,6 +84,7 @@ namespace PosTouch.Core.Stampa
                 var off = await ChiediStatoAsync(2);
                 if (off.HasValue && (off.Value & 0x04) != 0) return "Coperchio della stampante aperto.";
                 if (off.HasValue && (off.Value & 0x20) != 0) return "Carta finita.";
+                if (off.HasValue && (off.Value & 0x40) != 0) return "Stampante in errore (taglierina bloccata o testina calda): spegnila e riaccendila.";
                 // n=4: sensore carta (bit 5-6 = carta esaurita)
                 var carta = await ChiediStatoAsync(4);
                 if (carta.HasValue && (carta.Value & 0x60) == 0x60) return "Carta finita.";
@@ -98,7 +99,14 @@ namespace PosTouch.Core.Stampa
             await _stream.FlushAsync();
             var buf = new byte[1];
             using var cts = new CancellationTokenSource(800);
-            try { int letti = await _stream.ReadAsync(buf, 0, 1, cts.Token); return letti == 1 ? buf[0] : null; }
+            try
+            {
+                int letti = await _stream.ReadAsync(buf, 0, 1, cts.Token);
+                if (letti != 1) return null;
+                // risposta ESC/POS valida: bit 0 = 0, bit 1 = 1, bit 4 = 1, bit 7 = 0. Altro (stampanti non compatibili,
+                // byte rimasti nella rete) si ignora: meglio stampare che bloccare la cucina per una lettura sbagliata
+                return (buf[0] & 0x93) == 0x12 ? buf[0] : null;
+            }
             catch (OperationCanceledException) { return null; }
         }
 

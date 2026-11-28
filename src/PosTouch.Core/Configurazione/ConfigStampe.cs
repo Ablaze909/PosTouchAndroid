@@ -62,7 +62,8 @@ namespace PosTouch.Core.Configurazione
 
         public ParametriStampa Uscita(int numero)
         {
-            if (!Uscite.TryGetValue(numero, out var p)) Uscite[numero] = p = new ParametriStampa();
+            // uscite di produzione (comande): controllo di stato acceso di base (carta finita, coperchio aperto)
+            if (!Uscite.TryGetValue(numero, out var p)) Uscite[numero] = p = new ParametriStampa { ControlloStato = true };
             return p;
         }
 
@@ -81,7 +82,13 @@ namespace PosTouch.Core.Configurazione
             Preconto.Normalizza();
             Riepiloghi.Normalizza();
             foreach (var p in Uscite.Values) p?.Normalizza();
-            foreach (var k in Uscite.Where(x => x.Value == null).Select(x => x.Key).ToList()) Uscite[k] = new ParametriStampa();
+            foreach (var k in Uscite.Where(x => x.Value == null).Select(x => x.Key).ToList()) Uscite[k] = new ParametriStampa { ControlloStato = true };
+        }
+
+        /// <summary>Accende il controllo di stato su tutte le uscite di comanda (una volta sola, vedi ConfigStampe).</summary>
+        internal void AccendiControlloComande()
+        {
+            foreach (var p in (Uscite ?? new Dictionary<int, ParametriStampa>()).Values) if (p != null) p.ControlloStato = true;
         }
     }
 
@@ -102,6 +109,11 @@ namespace PosTouch.Core.Configurazione
         public bool ImpostazioniPerSala { get; set; }
         /// <summary>Comanda da banco: a chiusura di scontrino o conto al banco stampa la comanda con il numero eliminacode.</summary>
         public bool ComandeDaBanco { get; set; }
+        /// <summary>
+        /// Controllo di stato già acceso una volta su tutte le stampanti delle comande (aggiornamento 0.17.5).
+        /// Dopo, ogni uscita segue il suo interruttore: chi lo spegne lo trova spento.
+        /// </summary>
+        public bool ControlloStatoComandeImpostato { get; set; }
         /// <summary>Eliminacode su ticket della termica preconti invece che in appendice allo scontrino.</summary>
         public bool TicketEliminacodeSuTermica { get; set; }
         public StampeSala Base { get; set; } = new StampeSala();
@@ -211,6 +223,14 @@ namespace PosTouch.Core.Configurazione
             Base.Normalizza();
             PerSala ??= new Dictionary<int, StampeSala>();
             foreach (var k in PerSala.Keys.ToList()) { PerSala[k] ??= Base.Copia(); PerSala[k].Normalizza(); }
+            if (!ControlloStatoComandeImpostato)
+            {
+                // comande: con la carta finita o il coperchio aperto la stampa va in coda e si viene avvisati,
+                // invece di risultare "stampata" senza che esca niente
+                Base.AccendiControlloComande();
+                foreach (var s in PerSala.Values) s.AccendiControlloComande();
+                ControlloStatoComandeImpostato = true;
+            }
         }
 
         /// <summary>Impronta del contenuto (per capire se ci sono modifiche non salvate).</summary>
