@@ -97,31 +97,79 @@ namespace PosTouch.App.Controlli
         }
 
         /// <summary>
-        /// Dito tenuto premuto (~½ s) sulla vista: azione separata dal tocco normale. Solo Android (pressione lunga di sistema).
-        /// Restituisce l'ora dell'ultima pressione lunga, così il tocco che arriva subito dopo si può ignorare.
+        /// Dito tenuto premuto (~0,6 s) sulla vista: azione separata dal tocco normale.
+        /// Il tocco che arriva alzando il dito va ignorato: chi usa anche Tocco controlla <see cref="ToccoDaIgnorare"/>.
         /// </summary>
         public static void TenutoPremuto(View vista, Action azione)
         {
-#if ANDROID
-            vista.HandlerChanged += (s, e) =>
+            // La pressione lunga di Android non arriva: il tocco normale (TapGestureRecognizer) si prende l'evento.
+            // Si misura da soli: dito giù → dopo 600 ms senza alzarlo né spostarlo = pressione lunga.
+            IDispatcherTimer timer = null;
+            Point? inizio = null;
+            bool scattato = false;
+            void Ferma() { timer?.Stop(); inizio = null; }
+            var p = new PointerGestureRecognizer();
+            p.PointerPressed += (s, e) =>
             {
-                if (vista.Handler?.PlatformView is Android.Views.View v)
-                {
-                    v.LongClickable = true;
-                    v.LongClick += (o, a) =>
-                    {
-                        a.Handled = true;
-                        UltimaPressioneLunga = DateTime.Now;
-                        try { v.PerformHapticFeedback(Android.Views.FeedbackConstants.LongPress); } catch { }
-                        azione();
-                    };
-                }
+                inizio = e.GetPosition(vista) ?? new Point();
+                scattato = false;
+                timer ??= vista.Dispatcher?.CreateTimer();
+                if (timer == null) return;
+                timer.Interval = TimeSpan.FromMilliseconds(600);
+                timer.IsRepeating = false;
+                timer.Tick -= Scatta; timer.Tick += Scatta;
+                timer.Start();
             };
+            p.PointerMoved += (s, e) =>
+            {
+                // dito che scorre la mappa: non è una pressione lunga
+                var q = e.GetPosition(vista);
+                if (inizio.HasValue && q.HasValue && (Math.Abs(q.Value.X - inizio.Value.X) > 12 || Math.Abs(q.Value.Y - inizio.Value.Y) > 12)) Ferma();
+            };
+            p.PointerReleased += (s, e) =>
+            {
+                // dito alzato dopo una pressione lunga (anche dopo secondi): il tocco che segue non deve aprire il tavolo
+                if (scattato)
+                {
+                    UltimaPressioneLunga = DateTime.Now;
+                    // se il tocco non arriva affatto, il prossimo tocco vero non va perso
+                    vista.Dispatcher?.DispatchDelayed(TimeSpan.FromMilliseconds(500), () => _ignoraTocco = false);
+                }
+                scattato = false;
+                Ferma();
+            };
+            p.PointerExited += (s, e) => Ferma();
+            vista.GestureRecognizers.Add(p);
+
+            void Scatta(object s, EventArgs e)
+            {
+                timer?.Stop();
+                if (inizio == null) return;
+                inizio = null;
+                scattato = true;
+                UltimaPressioneLunga = DateTime.Now;
+                _ignoraTocco = true;
+#if ANDROID
+                try { (vista.Handler?.PlatformView as Android.Views.View)?.PerformHapticFeedback(Android.Views.FeedbackConstants.LongPress); } catch { }
 #endif
+                azione();
+            }
         }
 
-        /// <summary>Ora dell'ultima pressione lunga: un tocco entro un secondo è la fine di quella, non un tocco nuovo.</summary>
+        /// <summary>Ora dell'ultima pressione lunga (o del dito alzato dopo di essa).</summary>
         public static DateTime UltimaPressioneLunga { get; private set; } = DateTime.MinValue;
+        private static bool _ignoraTocco;
+
+        /// <summary>
+        /// true per il tocco che arriva alzando il dito dopo una pressione lunga (una volta sola, entro 15 s):
+        /// quel tocco non deve aprire niente.
+        /// </summary>
+        public static bool ToccoDaIgnorare()
+        {
+            bool si = _ignoraTocco && (DateTime.Now - UltimaPressioneLunga).TotalSeconds < 15;
+            _ignoraTocco = false;
+            return si;
+        }
 
         private static readonly HashSet<View> _inLampeggio = new HashSet<View>();
 

@@ -200,7 +200,7 @@ namespace PosTouch.App.Pagine
             };
             Ui.Tocco(b, async () =>
             {
-                if ((DateTime.Now - Ui.UltimaPressioneLunga).TotalSeconds < 1) return;   // era la fine di un dito tenuto premuto
+                if (Ui.ToccoDaIgnorare()) return;   // era il dito alzato dopo una pressione lunga
                 b.Opacity = 0.8; try { await apri(); } finally { b.Opacity = 1; }
             });
             return b;
