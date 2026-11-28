@@ -202,7 +202,7 @@ namespace PosTouch.Core.Fiscale
             catch (Exception ex)
             {
                 LogManager.Error($"!! EPSON [{cmd}] eccezione: {ex.Message}");
-                return new EpsonResponse { ErrorMessage = ex.Message };
+                return new EpsonResponse { ErrorMessage = PosTouch.Core.Diagnostica.ErroriRete.Testo(ex) };
             }
         }
 

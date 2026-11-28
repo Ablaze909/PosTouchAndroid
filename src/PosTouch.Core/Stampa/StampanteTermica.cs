@@ -59,7 +59,7 @@ namespace PosTouch.Core.Stampa
             }
             catch (Exception ex)
             {
-                UltimoErrore = $"Stampante non raggiungibile ({_ip}:{_porta}): {ex.Message}";
+                UltimoErrore = $"Stampante non raggiungibile ({_ip}:{_porta}): {PosTouch.Core.Diagnostica.ErroriRete.Testo(ex)}";
             }
             Chiudi();
             return false;

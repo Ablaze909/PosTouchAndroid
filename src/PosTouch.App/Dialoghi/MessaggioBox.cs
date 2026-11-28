@@ -41,7 +41,8 @@ namespace PosTouch.App.Dialoghi
             _testo = new ScrollView
             {
                 MaximumHeightRequest = 380,
-                Content = new Label { Text = messaggio, FontSize = 15, TextColor = t.Muto, HorizontalTextAlignment = TextAlignment.Center, LineHeight = 1.3 }
+                // rete per ultima: un messaggio inglese di Android/.NET arrivato fin qui esce comunque in italiano
+                Content = new Label { Text = PosTouch.Core.Diagnostica.ErroriRete.Traduci(messaggio), FontSize = 15, TextColor = t.Muto, HorizontalTextAlignment = TextAlignment.Center, LineHeight = 1.3 }
             };
             corpo.Add(_testo);
 

@@ -61,7 +61,7 @@ namespace PosTouch.Core.Cassa
             catch (Exception ex)
             {
                 LogManager.Error($"Test connessione: {ex.Message}");
-                return new EsitoOperazione { Messaggio = ex.Message };
+                return new EsitoOperazione { Messaggio = PosTouch.Core.Diagnostica.ErroriRete.Testo(ex) };
             }
         }
 
@@ -95,7 +95,7 @@ namespace PosTouch.Core.Cassa
             catch (Exception ex)
             {
                 LogManager.Error($"{nome}: {ex.Message}");
-                return new EsitoOperazione { Messaggio = $"{nome}: {ex.Message}" };
+                return new EsitoOperazione { Messaggio = $"{nome}: {PosTouch.Core.Diagnostica.ErroriRete.Testo(ex)}" };
             }
         }
     }

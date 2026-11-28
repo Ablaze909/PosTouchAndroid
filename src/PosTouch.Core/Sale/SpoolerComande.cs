@@ -167,7 +167,7 @@ namespace PosTouch.Core.Sale
             {
                 string errore;
                 try { errore = await AccessoStampanti.InviaAsync(job.IP, job.Porta, job.Dati, TimeSpan.FromSeconds(15), job.ControlloStato); }
-                catch (Exception ex) { errore = ex.Message; }
+                catch (Exception ex) { errore = PosTouch.Core.Diagnostica.ErroriRete.Testo(ex); }
 
                 if (errore == null)
                 {

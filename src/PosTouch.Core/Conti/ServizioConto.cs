@@ -116,7 +116,7 @@ namespace PosTouch.Core.Conti
             catch (Exception ex)
             {
                 LogManager.Error($"Conto: errore imprevisto: {ex}");
-                return EsitoConto.Errore("ERRORE STAMPA CONTO", ex.Message);
+                return EsitoConto.Errore("ERRORE STAMPA CONTO", PosTouch.Core.Diagnostica.ErroriRete.Testo(ex));
             }
             finally
             {

@@ -31,7 +31,7 @@ namespace PosTouch.Core.Stampa
             }
             catch (Exception ex)
             {
-                return ex.Message;
+                return PosTouch.Core.Diagnostica.ErroriRete.Testo(ex);
             }
             finally
             {

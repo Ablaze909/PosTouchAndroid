@@ -67,7 +67,7 @@ namespace PosTouch.App.Dialoghi
                 var testo = new VerticalStackLayout { Spacing = 2 };
                 testo.Add(Ui.Testo(j.Descrizione, 15, "#111111", true));
                 testo.Add(Ui.Testo($"{j.Creato:HH:mm}  •  {j.Stampante} ({j.IP}:{j.Porta})  •  tentativi {j.Tentativi}", 12, "#607D8B"));
-                if (!string.IsNullOrEmpty(j.UltimoErrore)) testo.Add(Ui.Testo($"⚠️ {j.UltimoErrore}", 12, "#C62828"));
+                if (!string.IsNullOrEmpty(j.UltimoErrore)) testo.Add(Ui.Testo($"⚠️ {PosTouch.Core.Diagnostica.ErroriRete.Traduci(j.UltimoErrore)}", 12, "#C62828"));   // anche le stampe in coda da versioni vecchie
                 var elimina = Ui.Tasto("🗑️", "#F44336", fontSize: 18, altezza: 48);
                 elimina.WidthRequest = 56;
                 long id = j.Id;
